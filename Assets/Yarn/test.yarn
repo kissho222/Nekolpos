@@ -1,0 +1,203 @@
+title: Start
+---
+ねこがこちらを見ている。
+
+-> なでる
+    <<jump Pet>>
+
+-> みつめる
+    じーっと見つめ返した。
+===
+
+title: Pet
+---
+ごろごろ喉を鳴らしている。
+===
+
+title: MorningGreeting
+---
+<<if $love >= 5>>
+おはよう！
+今日も一緒だね！
+<<else>>
+朝だよ。
+<<endif>>
+===
+
+title: ActionChoice_Play_Game
+---
+猫又と何をして過ごす？
+
+-> ボール遊びする
+    <<run_action ball_play>>
+
+-> 一緒に昼寝する
+    <<run_action nap_together>>
+
+-> ブラッシングする
+    <<run_action brushing>>
+
+-> 雑談を続ける
+    そのまま話を続けることにした。
+===
+
+title: ActionChoice_Petting
+---
+そっと触れ合う時間にする？
+
+-> ゆっくり撫でる
+    <<run_action gentle_petting>>
+
+-> ブラッシングする
+    <<run_action brush_together>>
+
+-> そのまま一緒に昼寝する
+    <<run_action nap_after_petting>>
+
+-> そのまま話す
+    そのまま話を続けることにした。
+===
+
+title: ActionChoice_Punch
+---
+空気が張りつめた。どうする？
+
+-> 距離を取る
+    <<run_action step_back>>
+
+-> 素直に謝る
+    <<run_action apologize>>
+
+-> 少し黙る
+    少しだけ黙って、空気が落ち着くのを待った。
+===
+
+title: event_memory_loss
+---
+<<if $memory_intro_done == true>>
+
+え！？また忘れたの！？
+……叩いたら思い出すよね？いくよ？
+
+<<jump MemoryHit>>
+
+<<endif>>
+
+え！？忘れちゃったの！？
+\{\{CAT_NAME\}\}だよ！
+ご主人とずーっと一緒に暮らしてた\{\{CAT_NAME\}\}だよ！？
+
+-> おぼえてるよ
+    <<jump RememberBranch>>
+
+-> 覚えてない
+    <<jump ForgetBranch>>
+===
+
+title: RememberBranch
+---
+ご主人どうしちゃったの！？
+急に\{\{CAT_PRONOUN\}\}が分からなくなっちゃったの！？
+というか、昨日まで覚えてたでしょ！？
+
+……え？
+本当に分からなくなっちゃったの？
+
+どうしたら思い出してくれるかな……。
+
+私の名前は\{\{CAT_NAME\}\}。
+
+ご主人の名前は\{\{PLAYER_NAME\}\}、
+\{\{CAT_PRONOUN\}\}は\{\{PLAYER_CALLING\}\}って呼んでたよ。
+
+<<if $yesterday_food_exists == true>>
+昨日はちゃんと食べたね。
+<<else>>
+昨日は……何も食べなかったね。
+<<endif>>
+
+本当に覚えてないの？
+
+うーん……
+なんとかしなきゃ……。
+
+-> 覚えてない
+    <<jump ForgetBranch>>
+
+-> 思い出した
+    <<jump Recovered>>
+===
+
+title: ForgetBranch
+---
+……なにやら、
+ご主人の状態のことを
+キオクソーシツって言うらしいね。
+
+治すためには、
+頭に刺激が必要みたい。
+
+ちょっと痛いけど、
+準備はいい？
+
+-> いいよ
+    <<jump MemoryHit>>
+
+-> 思い出した
+    <<jump Recovered>>
+===
+
+title: MemoryHit
+---
+(SE:叩かれる)
+
+だ、大丈夫？
+私のこと思い出せた？
+
+-> いいえ
+    じゃあ、まだ足りないのかな。
+    <<jump MemoryHit>>
+
+-> 思い出した
+    <<jump Recovered>>
+===
+
+title: Recovered
+---
+よかったぁ！
+もう忘れちゃダメだからね！
+
+<<set $memory_intro_done = true>>
+===
+
+title: yarn_accident_talk
+---
+じゃあ、私の知ってる限りのことを話すよ。
+まず、\{\{PLAYER_CALLING\}\}は旅行に行くために\{\{CAT_PRONOUN\}\}のことを前の家……お父さんとお母さんの家に預けたね？
+そこではちゃんと大人しく待ってたんだけど、この家に戻るまでの帰り道。
+……とても強い雨が降ってた。
+お父さんの運転する車に向かって、別の車が突っ込んできて……。
+そこからケージごと投げ出されて、滅茶苦茶な音がして、雨が降ってるのに、大きな火が上がった。
+……\{\{CAT_PRONOUN\}\}には、何もできなかった。お父さんとお母さんを守れなかった。
+今までこんなに守ってもらったのに。
+そして……すぐに、\{\{PLAYER_CALLING\}\}のことを思った。
+\{\{CAT_PRONOUN\}\}がここで倒れたら、\{\{PLAYER_CALLING\}\}は一人ぼっちになっちゃう。
+お父さんとお母さんが居なくなったら、\{\{PLAYER_CALLING\}\}を守れるのは\{\{CAT_PRONOUN\}\}しかいない。
+だから……体中痛かったけど、この家に向かって走ったんだ。
+\{\{CAT_PRONOUN\}\}が知ってるのはここまで。
+……こういう時、なんて言ってあげるのがいいのか分からないけど、これだけは言える。
+\{\{PLAYER_CALLING\}\}のことは、\{\{CAT_PRONOUN\}\}が絶対に守るから。
+\{\{CAT_PRONOUN\}\}が守って、\{\{CAT_PRONOUN\}\}が幸せにする。
+それだけが\{\{CAT_PRONOUN\}\}の願いなんだよ。
+===
+
+title: talking_mechanism
+---
+\{\{CAT_PRONOUN\}\}が喋ってる時、\{\{PLAYER_CALLING\}\}とは違って口が開いてないでしょ？
+\{\{CAT_PRONOUN\}\}が念じるだけで、\{\{PLAYER_CALLING\}\}にちゃんと言葉が届くんだよ。
+念話っていうんだけど、⋯⋯テレパシー？そうとも言うかな。
+猫の声帯は、人間の言語を話すのに向いてないからね。
+\{\{PLAYER_CALLING\}\}の言葉は頑張って耳で聞いてるよ。それは猫又になる前からやってたけど、
+猫又になってからは意味を考えられるし、ご主人も教えてくれるし、たくさん勉強できて楽しい！
+とにかく、喋ってると言うより、脳に直接語りかけてるから、発音の勉強はしなくて済んでるってわけ。
+===

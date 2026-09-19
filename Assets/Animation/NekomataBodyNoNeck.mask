@@ -1,0 +1,117 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!319 &31900000
+AvatarMask:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: NekomataBodyNoNeck
+  m_Mask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+  m_Elements:
+  - m_Path: 
+    m_Weight: 1
+  - m_Path: Arm_Cat
+    m_Weight: 0
+  - m_Path: Arm_Cat/root_bone
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Helper_claw_b.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Helper_claw_b.R
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Helper_foot_f.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Helper_foot_f.R
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/hip_b.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/hip_b.L/leg_b.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/hip_b.L/leg_b.L/foot_b.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/hip_b.L/leg_b.L/foot_b.L/claw_b.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/hip_b.R
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/hip_b.R/leg_b.R
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/hip_b.R/leg_b.R/foot_b.R
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/hip_b.R/leg_b.R/foot_b.R/claw_b.R
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_01
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_01/tail_01
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_01/tail_01/tail_02
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_01/tail_01/tail_02/tail_03
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_01/tail_01/tail_02/tail_03/tail_04
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_01/tail_01/tail_02/tail_03/tail_04/tail_05
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck
+    m_Weight: 0
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck/head
+    m_Weight: 0
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck/head/ear_1.L
+    m_Weight: 0
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck/head/ear_1.L/ear_2.L
+    m_Weight: 0
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck/head/ear_1.R
+    m_Weight: 0
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck/head/ear_1.R/ear_2.R
+    m_Weight: 0
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck/head/eye.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck/head/eye.R
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck/head/eyelid.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck/head/eyelid.R
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck/head/mouth
+    m_Weight: 0
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck/head/mouth/tongue_01
+    m_Weight: 0
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck/head/mouth/tongue_01/tongue_02
+    m_Weight: 0
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck/head/mouth/tongue_01/tongue_02/tongue_03
+    m_Weight: 0
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck/head/mustache.L
+    m_Weight: 0
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/neck/head/mustache.R
+    m_Weight: 0
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/shoulder_blade.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/shoulder_blade.L/hip_f.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/shoulder_blade.L/hip_f.L/leg_f.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/shoulder_blade.L/hip_f.L/leg_f.L/foot_f.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/shoulder_blade.L/hip_f.L/leg_f.L/foot_f.L/claw_f.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/shoulder_blade.R
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/shoulder_blade.R/hip_f.R
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/shoulder_blade.R/hip_f.R/leg_f.R
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/shoulder_blade.R/hip_f.R/leg_f.R/foot_f.R
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/shoulder_blade.R/hip_f.R/leg_f.R/foot_f.R/claw_f.R
+    m_Weight: 1
+  - m_Path: Cat_1
+    m_Weight: 0

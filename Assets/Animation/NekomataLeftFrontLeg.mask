@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!319 &31900000
+AvatarMask:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: NekomataLeftFrontLeg
+  m_Mask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+  m_Elements:
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/shoulder_blade.L/hip_f.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/shoulder_blade.L/hip_f.L/leg_f.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/shoulder_blade.L/hip_f.L/leg_f.L/foot_f.L
+    m_Weight: 1
+  - m_Path: Arm_Cat/root_bone/Spine_base/spine_02/spine_03/spine_04/spine_05/shoulder_blade.L/hip_f.L/leg_f.L/foot_f.L/claw_f.L
+    m_Weight: 1

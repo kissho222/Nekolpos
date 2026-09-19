@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bcbb65476759e9345b581ff939f4f831, type: 3}
+  m_Name: TextEditPreviewState
+  m_EditorClassIdentifier: Assembly-CSharp::Nekolpos.System.TextEditPreviewState
+  SourceCsvPath: C:/Users/shoho/Nekolpos/TalkSource/TalkCSV/DialoguePreview_Integrated.csv
+  RegexId: phone
+  Pattern: 2
+  SequenceIndex: 1
+  SequenceCount: 1
+  Order: 2
+  ResponseType: Action
+  ActionId: 
+  Condition: 
+  StateSummary: "\u611B\u60C5:Low / \u30C9S:Low / \u5FC3\u914D:Low / \u6575\u5BFE:Low
+    / \u5F93\u9806:Low / \u672C\u80FD:Low / \u6642\u9593:\u663C / flow:System Action
+    / \u6709\u52B9 / \u6761\u4EF6\u4E00\u81F4"
+  SpeakerName: "\u732B\u53C8"
+  Message: 
+  MessageChinese: 
+  MessageEnglish: 
+  Warnings: '[CALL ONLY]'
+  Revision: 5404
