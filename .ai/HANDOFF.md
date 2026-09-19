@@ -4,7 +4,7 @@
 
 ## 更新日時
 
-2026-09-19 15:22:21 JST
+2026-09-19 15:23:30 JST
 
 ## 現在の作業
 
@@ -28,6 +28,7 @@ Unity 6000.3.10f1 / WebGLプロジェクトの追跡対象を`.gitignore`で定�
 ## 変更した主要ファイル
 
 - `.gitignore`
+- `.ai/HANDOFF.md`
 - `Assets/`（公開可能なプロジェクト固有のコード・設定・ゲームデータ）
 - `Packages/`
 - `ProjectSettings/`
@@ -62,6 +63,5 @@ Unity 6000.3.10f1 / WebGLプロジェクトの追跡対象を`.gitignore`で定�
 
 ## 次に行う候補
 
-- このHANDOFF更新を`origin/chore/ai-handoff-foundation`へpushする。
 - 公開前に、除外済み素材を含む全アセットの権利情報を確認し、許諾済みのものだけを個別に追加する。
 - 必要になった時点で、作業ブランチのPull Request作成または既定ブランチへの統合を行う。
