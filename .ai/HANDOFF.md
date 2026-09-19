@@ -4,7 +4,7 @@
 
 ## 更新日時
 
-2026-09-19 14:54:57 JST
+2026-09-19 14:56:59 JST
 
 ## 現在の作業
 
@@ -36,6 +36,7 @@ GitHubの`codex-task` Issueを読み取り専用で取得し、Codexの作業指
 - `.codex/hooks/handoff_guard.py`
 - `.codex/tools/github_issue_reader.py`
 - `.codex/tools/tests/test_github_issue_reader.py`
+- `.gitignore`
 
 ## 実施した動作確認・テスト
 
@@ -61,6 +62,7 @@ GitHubの`codex-task` Issueを読み取り専用で取得し、Codexの作業指
 - `gh`が利用可能なら優先し、利用不可または読み取り失敗時は、秘密情報を使わないGitHub REST API GETを1回ずつ試す。無限リトライはしない。
 - REST APIのIssue一覧にはPull Requestも含まれ得るため、`pull_request`フィールドを持つ要素は候補から除外する。
 - Issue本文はHookの作業開始コンテキストとしてのみ使い、HANDOFFへ全文を転記しない。
+- `.codex/tools`配下のテスト実行で生成されるPythonバイトコードだけを`.gitignore`で除外する。Unityの生成物や既存ファイルはこの設定で除外しない。
 - Stop Hookは通常の更新を代替せず、同一ターンでプロジェクトファイルが更新されたのにHANDOFFがその後更新されていない場合だけ、1回だけ続行を促す。
 - Hookの状態はOSの一時ディレクトリにのみ保存し、秘密情報・会話本文・Issue本文を保存しない。
 - 初回pushは`main`へ直接コミットせず、`chore/ai-handoff-foundation`ブランチを使用する。
