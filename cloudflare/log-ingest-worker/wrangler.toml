@@ -1,0 +1,14 @@
+name = "nekolpos-log-ingest"
+main = "src/index.ts"
+compatibility_date = "2026-06-24"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nekolpos_dialogue_logs"
+database_id = "replace-with-your-d1-database-id"
+migrations_dir = "migrations"
+
+[vars]
+# Set this to "true" in production and configure NEKOLPOS_UPLOAD_KEY as a secret.
+# Keep it "false" for local/browser testing without authentication.
+REQUIRE_UPLOAD_KEY = "false"

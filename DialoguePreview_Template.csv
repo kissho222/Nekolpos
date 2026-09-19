@@ -1,0 +1,4 @@
+id,input,regex_jp,regex_zh,regex_en,output_ja,output_zh,output_en,alt,regex_id,pattern,order,response_type,action_id,condition,SpeechControl,emotion_change_type,emotion_change_value,WaitTime,HideUI,Animation,Priority,call_only,choice_yes_pattern,choice_no_pattern
+100,あいさつ,(おはよう|こんにちは|こんばんは),(早上好|你好|晚上好),(good morning|hello|good evening),こんにちは、{{PLAYER_CALLING}},你好，{{PLAYER_CALLING}},Hello, {{PLAYER_CALLING}},,greet_template,1,1,Normal,,,Random,,0,0,false,,10,false,,
+101,遊ぼう,(あそぼう|いっしょにあそぼう),(一起玩吧|来玩吧),(let's play|play with me),何して遊ぶ？,要玩什么？,What do you want to play?,,play_template,1,1,Action,Play_Game,,Sequence,,0,0,false,,10,false,,
+102,なんで賢いの,(なんでかしこいの|どうしてかしこいの),(为什么这么聪明),(why are you so smart),少し長くなるけどいい？,会有点长哦，可以吗？,It might take a while. Is that okay?,,smart_template,1,1,Choice,,,Call,,0,0,false,,20,true,smart_template_yes,smart_template_no

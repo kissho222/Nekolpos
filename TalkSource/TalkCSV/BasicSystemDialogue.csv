@@ -1,0 +1,121 @@
+key,pattern,order,condition,priority,ja,en,zh,response_type,action_id,choice_yes_pattern,choice_no_pattern,question_ja,question_en,question_cn,choice_yes_ja,choice_yes_en,choice_yes_cn,choice_no_ja,choice_no_en,choice_no_cn,notes,
+greeting_morning,greeting_morning,1,Morning,10,おはよう！朝だね。今日はなにしようか。,Good morning! It's morning. What should we do today?,早上好！已经早晨了。今天做什么呢？,Reaction,,,,,,,,,,,,,通常の朝挨拶,
+greeting_day,greeting_day,1,Day,10,昼だね。お腹空いてない？,It's daytime. Aren't you hungry?,中午了。你肚子饿吗？,Reaction,,,,,,,,,,,,,昼の挨拶,
+greeting_night,greeting_night,1,Night,10,夜だね。寝る前に何かする？,,,Reaction,,,,,,,,,,,,,夜の挨拶,
+greeting_evening,greeting_evening,1,Evening,10,夕方だね。やり忘れたことはない？,It's evening. Did you forget to do anything?,傍晚了。有没有什么忘记做的？,Reaction,,,,,,,,,,,,,夕の挨拶,
+greeting_revived_morning,greeting_revived_morning,1,Morning,100,……おはよう。どんな気分？無事に生き返れたみたいだね。,I thought you had died...,我还以为你已经死掉了……,Reaction,,,,,,,,,,,,,死亡フラグ後の朝挨拶,
+unknown_word_prompt,unknown_word_prompt,1,,10,{unknown_word}ってなに？もしかして、言葉を教えてくれるの？,What's {unknown_word}? Could you tell me what it means?,{unknown_word}是什么？你能告诉我这是什么意思吗？,Choice,,unknown_word_teach_yes,unknown_word_teach_no,,,,言葉を教える,"Yes, I'll explain.",嗯，我来解释,やめておく,"No, that's not it.",不是哦,未知語の聞き返しテンプレート,
+unknown_word_teach_yes,unknown_word_teach_yes,1,,10,やったー！じゃあ、{unknown_word}ってどういう意味？,Okay. Then what does {unknown_word} mean?,明白了。那么，{unknown_word}是什么意思？,Event,unknown_word_teach_event,,,,,,,,,,,,未知語を教えてもらうイベント分岐,
+unknown_word_teach_no,unknown_word_teach_no,1,,10,そっか。よかったらまた後で教えてね！,I see. Then let's leave it there for now.,这样啊。那现在就先这样吧。,Reaction,,,,,,,,,,,,,未知語の説明を断られた時,
+fallback_unknown_input,fallback_unknown_input,1,,10,うーん、なんのことだろう？,Hmm... what could that be about?,嗯……那是在说什么呢？,Reaction,,,,,,,,,,,,,未知語抽出も失敗した時のフォールバック,
+SYS_RENAME_CAT_CONFIRM,SYS_RENAME_CAT_CONFIRM,1,,100,えっ？{{CAT_PRONOUN}}の名前が変わるの……？{{CAT_NAME}}ってもう呼ばれないの？,,,Choice,,SYS_RENAME_CAT_ACCEPT,SYS_RENAME_CAT_CANCEL,{{CAT_NAME}}に新しい名前を付ける？,,,はい,Yes,是,いいえ,No,不是,猫又改名確認,
+SYS_RENAME_CAT_ACCEPT,SYS_RENAME_CAT_ACCEPT,1,,100,わかった！今日から{{CAT_NAME}}としてよろしくね！,,,Reaction,,,,,,,,,,,,,猫又改名確定,
+SYS_RENAME_CAT_CANCEL,SYS_RENAME_CAT_CANCEL,1,,100,そっか。今まで通りの名前でいるね。,I see. I'll keep my old name.,这样啊。那我还是用原来的名字。,Reaction,,,,,,,,,,,,,猫又改名キャンセル,
+SYS_RENAME_CALLING_CONFIRM,SYS_RENAME_CALLING_CONFIRM,1,,100,{{PENDING_VALUE}}って呼べばいいの？,Should I call you {{PENDING_VALUE}}?,叫你{{PENDING_VALUE}}就可以了吗？,Choice,,SYS_RENAME_CALLING_ACCEPT,SYS_RENAME_CALLING_CANCEL,{{CAT_NAME}}からの呼び方を変えてもらう？,Should I call you {{PENDING_VALUE}}?,叫你{{PENDING_VALUE}}就可以了吗？,はい,Yes,是,いいえ,No,不是,プレイヤー呼称変更確認,
+SYS_RENAME_CALLING_ACCEPT,SYS_RENAME_CALLING_ACCEPT,1,,100,わかった！これからは{{PLAYER_CALLING}}って呼ぶね！,,明白了！以后就叫你{{PLAYER_CALLING}}！,Reaction,,,,,,,,,,,,,プレイヤー呼称変更確定,
+SYS_RENAME_CALLING_CANCEL,SYS_RENAME_CALLING_CANCEL,1,,100,そっか。じゃあ今まで通り呼ぶね。,Then I'll keep calling you the same as before.,那我还是像以前那样叫你。,Reaction,,,,,,,,,,,,,プレイヤー呼称変更キャンセル,
+SYS_RENAME_PRONOUN_CONFIRM,SYS_RENAME_PRONOUN_CONFIRM,1,,100,{{PENDING_VALUE}}って名乗ればいいの？,Should I call myself {{PENDING_VALUE}}?,自称{{PENDING_VALUE}}就可以了吗？,Choice,,SYS_RENAME_PRONOUN_ACCEPT,SYS_RENAME_PRONOUN_CANCEL,{{CAT_NAME}}の一人称を変えてもらう？,Should I call myself {{PENDING_VALUE}}?,自称{{PENDING_VALUE}}就可以了吗？,はい,Yes,是,いいえ,No,不是,一人称変更確認,
+SYS_RENAME_PRONOUN_ACCEPT,SYS_RENAME_PRONOUN_ACCEPT,1,,100,じゃあ、これからは{{CAT_PRONOUN}}って名乗るね！,"Hehe.Then from now on, I'll call myself {{CAT_PRONOUN}}!",嘿嘿。那以后我就自称{{CAT_PRONOUN}}！,Reaction,,,,,,,,,,,,,一人称変更確定,
+SYS_RENAME_PRONOUN_CANCEL,SYS_RENAME_PRONOUN_CANCEL,1,,100,じゃあ今まで通りにするね。,Then I'll keep things the same as before.,那就还是像以前一样。,Reaction,,,,,,,,,,,,,一人称変更キャンセル,
+SYS_RENAME_INVALID,SYS_RENAME_INVALID,1,,100,うーん……　その名前はちょっと嫌かも。別の名前にしてくれる？,Hmm... that name might be a little difficult. Could you choose another one?,嗯……这个名字可能有点难。可以换一个吗？,Reaction,,,,,,,,,,,,,名前変更バリデーション拒否,
+OBT_INTRO_BODY,OBT_INTRO_BODY,1,,100,"ネコルポス オープンベータテストへようこそ！
+
+このゲームは、2027年2月22日公開予定のコミュニケーションゲーム
+『ネコルポス』の会話システムを体験できるテスト版です。
+
+このテスト版で出来ることは、ひたすら猫と話すことです。
+
+会話ログの提出にご協力いただけると猫が賢くなります。
+ぜひご協力お願いいたします！","Welcome to the Nekolpos open beta test!
+
+This is a test version where you can try the conversation system for Nekolpos, a communication game planned for release on February 22, 2027.
+
+In this test version, you can talk with the cat as much as you like.
+
+Submitting conversation logs will help improve the final release.",欢迎参加 Nekolpos 公开测试！这个测试版可以体验预定于 2027 年 2 月 22 日发布的交流游戏《Nekolpos》的对话系统。你可以一直和猫聊天。提交对话日志将有助于提升正式版品质。,Reaction,,,,,,,,,,,,,OBT導入説明,
+OBT_BUTTON_START_DEMO,OBT_BUTTON_START_DEMO,1,,100,会話デモを始める,Start conversation demo,开始对话演示,Reaction,,,,,,,,,,,,,OBTボタン,
+OBT_BUTTON_ABOUT,OBT_BUTTON_ABOUT,1,,100,ネコルポスって？,What is Nekolpos?,Nekolpos 是什么？,Reaction,,,,,,,,,,,,,OBTボタン,
+OBT_BUTTON_QUIT,OBT_BUTTON_QUIT,1,,100,ゲーム終了,Quit game,退出游戏,Reaction,,,,,,,,,,,,,OBTボタン,
+OBT_ABOUT_BODY,OBT_ABOUT_BODY,1,,100,"『ネコルポス』は、2027年2月22日公開予定の、
+立場逆転コミュニケーションゲームです。
+自由入力の会話から始まり、
+さまざまなイベントを通じて猫又との
+関係性を深めていきます。
+最新の情報をキャット…キャッチするために、
+ウィッシュリストへの登録をお願い致します！","Nekolpos is a communication game centered on conversations with a nekomata.
+
+This open beta focuses on testing conversation quality, reactions, and conversation logs.",《Nekolpos》是一款以和猫又交流为核心的沟通游戏。公开测试主要用于验证对话系统的自然度、反应和日志品质。,Reaction,,,,,,,,,,,,,OBT説明,
+OBT_BUTTON_STEAM,OBT_BUTTON_STEAM,1,,100,Steamページを開く,Open Steam page,打开 Steam 页面,Reaction,,,,,,,,,,,,,OBTボタン,
+OBT_BUTTON_BACK,OBT_BUTTON_BACK,1,,100,戻る,Back,返回,Reaction,,,,,,,,,,,,,OBTボタン,
+OBT_CHARACTER_SETUP_TITLE,OBT_CHARACTER_SETUP_TITLE,1,,100,プレイヤー情報,Player information,玩家信息,Reaction,,,,,,,,,,,,,OBTセットアップ,
+OBT_LABEL_PLAYER_NAME,OBT_LABEL_PLAYER_NAME,1,,100,プレイヤー名,PlayerName,PlayerName,Reaction,,,,,,,,,,,,,OBT入力ラベル,
+OBT_LABEL_CAT_NAME,OBT_LABEL_CAT_NAME,1,,100,猫の名前,CatName,CatName,Reaction,,,,,,,,,,,,,OBT入力ラベル,
+OBT_LABEL_PLAYER_CALLING_EX,OBT_LABEL_PLAYER_CALLING_EX,1,,100,(飼い主、あなた、ご主人など),PlayerCalling,PlayerCalling,Reaction,,,,,,,,,,,,,OBT入力ラベル,
+OBT_LABEL_PLAYER_CALLING,OBT_LABEL_PLAYER_CALLING,1,,100,猫→プレイヤーの呼び方,PlayerCalling,PlayerCalling,Reaction,,,,,,,,,,,,,OBT入力ラベル,
+OBT_BUTTON_CONTINUE,OBT_BUTTON_CONTINUE,1,,100,ゲーム開始,Next,下一步,Reaction,,,,,,,,,,,,,OBTボタン,
+OBT_REQUIRED_NOTICE,OBT_REQUIRED_NOTICE,1,,100,すべて入力してください。,Please fill in every field.,请填写全部项目。,Reaction,,,,,,,,,,,,,OBT入力警告,
+OBT_CALL_CAT_BODY,OBT_CALL_CAT_BODY,1,,100,早速、{{CAT_NAME}}を呼んでみましょう。,Try calling the cat.,试着呼唤猫吧。,Reaction,,,,,,,,,,,,,OBT猫呼び,
+OBT_BUTTON_SEND,OBT_BUTTON_SEND,1,,100,送信,Send,发送,Reaction,,,,,,,,,,,,,OBTボタン,
+OBT_OPENING_CALLED_CORRECT,OBT_OPENING_CALLED_CORRECT,1,,100,お待たせ、{{PLAYER_CALLING}}。何か用？,"Oh, {{PLAYER_CALLING}}! Did you call me?",啊，{{PLAYER_CALLING}}！你叫我了吗？,Reaction,,,,,,,,,,,,,OBT開始会話,
+OBT_OPENING_CALLED_INCORRECT,OBT_OPENING_CALLED_INCORRECT,1,,100,ん？何か言った？,Hm?Did you say something?,嗯？你说了什么吗？,Reaction,,,,,,,,,,,,,OBT開始会話,
+OBT_OPENING_PROMPT,OBT_OPENING_PROMPT,1,,100,今日は何して遊ぶ？,What should we play today?,今天要玩什么？,Reaction,,,,,,,,,,,,,OBT開始会話,
+{{CAT_NAME}},{{CAT_NAME}},1,,100,なに？呼んだ？どうしたの？,,,Reaction,,,,,,,,,,,,,,
+{{CAT_NAME}},{{CAT_NAME}},2,,100,はい！聞こえてるよ！,,,Reaction,,,,,,,,,,,,,,
+{{CAT_NAME}},{{CAT_NAME}},3,,100,うん、{{CAT_NAME}}だよ。何かな？,,,Reaction,,,,,,,,,,,,,,
+{{CAT_NAME}},{{CAT_NAME}},4,,100,なになに？呼んだ？,,,Reaction,,,,,,,,,,,,,,
+OBT_Worldview,OBT_Worldview,1,,100,"どういう状況？
+
+色々あってあなたの愛猫は妖怪「猫又」になり、
+あなたの身長を5cmに縮めてしまいました。
+敵意は無いようですが……。
+どうやら猫又は覚えたての言葉で
+たくさんおしゃべりがしたい様子です。
+せっかくなので、色んな事を聞いてみるといいでしょう。
+もちろん家からほとんど出ていないイエネコなので、
+知らないことも沢山あります。
+そんな猫と仲良くしたり、甘えてみたり、
+時には冷たくしてみるのもいいかもしれません。",,,Reaction,,,,,,,,,,,,,,
+OBT_CatFirstPersonInput,OBT_CatFirstPersonInput,1,,100,猫の一人称,,,Reaction,,,,,,,,,,,,,,
+OBT_WorldviewButton,OBT_WorldviewButton,1,,100,世界観について,,,Reaction,,,,,,,,,,,,,,
+OBT_TrainingDataButton,OBT_TrainingDataButton,1,,100,学習データについて,,,Reaction,,,,,,,,,,,,,,
+OBT_TrainingData,OBT_TrainingData,1,,100,"皆様との会話データで、猫又はどんどん賢くなります！
+ぜひご協力をお願い致します。
+※下のボタンを押すことで、会話データをサーバーに送付します。送られた会話データは会話学習にのみ利用致します。
+※全ての会話を実装できる訳ではありません！
+※最も話しかけられた言葉ランキング　などの形式で、
+個人を特定できない形式で公開することもあります。",,,Reaction,,,,,,,,,,,,,,
+OBT_LogButton,OBT_LogButton,1,,100,"履歴／
+データ送信",,,Reaction,,,,,,,,,,,,,,
+OBT_LogThankyou,OBT_LogThankyou,1,,100,データ収集へのご協力ありがとうございます！新しい会話,,,Reaction,,,,,,,,,,,,,,
+OBT_Precautions,OBT_Precautions,1,,100,<color=#ff3333>個人情報や差別的な言葉は話さないでください。</color>,,,Reaction,,,,,,,,,,,,,,
+OBT_LOGPrecautions,OBT_LOGPrecautions,1,,100,<color=#ff3333>個人情報などは送付しないでください。</color>,,,Reaction,,,,,,,,,,,,,,
+OBT_LogStatusUploaded,OBT_LogStatusUploaded,1,,100,送信済,,,,,,,,,,,,,,,,,
+OBT_LogHistorySummary,OBT_LogHistorySummary,1,,100,履歴 {TOTAL_COUNT}件 / 確認待ち {REVIEW_COUNT}件 / 送信待ち {QUEUED_COUNT}件,,,,,,,,,,,,,,,,,
+OBT_LogConfirmUploadSelectionButton,OBT_LogConfirmUploadSelectionButton,1,,100,選択したログを送信する ({SELECTED_COUNT}),,,,,,,,,,,,,,,,,
+OBT_LogDeleteUnselectedButton,OBT_LogDeleteUnselectedButton,1,,100,送信しない履歴を削除 ({DELETABLE_COUNT}),,,,,,,,,,,,,,,,,
+OBT_LogDeleteUnselectedButtonConfirm,OBT_LogDeleteUnselectedButtonConfirm,1,,100,もう一度押すと削除,,,,,,,,,,,,,,,,,
+OBT_SubmissionConfirmation,OBT_SubmissionConfirmation,1,,100,"選択した会話データを送付します。下記内容を確認の上送付してください。
+
+※個人情報が含まれていませんか？削除してから送付お願いいたします。
+※送付されたデータは今後の会話改善・ゲームの現状報告などに使用し、
+それ以外の目的には利用しないものとします。
+※送付後のデータ削除には応じることができません。
+※送信された会話全てを実装できるわけではありません。",,,,,,,,,,,,,,,,,
+OBT_SubmissionConfirmationButton,OBT_SubmissionConfirmationButton,1,,100,ログ送信 ※少し時間が掛かります,,,,,,,,,,,,,,,,,
+OBT_SubmissionConfirmationButton2,OBT_SubmissionConfirmationButton2,1,,100,ログ送信中　少しお待ちください,,,,,,,,,,,,,,,,,
+OBT_SubmissionConfirmationAfter,OBT_SubmissionConfirmationAfter,1,,100,"会話データ送付のご協力ありがとうございます！
+内容は精査の上、今後の会話実装のために活用
+させて頂きます。
+ゲームの最新情報はウィッシュリスト登録と
+各種SNSから確認してください！
+ぜひ、アンケートにもご協力ください。",,,,,,,,,,,,,,,,,
+OBT_EnqueteButton,OBT_EnqueteButton,1,,100,"アンケートに回答
+(外部サイトへ移動)",,,,,,,,,,,,,,,,,
+OBT_CloseButton,OBT_CloseButton,1,,100,閉じる,,,,,,,,,,,,,,,,,
+OBT_Lunch,OBT_Lunch,1,,100,{{CAT_NAME}},,,,,,,,,,,,,,,,,
+OBT_GoTitleButton,OBT_GoTitleButton,1,,100,タイトルに戻る,,,,,,,,,,,,,,,,,
+OBT_RirekiButton,OBT_RirekiButton,1,,100,履歴／会話データ送信,,,,,,,,,,,,,,,,,
+TEACH_RESET_BUTTON,TEACH_RESET_BUTTON,1,,100,教えた内容を初期化,,,Reaction,,,,,,,,,,,,,OBT初期化ボタン,
+TEACH_RESET_CONFIRM,TEACH_RESET_CONFIRM,1,,100,これまで教えた猫作品や言葉の記録を初期化しますか？,,,Choice,TeachingMode:ResetExecute,,,,,,,初期化する,,,やめる,,,OBT初期化確認
+TEACH_RESET_DONE,TEACH_RESET_DONE,1,,100,教えた内容を初期化しました。,,,Reaction,,,,,,,,,,,,,OBT初期化完了,
+TEACH_RESET_CANCEL,TEACH_RESET_CANCEL,1,,100,初期化をやめました。,,,Reaction,,,,,,,,,,,,,OBT初期化キャンセル,

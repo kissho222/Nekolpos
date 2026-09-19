@@ -1,0 +1,487 @@
+﻿Surface,Reading,Enabled,NeedsReview,Category,SourceFiles,Note
+対馬山猫,つしまやまねこ,true,false,FELIDAE,DialoguePreview_Integrated.csv,Existing regex uses hiragana reading.
+ツシマヤマネコ,つしまやまねこ,true,false,FELIDAE,DialoguePreview_Integrated.csv,Katakana variant for dedicated term.
+山猫,やまねこ,true,false,FELIDAE,DialoguePreview_Integrated.csv,Common felidae word.
+猫又,ねこまた,true,false,PROJECT_TERM,TalkTopicMaster.csv,Project-specific cat term.
+猫股,ねこまた,true,false,PROJECT_TERM,TalkTopicMaster.csv,Variant spelling.
+猫,ねこ,true,false,CAT_WORD,DialoguePreview_Integrated.csv,Common conversation target.
+三毛猫,みけねこ,true,false,CAT_BREED,TalkTopicMaster.csv,Common cat breed.
+三毛,みけ,true,false,CAT_BREED,TalkTopicMaster.csv,Short breed expression.
+黒猫,くろねこ,true,false,CAT_BREED,TalkTopicMaster.csv,Common cat expression.
+白猫,しろねこ,true,false,CAT_BREED,TalkTopicMaster.csv,Common cat expression.
+虎猫,とらねこ,true,false,CAT_BREED,TalkTopicMaster.csv,Common cat expression.
+肉球,にくきゅう,true,false,CAT_WORD,DialoguePreview_Integrated.csv,Existing regex/category target.
+甘噛み,あまがみ,true,false,CAT_WORD,TalkTopicMaster.csv,Existing talk target.
+毛繕い,けづくろい,true,false,CAT_WORD,TalkTopicMaster.csv,Existing talk target.
+猫パンチ,ねこぱんち,true,false,CAT_WORD,TalkTopicMaster.csv,Existing talk target.
+今日,きょう,true,false,COMMON,DialoguePreview_Integrated.csv,Common input spelling.
+貴方,あなた,true,false,RENAME_SYSTEM,RenameSystem,Cat rename command target spelling.
+君,きみ,true,false,RENAME_SYSTEM,RenameSystem,Cat rename command target spelling.
+お前,おまえ,true,false,RENAME_SYSTEM,RenameSystem,Cat rename command target spelling.
+私,わたし,true,false,RENAME_SYSTEM,RenameSystem,Player calling rename command spelling.
+呼んで,よんで,true,false,RENAME_SYSTEM,RenameSystem,Player calling rename command spelling.
+名乗って,なのって,true,false,RENAME_SYSTEM,RenameSystem,Cat pronoun rename command spelling.
+改名,かいめい,true,false,RENAME_SYSTEM,RenameSystem,Cat rename shorthand command spelling.
+雨,あめ,true,false,WEATHER,DialoguePreview_Integrated.csv,Weather intent term.
+天気,てんき,true,false,WEATHER,DialoguePreview_Integrated.csv,Existing weather talk target.
+気象,きしょう,true,false,METEOROLOGY,TalkTopicMaster.csv,Weather-related term.
+晴れ,はれ,true,false,WEATHER,TalkTopicMaster.csv,Weather-related term.
+曇り,くもり,true,false,WEATHER,TalkTopicMaster.csv,Weather-related term.
+雪,ゆき,true,false,WEATHER,TalkTopicMaster.csv,Weather-related term.
+雷,かみなり,true,false,WEATHER,TalkTopicMaster.csv,Weather-related term.
+台風,たいふう,true,false,WEATHER,TalkTopicMaster.csv,Weather-related term.
+お腹,おなか,true,false,COMMON,DialoguePreview_Integrated.csv,Food hungry input variant.
+御腹,おなか,true,false,COMMON,DialoguePreview_Integrated.csv,Food hungry input variant.
+腹,はら,true,false,COMMON,DialoguePreview_Integrated.csv,Food hungry input variant.
+空いた,すいた,true,false,COMMON,DialoguePreview_Integrated.csv,Food hungry input variant.
+空い,すい,true,false,COMMON,DialoguePreview_Integrated.csv,Food hungry input variant.
+減った,へった,true,false,COMMON,DialoguePreview_Integrated.csv,Food hungry input variant.
+減っ,へっ,true,false,COMMON,DialoguePreview_Integrated.csv,Food hungry input variant.
+空腹,くうふく,true,false,COMMON,DialoguePreview_Integrated.csv,Food hungry input variant.
+御飯,ごはん,true,false,COMMON,DialoguePreview_Integrated.csv,Meal input variant.
+ご飯,ごはん,true,false,COMMON,DialoguePreview_Integrated.csv,Meal input variant.
+食事,しょくじ,true,false,COMMON,DialoguePreview_Integrated.csv,Meal input variant.
+食べ,たべ,true,false,COMMON,DialoguePreview_Integrated.csv,Food request verb stem.
+眠い,ねむい,true,false,COMMON,TalkTopicMaster.csv,Sleep intent variant.
+寝る,ねる,true,false,COMMON,TalkTopicMaster.csv,Sleep talk target.
+寝たい,ねたい,true,false,COMMON,TalkTopicMaster.csv,Sleep talk target.
+睡眠,すいみん,true,false,COMMON,TalkTopicMaster.csv,Sleep topic.
+好き,すき,true,false,COMMON,TalkTopicMaster.csv,Affection intent variant.
+可愛い,かわいい,true,false,COMMON,TalkTopicMaster.csv,Praise intent variant.
+賢い,かしこい,true,false,COMMON,TalkTopicMaster.csv,Existing talk target.
+嫌い,きらい,true,false,COMMON,TalkTopicMaster.csv,Existing talk target.
+寂しい,さみしい,true,false,COMMON,TalkTopicMaster.csv,Existing talk target.
+楽しい,たのしい,true,false,COMMON,TalkTopicMaster.csv,Existing talk target.
+仕事,しごと,true,false,COMMON,TalkTopicMaster.csv,Existing talk target.
+お金,おかね,true,false,COMMON,TalkTopicMaster.csv,Existing talk target.
+外,そと,true,false,COMMON,TalkTopicMaster.csv,Existing talk target.
+安全,あんぜん,true,false,COMMON,TalkTopicMaster.csv,Existing talk target.
+監禁,かんきん,true,false,COMMON,TalkTopicMaster.csv,Existing talk target.
+撫で,なで,true,false,CAT_WORD,TalkTopicMaster.csv,Petting intent variant.
+爪切り,つめきり,true,false,CAT_WORD,DialoguePreview_Integrated.csv,Existing talk target.
+二足,にそく,true,false,COMMON,TalkTopicMaster.csv,Existing talk target.
+体調,たいちょう,true,false,COMMON,TalkTopicMaster.csv,Existing talk target.
+身体,からだ,true,false,COMMON,TalkTopicMaster.csv,Common body spelling in source text.
+体,からだ,true,false,COMMON,TalkTopicMaster.csv,Common body spelling.
+トイレ,といれ,true,false,COMMON,TalkTopicMaster.csv,Katakana intent target.
+ペット,ぺっと,true,false,CAT_WORD,TalkTopicMaster.csv,Katakana talk target.
+スマホ,すまほ,true,false,COMMON,TalkTopicMaster.csv,Katakana talk target.
+ゲーム,げーむ,true,false,COMMON,TalkTopicMaster.csv,Katakana talk target.
+人気,にんき,true,false,COMMON,TalkSource/TalkCSV,Promoted from candidates for playtest.
+一日,いちにち,true,false,COMMON,TalkSource/TalkCSV,Promoted from candidates for playtest.
+生物,せいぶつ,true,false,COMMON,TalkSource/TalkCSV,Promoted from candidates for playtest.
+上手,じょうず,true,false,COMMON,TalkSource/TalkCSV,Promoted from candidates for playtest.
+行った,いった,true,false,COMMON,TalkSource/TalkCSV,Promoted from candidates for playtest.
+明日,あした,true,false,COMMON,TalkSource/TalkCSV,Promoted from candidates for playtest.
+大人,おとな,true,false,COMMON,TalkSource/TalkCSV,Promoted from candidates for playtest.
+爪,つめ,true,false,CAT_WORD,DialoguePreview_Integrated.csv,Promoted from candidates for playtest; short word.
+犬,いぬ,true,false,COMMON,TalkTopicMaster.csv,Promoted from candidates for playtest.
+職場,しょくば,true,false,COMMON,TalkTopicMaster.csv,Promoted from candidates for playtest.
+悪口,わるぐち,true,false,COMMON,TalkTopicMaster.csv,Promoted from candidates for playtest.
+罵倒,ばとう,true,false,COMMON,TalkTopicMaster.csv,Promoted from candidates for playtest.
+家,いえ,true,false,COMMON,TalkTopicMaster.csv,Promoted from candidates for playtest; short word.
+暮らし,くらし,true,false,COMMON,TalkTopicMaster.csv,Promoted from candidates for playtest.
+昼寝,ひるね,true,false,COMMON,TalkTopicMaster.csv,Promoted from candidates for playtest.
+酒,さけ,true,false,COMMON,TalkTopicMaster.csv,Promoted from candidates for playtest.
+毛,け,true,false,CAT_WORD,TalkTopicMaster.csv,Promoted from candidates for playtest; short word.
+発情,はつじょう,true,false,CAT_WORD,TalkTopicMaster.csv,Promoted from candidates for playtest.
+出た,でた,true,false,COMMON,unknown,unknown
+出し,だし,true,false,COMMON,unknown,unknown
+出る,でる,true,false,COMMON,unknown,unknown
+出て,でて,true,false,COMMON,unknown,unknown
+脱出,だっしゅつ,true,false,COMMON,unknown,unknown
+有る,ある,true,false,COMMON,unknown,unknown
+辞め,やめ,true,false,COMMON,unknown,unknown
+阿呆,あほ,true,false,COMMON,unknown,unknown
+馬鹿,ばか,true,false,COMMON,unknown,unknown
+間抜け,まぬけ,true,false,COMMON,unknown,unknown
+罵,ののし,true,false,COMMON,unknown,unknown
+酷,ひど,true,false,COMMON,unknown,unknown
+餌,えさ,true,false,COMMON,unknown,unknown
+欲しい,ほしい,true,false,COMMON,unknown,Food request suffix variant.
+美味し,おいし,true,false,COMMON,unknown,unknown
+美味い,うまい,true,false,COMMON,unknown,unknown
+旨い,うまい,true,false,COMMON,unknown,unknown
+満足,まんぞく,true,false,COMMON,unknown,unknown
+住み心地,すみごこち,true,false,COMMON,unknown,unknown
+住心地,すみごこち,true,false,COMMON,unknown,unknown
+住処,すみか,true,false,COMMON,unknown,unknown
+足の裏,あしのうら,true,false,CAT_WORD,unknown,unknown
+裏,うら,true,false,COMMON,unknown,unknown
+見たい,みたい,true,false,COMMON,unknown,unknown
+見せて,みせて,true,false,COMMON,unknown,unknown
+揉,も,true,false,CAT_WORD,unknown,unknown
+不細工,ぶさいく,true,false,COMMON,unknown,unknown
+可愛,かわい,true,false,COMMON,unknown,unknown
+可愛そう,かわいそう,true,false,COMMON,unknown,unknown
+可哀想,かわいそう,true,false,COMMON,unknown,unknown
+立って,たって,true,false,COMMON,unknown,unknown
+立ち上が,たちあが,true,false,COMMON,unknown,unknown
+喋,しゃべ,true,false,COMMON,unknown,unknown
+黙れ,だまれ,true,false,COMMON,unknown,unknown
+殺し,ころし,true,false,COMMON,unknown,unknown
+殺す,ころす,true,false,COMMON,unknown,unknown
+大き,おおき,true,false,COMMON,unknown,unknown
+働く,はたらく,true,false,COMMON,unknown,unknown
+愛玩,あいがん,true,false,COMMON,unknown,unknown
+動物,どうぶつ,true,false,COMMON,unknown,unknown
+死,し,true,false,COMMON,unknown,unknown
+具合,ぐあい,true,false,COMMON,unknown,unknown
+病気,びょうき,true,false,COMMON,unknown,unknown
+気持ち,きもち,true,false,COMMON,unknown,unknown
+悪い,わるい,true,false,COMMON,unknown,unknown
+方,ほう,true,false,COMMON,unknown,unknown
+言って,いって,true,false,COMMON,unknown,unknown
+言った,いった,true,false,COMMON,unknown,unknown
+一度,いちど,true,false,COMMON,unknown,unknown
+もう一度,もういちど,true,false,COMMON,unknown,unknown
+毎日,まいにち,true,false,COMMON,unknown,unknown
+自分,じぶん,true,false,COMMON,unknown,unknown
+自覚,じかく,true,false,COMMON,unknown,unknown
+心配,しんぱい,true,false,COMMON,unknown,unknown
+時間,じかん,true,false,COMMON,unknown,unknown
+一緒,いっしょ,true,false,COMMON,unknown,unknown
+気になる,きになる,true,false,COMMON,unknown,unknown
+気にな,きにな,true,false,COMMON,unknown,unknown
+縮め,ちぢめ,true,false,COMMON,unknown,unknown
+戦え,たたかえ,true,false,COMMON,unknown,unknown
+遊び,あそび,true,false,COMMON,unknown,unknown
+遊ぶ,あそぶ,true,false,COMMON,unknown,unknown
+吾輩,わがはい,true,false,COMMON,unknown,unknown
+我輩,わがはい,true,false,COMMON,unknown,unknown
+虎,とら,true,false,COMMON,unknown,unknown
+不細工,ぶさいく,true,false,COMMON,unknown,unknown
+可哀想,かわいそう,true,false,COMMON,unknown,unknown
+爪,つめ,true,false,COMMON,unknown,unknown
+切る,きる,true,false,COMMON,unknown,unknown
+肉球,にくきゅう,true,false,COMMON,unknown,unknown
+遊び,あそび,true,false,COMMON,unknown,unknown
+遊ぼ,あそぼ,true,false,COMMON,unknown,unknown
+縮め,ちぢめ,true,false,COMMON,unknown,unknown
+大き,おおき,true,false,COMMON,unknown,unknown
+食べ,たべ,true,false,COMMON,unknown,unknown
+尻尾,しっぽ,true,false,COMMON,unknown,unknown
+丸呑み,まるのみ,true,false,COMMON,unknown,unknown
+丸飲み,まるのみ,true,false,COMMON,unknown,unknown
+捕食,ほしょく,true,false,COMMON,unknown,unknown
+匂い,におい,true,false,COMMON,unknown,unknown
+煙草,たばこ,true,false,COMMON,unknown,unknown
+お酒,おさけ,true,false,COMMON,unknown,unknown
+外に,そとに,true,false,COMMON,unknown,unknown
+出たい,でたい,true,false,COMMON,unknown,unknown
+お金,おかね,true,false,COMMON,unknown,unknown
+餌,えさ,true,false,COMMON,unknown,unknown
+酷い,ひどい,true,false,COMMON,unknown,unknown
+満足,まんぞく,true,false,COMMON,unknown,unknown
+住心地,すみごこち,true,false,COMMON,unknown,unknown
+触ら,さわら,true,false,COMMON,unknown,unknown
+触り,さわり,true,false,COMMON,unknown,unknown
+触る,さわる,true,false,COMMON,unknown,unknown
+名乗,なの,true,false,COMMON,unknown,unknown
+飼わ,かわ,true,false,COMMON,unknown,unknown
+退職,たいしょく,true,false,COMMON,unknown,unknown
+辞職,じしょく,true,false,COMMON,unknown,unknown
+脱走,だっそう,true,false,COMMON,unknown,unknown
+戦う,たたかう,true,false,COMMON,unknown,unknown
+戦い,たたかい,true,false,COMMON,unknown,unknown
+喧嘩,けんか,true,false,COMMON,unknown,unknown
+雑談,ざつだん,true,false,COMMON,unknown,unknown
+人間,にんげん,true,false,COMMON,unknown,unknown
+吉祥,きっしょう,true,false,COMMON,unknown,unknown
+八雲,やくも,true,false,COMMON,unknown,unknown
+作者,さくしゃ,true,false,COMMON,unknown,unknown
+殴って,なぐって,true,false,COMMON,unknown,
+叩いて,たたいて,true,false,COMMON,unknown,
+魔法,まほう,true,false,COMMON,unknown,
+妖術,ようじゅつ,true,false,COMMON,unknown,
+喉,のど,true,false,COMMON,unknown,
+乾い,かわい,true,false,COMMON,unknown,
+木天蓼,またたび,true,false,COMMON,unknown,
+話を,はなしを,true,false,COMMON,unknown,
+話が,はなしが,true,false,COMMON,unknown,
+話し,はなし,true,false,COMMON,unknown,
+記念日,きねんび,true,false,COMMON,unknown,
+誕生日,たんじょうび,true,false,COMMON,unknown,
+鼠,ねずみ,true,false,COMMON,unknown,
+喉,のど,true,false,COMMON,unknown,
+何,なに,true,false,COMMON,unknown,
+配信中,はいしんちゅう,true,false,COMMON,unknown,
+お家,おうち,true,false,COMMON,unknown,
+帰り,かえり,true,false,COMMON,unknown,
+帰る,かえる,true,false,COMMON,unknown,
+攻略,こうりゃく,true,false,COMMON,unknown,
+お手,おて,true,false,COMMON,unknown,
+自宅,じたく,true,false,COMMON,unknown,
+実家,じっか,true,false,COMMON,unknown,
+留守番,るすばん,true,false,COMMON,unknown,
+留守,るす,true,false,COMMON,unknown,
+左様,さよう,true,false,COMMON,unknown,
+大便,だいべん,true,false,COMMON,unknown,
+小便,しょうべん,true,false,COMMON,unknown,
+お手,おて,true,false,COMMON,unknown,
+御手,おて,true,false,COMMON,unknown,
+愛,あい,true,false,COMMON,unknown,
+恋愛,れんあい,true,false,COMMON,unknown,
+噛ん,かん,true,false,COMMON,unknown,
+噛み,かみ,true,false,COMMON,unknown,
+噛む,かむ,true,false,COMMON,unknown,
+派,は,true,false,COMMON,unknown,
+貯金,ちょきん,true,false,COMMON,unknown,
+資産,しさん,true,false,COMMON,unknown,
+財産,ざいさん,true,false,COMMON,unknown,
+預金,よきん,true,false,COMMON,unknown,
+現金,げんきん,true,false,COMMON,unknown,
+元気,げんき,true,false,COMMON,unknown,
+吸って,すって,true,false,COMMON,unknown,
+吸え,すえ,true,false,COMMON,unknown,
+吸い,すい,true,false,COMMON,unknown,
+吸わ,すわ,true,false,COMMON,unknown,
+吸う,すう,true,false,COMMON,unknown,
+飲ま,のま,true,false,COMMON,unknown,
+飲み,のみ,true,false,COMMON,unknown,
+飲む,のむ,true,false,COMMON,unknown,
+飲め,のめ,true,false,COMMON,unknown,
+飲も,のも,true,false,COMMON,unknown,
+踏ん,ふん,true,false,COMMON,unknown,
+踏,ふ,true,false,COMMON,unknown,
+現場,げんば,true,false,COMMON,unknown,
+先生,せんせい,true,false,COMMON,unknown,
+長靴,ながぐつ,true,false,COMMON,unknown,
+長くつ,ながぐつ,true,false,COMMON,unknown,
+長ぐつ,ながぐつ,true,false,COMMON,unknown,
+井上,いのうえ,true,false,COMMON,unknown,
+迷い,まよい,true,false,COMMON,unknown,
+聖な,せいな,true,false,COMMON,unknown,
+花束,はなたば,true,false,COMMON,unknown,
+橙,ちぇん,true,false,COMMON,unknown,
+火焔猫燐,かえんびょうりん,true,false,COMMON,unknown,
+豪徳寺,ごうとくじ,true,false,COMMON,unknown,
+猫天,ねこてん,true,false,COMMON,unknown,
+江の島,えのしま,true,false,COMMON,unknown,
+食堂,しょくどう,true,false,COMMON,unknown,
+今日,きょう,true,false,COMMON,unknown,
+憂鬱,ゆううつ,true,false,COMMON,unknown,
+銀河鉄道,ぎんがてつどう,true,false,COMMON,unknown,
+注文,ちゅうもん,true,false,COMMON,unknown,
+料理店,りょうりてん,true,false,COMMON,unknown,
+料理,りょうり,true,false,COMMON,unknown,
+緑色,みどりいろ,true,false,COMMON,unknown,
+第二次世界大戦,だいにじせかいたいせん,true,false,COMMON,unknown,
+黒れん,くろれん,true,false,COMMON,unknown,
+不思議,ふしぎ,true,false,COMMON,unknown,
+国,くに,true,false,COMMON,unknown,
+聖川詩杏,ひじりかわしあん,true,false,COMMON,unknown,
+小梅,こうめ,true,false,COMMON,unknown,
+招き猫,まねきねこ,true,false,COMMON,unknown,
+不動産,ふどうさん,true,false,COMMON,unknown,
+娘,むすめ,true,false,COMMON,unknown,
+殺人事件,さつじんじけん,true,false,COMMON,unknown,
+皿,さら,true,false,COMMON,unknown,
+龍,りゅう,true,false,COMMON,unknown,
+匹,ひき,true,false,COMMON,unknown,
+敵,てき,true,false,COMMON,unknown,
+海賊,かいぞく,true,false,COMMON,unknown,
+動物,どうぶつ,true,false,COMMON,unknown,
+医者,いしゃ,true,false,COMMON,unknown,
+戦場,せんじょう,true,false,COMMON,unknown,
+三丁目,さんちょうめ,true,false,COMMON,unknown,
+恩返し,おんがえし,true,false,COMMON,unknown,
+猫絵,ねこえ,true,false,COMMON,unknown,
+獣兵衛,じゅうべえ,true,false,COMMON,unknown,
+十兵衛,じゅうべえ,true,false,COMMON,unknown,
+守ら,まもら,true,false,COMMON,unknown,
+守り,まもり,true,false,COMMON,unknown,
+守る,まもる,true,false,COMMON,unknown,
+守れ,まもれ,true,false,COMMON,unknown,
+守ろ,まもろ,true,false,COMMON,unknown,
+話,はなし,true,false,COMMON,unknown,
+綿の国星,わたのくにほし,true,false,COMMON,unknown,
+夏,なつ,true,false,COMMON,unknown,
+扉,とびら,true,false,COMMON,unknown,
+猫物語,ねこものがたり,true,false,COMMON,unknown,
+朧村正,おぼろむらまさ,true,false,COMMON,unknown,
+100万回,ひゃくまんかい,true,false,COMMON,unknown,
+百万回,ひゃくまんかい,true,false,COMMON,unknown,
+百年戦争,ひゃくねんせんそう,true,false,COMMON,unknown,
+猫語の教科書,ねこごのきょうかしょ,true,false,COMMON,unknown,
+猫村,ねこむら,true,false,COMMON,unknown,
+猫宮又奈,ねこみやまな,true,false,COMMON,unknown,
+聖夜,せいや,true,false,COMMON,unknown,
+森,もり,true,false,COMMON,unknown,
+大戦争,だいせんそう,true,false,COMMON,unknown,
+冗談,じょうだん,true,false,COMMON,unknown,
+御冗談,ごじょうだん,true,false,COMMON,unknown,
+弾か,ひか,true,false,COMMON,unknown,
+弾き,ひき,true,false,COMMON,unknown,
+弾く,ひく,true,false,COMMON,unknown,
+弾け,ひけ,true,false,COMMON,unknown,
+弾こ,ひこ,true,false,COMMON,unknown,
+女房,にょうぼう,true,false,COMMON,unknown,
+戦争,せんそう,true,false,COMMON,unknown,
+手も借り,てもかり,true,false,COMMON,unknown,
+鰹節,かつおぶし,true,false,COMMON,unknown,
+魚,さかな,true,false,COMMON,unknown,
+金魚,きんぎょ,true,false,COMMON,unknown,
+窮鼠,きゅうそ,true,false,COMMON,unknown,
+噛む,かむ,true,false,COMMON,unknown,
+首,くび,true,false,COMMON,unknown,
+鈴,すず,true,false,COMMON,unknown,
+猫の子,ねこのこ,true,false,COMMON,unknown,
+一匹,いっぴき,true,false,COMMON,unknown,
+１匹,いっぴき,true,false,COMMON,unknown,
+二股,ふたまた,true,false,COMMON,unknown,
+俺,おれ,true,false,COMMON,unknown,
+猫の目,ねこのめ,true,false,COMMON,unknown,
+魚,さかな,true,false,COMMON,unknown,
+辞退,じたい,true,false,COMMON,unknown,
+三年,さんねん,true,false,COMMON,unknown,
+３年,さんねん,true,false,COMMON,unknown,
+恩,おん,true,false,COMMON,unknown,
+忘れ,わすれ,true,false,COMMON,unknown,
+追う,おう,true,false,COMMON,unknown,
+追い,おい,true,false,COMMON,unknown,
+追え,おえ,true,false,COMMON,unknown,
+引け,ひけ,true,false,COMMON,unknown,
+借り,かり,true,false,COMMON,unknown,
+前,まえ,true,false,COMMON,unknown,
+肥え,こえ,true,false,COMMON,unknown,
+痩せ,やせ,true,false,COMMON,unknown,
+貰い,もらい,true,false,COMMON,unknown,
+貰う,もらう,true,false,COMMON,unknown,
+貰え,もらえ,true,false,COMMON,unknown,
+貰お,もらお,true,false,COMMON,unknown,
+心,こころ,true,false,COMMON,unknown,
+知ら,しら,true,false,COMMON,unknown,
+知り,しり,true,false,COMMON,unknown,
+知る,しる,true,false,COMMON,unknown,
+知れ,しれ,true,false,COMMON,unknown,
+知ろ,しろ,true,false,COMMON,unknown,
+踏ま,ふま,true,false,COMMON,unknown,
+踏み,ふみ,true,false,COMMON,unknown,
+踏む,ふむ,true,false,COMMON,unknown,
+踏め,ふめ,true,false,COMMON,unknown,
+踏も,ふも,true,false,COMMON,unknown,
+猫糞,ねこばば,true,false,COMMON,unknown,
+猫舌,ねこじた,true,false,COMMON,unknown,
+猫背,ねこぜ,true,false,COMMON,unknown,
+声,こえ,true,false,COMMON,unknown,
+猫足,ねこあし,true,false,COMMON,unknown,
+猫っ毛,ねこっけ,true,false,COMMON,unknown,
+猫車,ねこぐるま,true,false,COMMON,unknown,
+猫足場,ねこあしば,true,false,COMMON,unknown,
+犬は人,いぬはひと,true,false,COMMON,unknown,
+猫は家,ねこはいえ,true,false,COMMON,unknown,
+預け,あずけ,true,false,COMMON,unknown,
+預か,あずか,true,false,COMMON,unknown,
+番,ばん,true,false,COMMON,unknown,
+鳴か,なか,true,false,COMMON,unknown,
+鳴き,なき,true,false,COMMON,unknown,
+鳴く,なく,true,false,COMMON,unknown,
+鳴け,なけ,true,false,COMMON,unknown,
+鳴こ,なこ,true,false,COMMON,unknown,
+捕ら,とら,true,false,COMMON,unknown,
+獲ら,とら,true,false,COMMON,unknown,
+捕り,とり,true,false,COMMON,unknown,
+獲り,とり,true,false,COMMON,unknown,
+獲る,とる,true,false,COMMON,unknown,
+獲れ,とれ,true,false,COMMON,unknown,
+獲ろ,とろ,true,false,COMMON,unknown,
+捕る,とる,true,false,COMMON,unknown,
+捕れ,とれ,true,false,COMMON,unknown,
+捕ろ,とろ,true,false,COMMON,unknown,
+結構,けっこう,true,false,COMMON,unknown,
+毛,け,true,false,COMMON,unknown,
+猫灰,ねこはい,true,false,COMMON,unknown,
+禿げ,はげ,true,false,COMMON,unknown,
+舐め,なめ,true,false,COMMON,unknown,
+嘗め,なめ,true,false,COMMON,unknown,
+甜め,なめ,true,false,COMMON,unknown,
+舐め,なめ,true,false,COMMON,unknown,
+咎,とが,true,false,COMMON,unknown,
+科,とが,true,false,COMMON,unknown,
+紙袋,かみぶくろ,true,false,COMMON,unknown,
+九生,きゅうしょう,true,false,COMMON,unknown,
+昼寝,ひるね,true,false,COMMON,unknown,
+男猫,おとこねこ,true,false,COMMON,unknown,
+子,こ,true,false,COMMON,unknown,
+産む,うむ,true,false,COMMON,unknown,
+産ま,うま,true,false,COMMON,unknown,
+産み,うみ,true,false,COMMON,unknown,
+産め,うめ,true,false,COMMON,unknown,
+産も,うも,true,false,COMMON,unknown,
+生ま,うま,true,false,COMMON,unknown,
+生み,うみ,true,false,COMMON,unknown,
+生む,うむ,true,false,COMMON,unknown,
+生め,うめ,true,false,COMMON,unknown,
+生も,うも,true,false,COMMON,unknown,
+一生,いっしょう,true,false,COMMON,unknown,
+猫鼠同眠,びょうそどうみん,true,false,COMMON,unknown,
+猫鼠同処,びょうそどうしょ,true,false,COMMON,unknown,
+照猫画虎,しょうびょうがこ,true,false,COMMON,unknown,
+好奇心,こうきしん,true,false,COMMON,unknown,
+小判,こばん,true,false,COMMON,unknown,
+杓子,しゃくし,true,false,COMMON,unknown,
+額,ひたい,true,false,COMMON,unknown,
+顔,かお,true,false,COMMON,unknown,
+入浴,にゅうよく,true,false,COMMON,unknown,
+妖怪,ようかい,true,false,COMMON,unknown,
+化け猫,ばけねこ,true,false,COMMON,unknown,
+名前,なまえ,true,false,COMMON,unknown,
+欠伸,あくび,true,false,COMMON,unknown,
+出た,でた,true,false,COMMON,DialoguePreview_Integrated.csv,作業途中候補; 短語かつ読み分岐あり
+晴れ,はれ,true,false,COMMON,teacchFavoriteWeather.csv,
+雹,ひょう,true,false,COMMON,teacchFavoriteWeather.csv,
+霙,みぞれ,true,false,COMMON,teacchFavoriteWeather.csv,
+雨模様,あまもよう,true,false,COMMON,teacchFavoriteWeather.csv,
+天気雨,てんきあめ,true,false,COMMON,teacchFavoriteWeather.csv,
+霧雨,きりさめ,true,false,COMMON,teacchFavoriteWeather.csv,
+細雪,ささめゆき,true,false,COMMON,teacchFavoriteWeather.csv,
+牡丹雪,ぼたんゆき,true,false,COMMON,teacchFavoriteWeather.csv,
+粉雪,こなゆき,true,false,COMMON,teacchFavoriteWeather.csv,
+吹雪,ふぶき,true,false,COMMON,teacchFavoriteWeather.csv,
+風花,かざはな,true,false,COMMON,teacchFavoriteWeather.csv,
+台風,たいふう,true,false,COMMON,teacchFavoriteWeather.csv,
+雷,かみなり,true,false,COMMON,teacchFavoriteWeather.csv,
+遠雷,えんらい,true,false,COMMON,teacchFavoriteWeather.csv,
+雷雨,らいう,true,false,COMMON,teacchFavoriteWeather.csv,
+霰,あられ,true,false,COMMON,teacchFavoriteWeather.csv,
+土砂降り,どしゃぶり,true,false,COMMON,teacchFavoriteWeather.csv,
+霧,きり,true,false,COMMON,teacchFavoriteWeather.csv,
+虹,にじ,true,false,COMMON,teacchFavoriteWeather.csv,
+酸性雨,さんせいう,true,false,COMMON,teacchFavoriteWeather.csv,
+黄砂,こうさ,true,false,COMMON,teacchFavoriteWeather.csv,
+夕焼け,ゆうやけ,true,false,COMMON,teacchFavoriteWeather.csv,
+朝焼け,あさやけ,true,false,COMMON,teacchFavoriteWeather.csv,
+日食,にっしょく,true,false,COMMON,teacchFavoriteWeather.csv,
+月食,げっしょく,true,false,COMMON,teacchFavoriteWeather.csv,
+流れ星,ながれぼし,true,false,COMMON,teacchFavoriteWeather.csv,
+流星,りゅうせい,true,false,COMMON,teacchFavoriteWeather.csv,
+彗星,すいせい,true,false,COMMON,teacchFavoriteWeather.csv,
+流星群,りゅうせいぐん,true,false,COMMON,teacchFavoriteWeather.csv,
+晴嵐,せいらん,true,false,COMMON,teacchFavoriteWeather.csv,
+夕立,ゆうだち,true,false,COMMON,teacchFavoriteWeather.csv,
+曇り,くもり,true,false,COMMON,teacchFavoriteWeather.csv,
+曇,くもり,true,false,COMMON,teacchFavoriteWeather.csv,
+曇天,どんてん,true,false,COMMON,teacchFavoriteWeather.csv,
+雨,あめ,true,false,COMMON,teacchFavoriteWeather.csv,
+雨天,うてん,true,false,COMMON,teacchFavoriteWeather.csv,
+俺,おれ,true,false,COMMON,teacchseries_dialogue_source_2201.csv,
+二股,ふたまた,true,false,COMMON,teacchseries_dialogue_source_2201.csv,
+飲み,のみ,true,false,COMMON,teacchseries_dialogue_source_2201.csv,
+友達,ともだち,true,false,COMMON,teacchseries_dialogue_source_2201.csv,
+自己紹介,じこしょうかい,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+散歩,さんぽ,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+運動,うんどう,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+歯磨き,はみがき,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+絵日記,えにっき,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+赤猫,あかねこ,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+同居人,どうきょにん,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+隣の,となりの,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+阪本,さかもと,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+長い声の猫,ながいこえのねこ,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+泣きたい私は猫をかぶる,なきたいわたしはねこをかぶる,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+魔女の宅急便,まじょのたっきゅうびん,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+猫に転生したおじさん,ねこにてんせいしたおじさん,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+黒ネコ,くろねこ,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+44匹,44ひき,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+猫師匠,ねこししょう,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み

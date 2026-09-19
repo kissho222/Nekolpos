@@ -24,6 +24,11 @@ Recordings/
 .agents/
 .codex_logs/
 .dotnet/
+node_modules/
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
 ProjectBackups/
 Build_Release_Diag/
 BuildTitle*.log
@@ -73,3 +78,16 @@ Assets/タブレットケーブル.fbx.meta
 
 # Separate third-party tooling checkout; the Unity package manifest remains tracked.
 unity-mcp/
+
+# Separate working repository; it must not become an accidental Git submodule.
+/Server/
+
+# Generated Unity RenderGraph API shims and a local browser activity export.
+/ComputeCommandBuffer.cs
+/IBaseCommandBuffer.cs
+/IComputeCommandBuffer.cs
+/IRasterCommandBuffer.cs
+/IUnsafeCommandBuffer.cs
+/RasterCommandBuffer.cs
+/UnsafeCommandBuffer.cs
+/Nekolpos 5.json
