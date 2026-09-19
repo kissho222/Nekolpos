@@ -1,0 +1,31 @@
+{
+  "description": "Prompts Codex once when a turn changes project files without a subsequent HANDOFF update.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ./.codex/hooks/handoff_guard.py --event prompt",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"$current = (Get-Location).Path; $script = $null; while ($current) { $candidate = Join-Path $current '.codex\\hooks\\handoff_guard.py'; if (Test-Path -LiteralPath $candidate) { $script = $candidate; break }; $parent = Split-Path -Parent $current; if ($parent -eq $current) { break }; $current = $parent }; if ($script) { & py -3 $script --event prompt } else { '{}' }\"",
+            "timeout": 10,
+            "statusMessage": "Preparing handoff guard"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ./.codex/hooks/handoff_guard.py --event stop",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"$current = (Get-Location).Path; $script = $null; while ($current) { $candidate = Join-Path $current '.codex\\hooks\\handoff_guard.py'; if (Test-Path -LiteralPath $candidate) { $script = $candidate; break }; $parent = Split-Path -Parent $current; if ($parent -eq $current) { break }; $current = $parent }; if ($script) { & py -3 $script --event stop } else { '{}' }\"",
+            "timeout": 15,
+            "statusMessage": "Checking handoff status"
+          }
+        ]
+      }
+    ]
+  }
+}
