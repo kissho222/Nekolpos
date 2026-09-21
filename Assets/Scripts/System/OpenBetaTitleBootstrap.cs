@@ -20,21 +20,31 @@ namespace Nekolpos.System
 {
     public sealed class OpenBetaTitleBootstrap : MonoBehaviour
     {
+        public enum ConversationTimelinePhase
+        {
+            Start,
+            End
+        }
+
         [Serializable]
         public sealed class ConversationTimelineBinding
         {
             [Tooltip("会話CSVの action_id: play_conversation_timeline:<ID> から指定するIDです。")]
             public string id;
-            [Tooltip("出発演出用の通常PlayableDirectorです。Animation、Audio、Signalを含められます。DialogueTimelineSequenceController用のTimelineは指定しません。")]
+            [Tooltip("旧Scene設定との互換用の出発Directorです。基本会話地点の移動では再生時間を待たず、位置・姿勢・視線をコード側で確定します。")]
             public PlayableDirector startDirector;
-            [Tooltip("到着演出用の通常PlayableDirectorです。不要なら空欄にできます。")]
+            [Tooltip("旧Scene設定との互換用の到着Directorです。基本会話地点の移動では再生しません。")]
             public PlayableDirector endDirector;
-            [Tooltip("オンなら、出発Timeline再生中の指定時刻で基本会話地点を更新します。Signal Receiverの個別設定は不要です。")]
+            [Tooltip("オンなら、暗転完了イベント後に基本会話地点を更新します。Signal Receiverの個別設定は不要です。")]
             public bool changeHomeLocation;
             public CatHomeLocation destination = CatHomeLocation.Table;
+            [Tooltip("旧設定との互換用です。位置更新は常に暗転完了後、明転前に実行されます。")]
+            public ConversationTimelinePhase homeLocationChangePhase = ConversationTimelinePhase.Start;
             [Min(0f)]
-            [Tooltip("出発Timeline開始から基本会話地点を更新する秒数です。暗転完了時刻を指定してください。")]
+            [Tooltip("旧設定との互換用です。暗転時間ではなくフェード完了イベントを同期点に使うため、実行時には参照しません。")]
             public float homeLocationChangeTime;
+            [Tooltip("オンなら、この会話Timelineの完了後にタブレット閲覧カメラへ遷移します。")]
+            public bool enterTabletCameraAfterPlayback;
         }
 
         private static OpenBetaTitleBootstrap activeTitleBootstrap;
@@ -115,10 +125,30 @@ namespace Nekolpos.System
         [SerializeField] [Min(0.05f)] private float locationTransitionFadeSeconds = 0.35f;
         [Tooltip("Timeline の FadeToBlack / FadeFromBlack Signal が使う既存のフェードです。未設定時はこの GameObject またはシーンから解決します。")]
         [SerializeField] private FadeController locationTransitionFadeController;
+        [Tooltip("基本会話地点を移動する時の片道フェード時間です。暗転・明転を合わせて最低1秒の移動演出になります。")]
+        [SerializeField] [Min(0.05f)] private float conversationLocationFadeSeconds = 0.5f;
 
         [Header("Conversation Timeline Actions")]
         [Tooltip("会話のActionから起動する通常Timelineです。場所移動は出発・到着Directorと切替時刻を1行へ登録します。")]
         [SerializeField] private ConversationTimelineBinding[] conversationTimelineBindings = Array.Empty<ConversationTimelineBinding>();
+
+        [Header("Tablet Camera")]
+        [Tooltip("タブレット閲覧時の実カメラ位置・回転を置くTransformです。")]
+        [SerializeField] private Transform tabletCameraPoint;
+        [SerializeField] [Min(0.01f)] private float tabletCameraTransitionSeconds = 0.4f;
+        [Tooltip("PowerIconで画面を消した後、Desk会話カメラへ戻る時の反比例型イージングの強さです。値が大きいほど開始直後が速く、到着前はゆっくりになります。")]
+        [SerializeField] [Range(0.1f, 8f)] private float tabletPowerReturnReciprocalStrength = 2f;
+        [Tooltip("タブレット閲覧中に停止する通常視点操作コンポーネントです。現在のTitleSceneには該当コンポーネントがないため、追加時だけ登録してください。")]
+        [SerializeField] private Behaviour[] tabletCameraInputControllers = Array.Empty<Behaviour>();
+        [Tooltip("Deskで通常会話の入力待ち中だけ表示する、タブレット閲覧開始ボタンです。")]
+        [SerializeField] private Button tabletButton;
+        [Tooltip("タブレット本体の画面として表示するWorld Space Canvasです。通常時は消灯し、閲覧カメラ到着時だけ有効にします。")]
+        [SerializeField] private GameObject tabletDisplayCanvas;
+        private CanvasGroup tabletDisplayCanvasGroup;
+        [Tooltip("タブレット画面の発光を担うEmissionPanelです。TabletCanvasと同じ電源状態で切り替えます。")]
+        [SerializeField] private GameObject tabletEmissionPanel;
+        [Tooltip("タブレット画面内の電源アイコンです。未設定時はPowerIconから実行時に解決します。")]
+        [SerializeField] private Button tabletPowerButton;
 
         [Header("Animation Patterns")]
         [SerializeField] private OpenBetaTitleAnimationPatternSelection selectedAnimationPattern = OpenBetaTitleAnimationPatternSelection.Auto;
@@ -166,6 +196,21 @@ namespace Nekolpos.System
         private Coroutine initialCatCallCompleteCoroutine;
         private Coroutine conversationTimelineCoroutine;
         private ConversationTimelineBinding activeConversationTimelineBinding;
+        private FadeController activeConversationFadeController;
+        private Action activeConversationOpaqueHandler;
+        private Action activeConversationTransparentHandler;
+        private bool isConversationFadeFlowActive;
+        private Coroutine tabletCameraTransitionCoroutine;
+        private Coroutine tabletPowerTransitionCoroutine;
+        private Image tabletPowerFadeOverlay;
+        private bool isTabletCameraViewActive;
+        private bool hasSavedTabletCameraPose;
+        private Vector3 savedTabletCameraPosition;
+        private Quaternion savedTabletCameraRotation;
+        private CursorLockMode savedTabletCursorLockMode;
+        private bool savedTabletCursorVisible;
+        private bool[] savedTabletInputControllerEnabledStates = Array.Empty<bool>();
+        private bool chatUiSuppressedForTablet;
         private Coroutine alternateCatCallCoroutine;
         private Coroutine alternateMoveEndIdleCoroutine;
         private ChatUIController titleInputSubscriptionChatUI;
@@ -372,6 +417,9 @@ namespace Nekolpos.System
             ResetGameManagerForTitleScreenSafely();
             VerboseLog($"[OpenBetaTitle][Flow] Awake resolving references session={titleSessionId}.");
             ResolveMissingReferences();
+            BindTabletPowerButton();
+            SetTabletDisplayPowered(false);
+            BindTabletButton();
             VerboseLog($"[OpenBetaTitle][Flow] Awake resetting runtime state session={titleSessionId}.");
             ResetRuntimeStateForFreshTitleSession();
             LoadSetupValues();
@@ -412,6 +460,7 @@ namespace Nekolpos.System
 
             CompleteOpeningTimelineIfReachedEnd();
             RestoreHeldCatTransformNow();
+            RefreshTabletButtonAvailability();
         }
 
         private void OnApplicationFocus(bool hasFocus)
@@ -466,6 +515,25 @@ namespace Nekolpos.System
 
         private void OnDestroy()
         {
+            if (tabletButton != null)
+            {
+                tabletButton.onClick.RemoveListener(HandleTabletButtonClicked);
+            }
+
+            if (tabletPowerButton != null)
+            {
+                tabletPowerButton.onClick.RemoveListener(HandleTabletPowerButtonClicked);
+            }
+
+            if (tabletPowerTransitionCoroutine != null)
+            {
+                StopCoroutine(tabletPowerTransitionCoroutine);
+                tabletPowerTransitionCoroutine = null;
+            }
+
+            StopConversationTimelinePlayback(resumePresentation: false);
+            StopTabletCameraTransition(restoreSavedState: true);
+
             if (activeTitleBootstrap == this && activeTitleSessionId == titleSessionId)
             {
                 activeTitleBootstrap = null;
@@ -524,6 +592,7 @@ namespace Nekolpos.System
             holdCatTransformAfterInitialCall = false;
             keepPostInitialCatCallState = false;
 
+            StopTabletCameraTransition(restoreSavedState: true);
             StopAllCoroutines();
             alternateCatCallCoroutine = null;
             initialCatCallCompleteCoroutine = null;
@@ -566,12 +635,41 @@ namespace Nekolpos.System
             characterSetupPanel ??= FindFirstObjectByType<OpenBetaCharacterSetupPanel>(FindObjectsInactive.Include);
             callCatPanel ??= FindFirstObjectByType<OpenBetaCallCatPanel>(FindObjectsInactive.Include);
             chatUI = ResolveActiveSceneReference(chatUI);
+            if (tabletButton == null)
+            {
+                GameObject tabletButtonObject = GameObject.Find("TabletButton");
+                tabletButton = tabletButtonObject != null ? tabletButtonObject.GetComponent<Button>() : null;
+            }
+            if (tabletDisplayCanvas == null)
+            {
+                RectTransform tabletCanvasTransform = FindSceneRectTransformByName("TabletCanvas");
+                tabletDisplayCanvas = tabletCanvasTransform != null ? tabletCanvasTransform.gameObject : null;
+            }
+            if (tabletDisplayCanvasGroup == null && tabletDisplayCanvas != null)
+            {
+                tabletDisplayCanvasGroup = tabletDisplayCanvas.GetComponent<CanvasGroup>();
+            }
+            if (tabletPowerButton == null)
+            {
+                GameObject powerIcon = GameObject.Find("PowerIcon");
+                if (powerIcon != null)
+                {
+                    tabletPowerButton = powerIcon.GetComponent<Button>();
+                    if (tabletPowerButton == null)
+                    {
+                        tabletPowerButton = powerIcon.AddComponent<Button>();
+                        tabletPowerButton.targetGraphic = powerIcon.GetComponent<Graphic>();
+                    }
+                }
+            }
             gameStateManager ??= FindFirstObjectByType<ConversationGameStateManager>(FindObjectsInactive.Include);
             dialogueManager = ResolveDialogueManagerReference(dialogueManager);
             dialogueEngine ??= DialogueEngine.Instance ?? FindFirstObjectByType<DialogueEngine>(FindObjectsInactive.Include);
             dialogueLogManager ??= DialogueLogManager.Instance ?? FindFirstObjectByType<DialogueLogManager>(FindObjectsInactive.Include);
             yarnManager ??= FindFirstObjectByType<YarnManager>(FindObjectsInactive.Include);
             conversationDataManager ??= FindFirstObjectByType<ConversationDataManager>(FindObjectsInactive.Include);
+            EnsureDiaryCalendarController();
+            EnsureTabletHomeApplicationController();
             EnsureBackgroundMusicControllerOnSelf();
 
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -695,16 +793,9 @@ namespace Nekolpos.System
                 }
             }
 
-            if (binding == null || binding.startDirector == null)
+            if (binding == null)
             {
                 Debug.LogWarning($"[OpenBetaTitle] 会話Timeline '{normalizedId}' は未登録です。", this);
-                return false;
-            }
-
-            if (!IsConversationTimelineDirectorValid(binding.startDirector) ||
-                (binding.endDirector != null && !IsConversationTimelineDirectorValid(binding.endDirector)))
-            {
-                Debug.LogWarning($"[OpenBetaTitle] 会話Timeline '{normalizedId}' のPlayableDirectorまたはTimeline Assetが無効です。", this);
                 return false;
             }
 
@@ -712,66 +803,564 @@ namespace Nekolpos.System
             catPresentationMode?.BeginTimelinePresentation();
             activeConversationTimelineBinding = binding;
             conversationTimelineCoroutine = StartCoroutine(PlayConversationTimelineRoutine(binding));
-            Debug.Log($"[OpenBetaTitle] 会話Timelineを再生: {normalizedId}", binding.startDirector);
+            Debug.Log($"[OpenBetaTitle] 会話拠点移動を開始: {normalizedId}", this);
             return true;
-        }
-
-        private static bool IsConversationTimelineDirectorValid(PlayableDirector director)
-        {
-            return director != null && director.isActiveAndEnabled && director.playableAsset != null;
         }
 
         private IEnumerator PlayConversationTimelineRoutine(ConversationTimelineBinding binding)
         {
-            yield return PlayConversationTimelineDirector(binding.startDirector, binding, applyHomeLocation: binding.changeHomeLocation);
-            if (binding.endDirector != null)
+            FadeController fadeController = ResolveLocationTransitionFadeController();
+            if (fadeController == null)
             {
-                yield return PlayConversationTimelineDirector(binding.endDirector, binding, applyHomeLocation: false);
+                Debug.LogError($"[OpenBetaTitle] 会話Timeline '{binding.id}' は暗転用FadeControllerを解決できないため開始しません。", this);
+                catPresentationMode?.ResumeIdleAfterTimeline();
+                CompleteConversationTimeline(binding);
+                yield break;
             }
+
+            // The Timeline assets retain their Signal markers for non-conversation use.
+            // This flow owns the fade so their callbacks cannot race the completion event.
+            activeConversationFadeController = fadeController;
+            isConversationFadeFlowActive = true;
+
+            yield return FadeConversationToOpaque(fadeController);
+
+            if (binding.changeHomeLocation)
+            {
+                ApplyConversationLocationWhileOpaque(binding.destination);
+            }
+
+            // A basic conversation location change must not keep the screen black for the
+            // duration of its shared Timeline assets. The destination pose and gaze are
+            // reconciled directly while opaque, then the normal idle controller takes over.
+            catPresentationMode?.ResumeIdleAfterTimeline();
+            catPresentationMode?.RefreshLookAtCameraImmediately();
+            yield return new WaitForEndOfFrame();
+            catPresentationMode?.RefreshLookAtCameraImmediately();
+
+            yield return FadeConversationToTransparent(fadeController);
+
+            // Present the completed Desk/Table state for one rendered frame before moving
+            // into the optional tablet camera. This keeps the cat visible as the fade opens.
+            yield return null;
+            if (binding.enterTabletCameraAfterPlayback && !EnterTabletCameraView())
+            {
+                Debug.LogWarning($"[OpenBetaTitle] 会話Timeline '{binding.id}' 完了後のタブレットカメラ遷移を開始できません。", this);
+            }
+
+            CompleteConversationTimeline(binding);
+        }
+
+        private void ApplyConversationLocationWhileOpaque(CatHomeLocation destination)
+        {
+            SetHomeLocation(destination);
+            catPresentationMode?.RefreshLookAtCameraImmediately();
+        }
+
+        private IEnumerator FadeConversationToOpaque(FadeController fadeController)
+        {
+            bool becameOpaque = fadeController.IsOpaque;
+            if (!becameOpaque)
+            {
+                activeConversationOpaqueHandler = () => becameOpaque = true;
+                fadeController.BecameOpaque += activeConversationOpaqueHandler;
+                fadeController.FadeToBlack(conversationLocationFadeSeconds);
+            }
+
+            while (!becameOpaque && fadeController != null)
+            {
+                yield return null;
+            }
+
+            ClearConversationOpaqueHandler(fadeController);
+        }
+
+        private IEnumerator FadeConversationToTransparent(FadeController fadeController)
+        {
+            bool becameTransparent = fadeController.IsTransparent;
+            if (!becameTransparent)
+            {
+                activeConversationTransparentHandler = () => becameTransparent = true;
+                fadeController.BecameTransparent += activeConversationTransparentHandler;
+                fadeController.FadeFromBlack(conversationLocationFadeSeconds);
+            }
+
+            while (!becameTransparent && fadeController != null)
+            {
+                yield return null;
+            }
+
+            ClearConversationTransparentHandler(fadeController);
+        }
+
+        private void ClearConversationFadeEventHandlers()
+        {
+            ClearConversationOpaqueHandler(activeConversationFadeController);
+            ClearConversationTransparentHandler(activeConversationFadeController);
+        }
+
+        private void ClearConversationOpaqueHandler(FadeController fadeController)
+        {
+            if (fadeController != null && activeConversationOpaqueHandler != null)
+            {
+                fadeController.BecameOpaque -= activeConversationOpaqueHandler;
+            }
+
+            activeConversationOpaqueHandler = null;
+        }
+
+        private void ClearConversationTransparentHandler(FadeController fadeController)
+        {
+            if (fadeController != null && activeConversationTransparentHandler != null)
+            {
+                fadeController.BecameTransparent -= activeConversationTransparentHandler;
+            }
+
+            activeConversationTransparentHandler = null;
+        }
+
+        private void CompleteConversationTimeline(ConversationTimelineBinding binding)
+        {
+            isConversationFadeFlowActive = false;
+            ClearConversationFadeEventHandlers();
+            activeConversationFadeController = null;
 
             if (activeConversationTimelineBinding == binding)
             {
                 conversationTimelineCoroutine = null;
                 activeConversationTimelineBinding = null;
-                catPresentationMode?.ResumeIdleAfterTimeline();
             }
         }
 
-        private IEnumerator PlayConversationTimelineDirector(
-            PlayableDirector director,
-            ConversationTimelineBinding binding,
-            bool applyHomeLocation)
+        private void BindTabletButton()
         {
-            director.Stop();
-            director.time = 0d;
-            director.Play();
-
-            double duration = director.duration;
-            if (double.IsNaN(duration) || double.IsInfinity(duration) || duration <= 0d)
+            if (tabletButton == null)
             {
-                Debug.LogWarning($"[OpenBetaTitle] 会話Timeline '{binding.id}' の長さが無効です。", director);
-                yield break;
+                return;
             }
 
-            double locationChangeTime = Math.Min(binding.homeLocationChangeTime, duration);
-            bool homeLocationChanged = !applyHomeLocation;
-            while (director != null && director.state == PlayState.Playing && director.time < duration)
-            {
-                if (!homeLocationChanged && director.time >= locationChangeTime)
-                {
-                    SetHomeLocation(binding.destination);
-                    homeLocationChanged = true;
-                }
+            tabletButton.onClick.RemoveListener(HandleTabletButtonClicked);
+            tabletButton.onClick.AddListener(HandleTabletButtonClicked);
+            RefreshTabletButtonAvailability();
+        }
 
+        private void BindTabletPowerButton()
+        {
+            if (tabletPowerButton == null)
+            {
+                return;
+            }
+
+            tabletPowerButton.onClick.RemoveListener(HandleTabletPowerButtonClicked);
+            tabletPowerButton.onClick.AddListener(HandleTabletPowerButtonClicked);
+        }
+
+        private void HandleTabletButtonClicked()
+        {
+            if (!CanOpenTabletFromButton())
+            {
+                RefreshTabletButtonAvailability();
+                return;
+            }
+
+            EnterTabletCameraView();
+        }
+
+        private void HandleTabletPowerButtonClicked()
+        {
+            if (!isTabletCameraViewActive || tabletPowerTransitionCoroutine != null)
+            {
+                return;
+            }
+
+            tabletPowerTransitionCoroutine = StartCoroutine(PowerOffTabletAndReturnToDeskRoutine());
+        }
+
+        private IEnumerator PowerOffTabletAndReturnToDeskRoutine()
+        {
+            Image fadeOverlay = EnsureTabletPowerFadeOverlay();
+            if (fadeOverlay != null)
+            {
+                Color overlayColor = fadeOverlay.color;
+                overlayColor.a = 0f;
+                fadeOverlay.color = overlayColor;
+                fadeOverlay.gameObject.SetActive(true);
+
+                const float fadeSeconds = 0.2f;
+                float elapsed = 0f;
+                while (elapsed < fadeSeconds)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    overlayColor.a = Mathf.Clamp01(elapsed / fadeSeconds);
+                    fadeOverlay.color = overlayColor;
+                    yield return null;
+                }
+            }
+
+            // Keep the current tablet pose until the display has turned off, then return
+            // to Desk through the reciprocal easing curve instead of snapping to it.
+            // SetHomeLocation must run while the tablet view is active so its ordinary
+            // camera-pose application does not bypass the return interpolation.
+            SetHomeLocation(CatHomeLocation.Desk);
+            catPresentationMode?.RefreshLookAtCameraImmediately();
+            if (!ExitTabletCameraView(useReciprocalEaseOut: true))
+            {
+                StopTabletCameraTransition(restoreSavedState: true);
+            }
+            tabletPowerTransitionCoroutine = null;
+        }
+
+        private Image EnsureTabletPowerFadeOverlay()
+        {
+            if (tabletPowerFadeOverlay != null)
+            {
+                return tabletPowerFadeOverlay;
+            }
+
+            if (tabletDisplayCanvas == null)
+            {
+                return null;
+            }
+
+            RectTransform canvasTransform = tabletDisplayCanvas.GetComponent<RectTransform>();
+            if (canvasTransform == null)
+            {
+                return null;
+            }
+
+            GameObject overlayObject = new GameObject(
+                "RuntimeTabletPowerFadeOverlay",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image));
+            RectTransform overlayTransform = overlayObject.GetComponent<RectTransform>();
+            overlayTransform.SetParent(canvasTransform, false);
+            overlayTransform.anchorMin = Vector2.zero;
+            overlayTransform.anchorMax = Vector2.one;
+            overlayTransform.offsetMin = Vector2.zero;
+            overlayTransform.offsetMax = Vector2.zero;
+            overlayTransform.SetAsLastSibling();
+
+            tabletPowerFadeOverlay = overlayObject.GetComponent<Image>();
+            tabletPowerFadeOverlay.color = Color.clear;
+            tabletPowerFadeOverlay.raycastTarget = true;
+            overlayObject.SetActive(false);
+            return tabletPowerFadeOverlay;
+        }
+
+        private void RefreshTabletButtonAvailability()
+        {
+            if (tabletButton == null)
+            {
+                return;
+            }
+
+            bool shouldBeVisible = CanOpenTabletFromButton();
+            if (tabletButton.gameObject.activeSelf != shouldBeVisible)
+            {
+                tabletButton.gameObject.SetActive(shouldBeVisible);
+            }
+        }
+
+        private bool CanOpenTabletFromButton()
+        {
+            if (isTabletCameraViewActive ||
+                tabletCameraTransitionCoroutine != null ||
+                conversationTimelineCoroutine != null ||
+                CatPositionController.CurrentConversationLocation != CatHomeLocation.Desk ||
+                chatUI == null ||
+                chatUI.IsTyping ||
+                chatUI.IsInDialogueMode ||
+                chatUI.IsMenuInputBlocked)
+            {
+                return false;
+            }
+
+            InputField inputField = chatUI.chatInputField;
+            return inputField != null &&
+                   inputField.gameObject.activeInHierarchy &&
+                   inputField.interactable;
+        }
+
+        private void SuppressConversationInputForTablet()
+        {
+            if (chatUI == null || chatUiSuppressedForTablet)
+            {
+                return;
+            }
+
+            chatUI.SetUiSuppressed(true);
+            chatUiSuppressedForTablet = true;
+        }
+
+        private void RestoreConversationInputAfterTablet()
+        {
+            if (chatUI == null || !chatUiSuppressedForTablet)
+            {
+                return;
+            }
+
+            chatUI.SetUiSuppressed(false);
+            chatUI.RestoreNormalConversationInputMode();
+            chatUiSuppressedForTablet = false;
+        }
+
+        /// <summary>
+        /// タブレット閲覧用の固定視点へ補間移動する。呼び出し前の姿勢と入力状態は、
+        /// <see cref="ExitTabletCameraView"/> で復帰できるよう保存する。
+        /// </summary>
+        public bool EnterTabletCameraView()
+        {
+            if (tabletCameraPoint == null)
+            {
+                Debug.LogWarning("[OpenBetaTitle] Tablet Camera Point が未設定です。", this);
+                return false;
+            }
+
+            if (startupCameraPivot == null)
+            {
+                GameObject pivotObject = GameObject.Find("CameraEventPivot");
+                startupCameraPivot = pivotObject != null ? pivotObject.transform : null;
+            }
+
+            if (startupCameraPivot == null)
+            {
+                Debug.LogWarning("[OpenBetaTitle] CameraEventPivot が見つからないため、タブレットカメラへ遷移できません。", this);
+                return false;
+            }
+
+            if (!hasSavedTabletCameraPose)
+            {
+                savedTabletCameraPosition = startupCameraPivot.position;
+                savedTabletCameraRotation = startupCameraPivot.rotation;
+                savedTabletCursorLockMode = Cursor.lockState;
+                savedTabletCursorVisible = Cursor.visible;
+                CaptureAndSuspendTabletCameraInput();
+                hasSavedTabletCameraPose = true;
+            }
+
+            isTabletCameraViewActive = true;
+            SuppressConversationInputForTablet();
+            StartTabletCameraTransition(tabletCameraPoint.position, tabletCameraPoint.rotation, unlockCursorWhenFinished: true);
+            return true;
+        }
+
+        /// <summary>
+        /// タブレット閲覧前に保存した視点と通常視点操作へ復帰する。
+        /// </summary>
+        public bool ExitTabletCameraView()
+        {
+            return ExitTabletCameraView(useReciprocalEaseOut: false);
+        }
+
+        private bool ExitTabletCameraView(bool useReciprocalEaseOut)
+        {
+            if (!hasSavedTabletCameraPose || startupCameraPivot == null)
+            {
+                return false;
+            }
+
+            isTabletCameraViewActive = false;
+            SetTabletDisplayPowered(false);
+            StartTabletCameraTransition(
+                savedTabletCameraPosition,
+                savedTabletCameraRotation,
+                unlockCursorWhenFinished: false,
+                restoreInputWhenFinished: true,
+                useReciprocalEaseOut: useReciprocalEaseOut);
+            return true;
+        }
+
+        private void StartTabletCameraTransition(
+            Vector3 destinationPosition,
+            Quaternion destinationRotation,
+            bool unlockCursorWhenFinished,
+            bool restoreInputWhenFinished = false,
+            bool useReciprocalEaseOut = false)
+        {
+            if (tabletCameraTransitionCoroutine != null)
+            {
+                StopCoroutine(tabletCameraTransitionCoroutine);
+            }
+
+            tabletCameraTransitionCoroutine = StartCoroutine(TabletCameraTransitionRoutine(
+                destinationPosition,
+                destinationRotation,
+                unlockCursorWhenFinished,
+                restoreInputWhenFinished,
+                useReciprocalEaseOut));
+        }
+
+        private IEnumerator TabletCameraTransitionRoutine(
+            Vector3 destinationPosition,
+            Quaternion destinationRotation,
+            bool unlockCursorWhenFinished,
+            bool restoreInputWhenFinished,
+            bool useReciprocalEaseOut)
+        {
+            Vector3 startPosition = startupCameraPivot.position;
+            Quaternion startRotation = startupCameraPivot.rotation;
+            float duration = Mathf.Max(0.01f, tabletCameraTransitionSeconds);
+            float elapsed = 0f;
+
+            while (elapsed < duration && startupCameraPivot != null)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float normalizedTime = Mathf.Clamp01(elapsed / duration);
+                float progress = useReciprocalEaseOut
+                    ? EvaluateReciprocalEaseOut(normalizedTime, tabletPowerReturnReciprocalStrength)
+                    : Mathf.SmoothStep(0f, 1f, normalizedTime);
+                startupCameraPivot.SetPositionAndRotation(
+                    Vector3.LerpUnclamped(startPosition, destinationPosition, progress),
+                    Quaternion.SlerpUnclamped(startRotation, destinationRotation, progress));
                 yield return null;
             }
 
-            if (!homeLocationChanged)
+            if (startupCameraPivot != null)
             {
-                SetHomeLocation(binding.destination);
+                startupCameraPivot.SetPositionAndRotation(destinationPosition, destinationRotation);
             }
 
-            director.Stop();
+            if (unlockCursorWhenFinished)
+            {
+                SetTabletDisplayPowered(true);
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
+
+            if (restoreInputWhenFinished)
+            {
+                RestoreTabletCameraInput();
+                RestoreConversationInputAfterTablet();
+                hasSavedTabletCameraPose = false;
+                catPresentationMode?.RefreshLookAtCameraImmediately();
+            }
+
+            tabletCameraTransitionCoroutine = null;
+        }
+
+        private static float EvaluateReciprocalEaseOut(float normalizedTime, float strength)
+        {
+            float time = Mathf.Clamp01(normalizedTime);
+            float reciprocalStrength = Mathf.Max(0f, strength);
+            if (reciprocalStrength <= Mathf.Epsilon)
+            {
+                return time;
+            }
+
+            // (1 + s)t / (1 + st): a normalized reciprocal curve that reaches both
+            // endpoints exactly, moves promptly after the display turns off, and eases
+            // into the Desk conversation camera without an end-frame snap.
+            return (1f + reciprocalStrength) * time / (1f + reciprocalStrength * time);
+        }
+
+        private void CaptureAndSuspendTabletCameraInput()
+        {
+            Behaviour[] inputControllers = tabletCameraInputControllers ?? Array.Empty<Behaviour>();
+            savedTabletInputControllerEnabledStates = new bool[inputControllers.Length];
+            for (int i = 0; i < inputControllers.Length; i++)
+            {
+                Behaviour inputController = inputControllers[i];
+                if (inputController == null || inputController == this)
+                {
+                    continue;
+                }
+
+                savedTabletInputControllerEnabledStates[i] = inputController.enabled;
+                inputController.enabled = false;
+            }
+        }
+
+        private void RestoreTabletCameraInput()
+        {
+            Behaviour[] inputControllers = tabletCameraInputControllers ?? Array.Empty<Behaviour>();
+            for (int i = 0; i < inputControllers.Length; i++)
+            {
+                Behaviour inputController = inputControllers[i];
+                if (inputController != null && inputController != this && i < savedTabletInputControllerEnabledStates.Length)
+                {
+                    inputController.enabled = savedTabletInputControllerEnabledStates[i];
+                }
+            }
+
+            Cursor.lockState = savedTabletCursorLockMode;
+            Cursor.visible = savedTabletCursorVisible;
+            savedTabletInputControllerEnabledStates = Array.Empty<bool>();
+        }
+
+        private void StopTabletCameraTransition(bool restoreSavedState)
+        {
+            if (tabletCameraTransitionCoroutine != null)
+            {
+                StopCoroutine(tabletCameraTransitionCoroutine);
+                tabletCameraTransitionCoroutine = null;
+            }
+
+            if (restoreSavedState && hasSavedTabletCameraPose)
+            {
+                if (startupCameraPivot != null)
+                {
+                    startupCameraPivot.SetPositionAndRotation(savedTabletCameraPosition, savedTabletCameraRotation);
+                }
+
+                RestoreTabletCameraInput();
+                RestoreConversationInputAfterTablet();
+                hasSavedTabletCameraPose = false;
+            }
+
+            SetTabletDisplayPowered(false);
+            isTabletCameraViewActive = false;
+        }
+
+        private void SetTabletDisplayPowered(bool powered)
+        {
+            if (powered)
+            {
+                if (tabletDisplayCanvasGroup == null && tabletDisplayCanvas != null)
+                {
+                    tabletDisplayCanvasGroup = tabletDisplayCanvas.GetComponent<CanvasGroup>();
+                }
+
+                if (tabletPowerFadeOverlay != null)
+                {
+                    Color overlayColor = tabletPowerFadeOverlay.color;
+                    overlayColor.a = 0f;
+                    tabletPowerFadeOverlay.color = overlayColor;
+                    tabletPowerFadeOverlay.gameObject.SetActive(false);
+                }
+
+                if (tabletDisplayCanvas != null && !tabletDisplayCanvas.activeSelf)
+                {
+                    tabletDisplayCanvas.SetActive(true);
+                }
+
+                // TabletDisplayController keeps its own power state and can leave the
+                // shared CanvasGroup transparent. Active alone is therefore not a
+                // display guarantee; restore the visible state at the single power-on boundary.
+                if (tabletDisplayCanvasGroup != null)
+                {
+                    tabletDisplayCanvasGroup.alpha = 1f;
+                    tabletDisplayCanvasGroup.interactable = true;
+                    tabletDisplayCanvasGroup.blocksRaycasts = true;
+                }
+
+                if (tabletEmissionPanel != null && !tabletEmissionPanel.activeSelf)
+                {
+                    tabletEmissionPanel.SetActive(true);
+                }
+
+                return;
+            }
+
+            if (tabletDisplayCanvas != null && tabletDisplayCanvas.activeSelf)
+            {
+                tabletDisplayCanvas.SetActive(false);
+            }
+
+            if (tabletEmissionPanel != null && tabletEmissionPanel.activeSelf)
+            {
+                tabletEmissionPanel.SetActive(false);
+            }
         }
 
         private void StopConversationTimelinePlayback(bool resumePresentation)
@@ -787,6 +1376,14 @@ namespace Nekolpos.System
                 activeConversationTimelineBinding.startDirector?.Stop();
                 activeConversationTimelineBinding.endDirector?.Stop();
                 activeConversationTimelineBinding = null;
+            }
+
+            if (isConversationFadeFlowActive)
+            {
+                ClearConversationFadeEventHandlers();
+                activeConversationFadeController?.SetTransparent();
+                isConversationFadeFlowActive = false;
+                activeConversationFadeController = null;
             }
 
             if (resumePresentation)
@@ -817,6 +1414,11 @@ namespace Nekolpos.System
         /// </summary>
         public void FadeToBlack()
         {
+            if (isConversationFadeFlowActive)
+            {
+                return;
+            }
+
             ResolveLocationTransitionFadeController()?.FadeToBlack(locationTransitionFadeSeconds);
         }
 
@@ -825,6 +1427,11 @@ namespace Nekolpos.System
         /// </summary>
         public void FadeFromBlack()
         {
+            if (isConversationFadeFlowActive)
+            {
+                return;
+            }
+
             ResolveLocationTransitionFadeController()?.FadeFromBlack(locationTransitionFadeSeconds);
         }
 
@@ -904,6 +1511,11 @@ namespace Nekolpos.System
 
         private void ApplyHomeLocationCameraPose(CatHomeLocation location)
         {
+            if (isTabletCameraViewActive)
+            {
+                return;
+            }
+
             if (startupCameraPivot == null)
             {
                 GameObject pivotObject = GameObject.Find("CameraEventPivot");
@@ -966,6 +1578,22 @@ namespace Nekolpos.System
             }
 
             return null;
+        }
+
+        private void EnsureDiaryCalendarController()
+        {
+            if (GetComponent<DiaryCalendarController>() == null)
+            {
+                gameObject.AddComponent<DiaryCalendarController>();
+            }
+        }
+
+        private void EnsureTabletHomeApplicationController()
+        {
+            if (GetComponent<TabletHomeApplicationController>() == null)
+            {
+                gameObject.AddComponent<TabletHomeApplicationController>();
+            }
         }
 
         private static RectTransform FindSceneRectTransformByName(string objectName)

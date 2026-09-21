@@ -1,30 +1,24 @@
 using UnityEngine;
 
-public class FreeCameraController : MonoBehaviour
+/// <summary>
+/// 写真撮影など、衝突を必要としない既存の自由カメラ用コントローラー。
+/// 通常プレイの安全歩行には PlayerSafetyMovementController を使用する。
+/// </summary>
+public sealed class FreeCameraController : MonoBehaviour
 {
     public float moveSpeed = 3f;
     public float mouseSensitivity = 3f;
 
-    float rotX;
-    float rotY;
+    private float rotationX;
+    private float rotationY;
 
-    void Update()
+    private void Update()
     {
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
-        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+        rotationX -= Input.GetAxis("Mouse Y") * mouseSensitivity;
+        rotationY += Input.GetAxis("Mouse X") * mouseSensitivity;
+        transform.rotation = Quaternion.Euler(rotationX, rotationY, 0f);
 
-        rotX -= mouseY;
-        rotY += mouseX;
-
-        transform.rotation = Quaternion.Euler(rotX, rotY, 0);
-
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
-
-        Vector3 move =
-            transform.forward * v +
-            transform.right * h;
-
+        Vector3 move = transform.forward * Input.GetAxis("Vertical") + transform.right * Input.GetAxis("Horizontal");
         transform.position += move * moveSpeed * Time.deltaTime;
     }
 }

@@ -33,6 +33,8 @@ namespace Nekolpos.System
         public sealed class ResolvedTimedEvent
         {
             public string Key;
+            public string DiaryId;
+            public bool IsSpecialDiary;
             public string Text;
             public int TimeMinutes;
             public float DisplaySeconds;
@@ -41,6 +43,8 @@ namespace Nekolpos.System
         private sealed class TimedEventRow
         {
             public string Key;
+            public string DiaryId;
+            public bool IsSpecialDiary;
             public int TimeMinutes;
             public float DisplaySeconds;
             public readonly Dictionary<string, string> TextByLocale =
@@ -69,6 +73,8 @@ namespace Nekolpos.System
             return new ResolvedTimedEvent
             {
                 Key = row.Key,
+                DiaryId = string.IsNullOrWhiteSpace(row.DiaryId) ? row.Key : row.DiaryId,
+                IsSpecialDiary = row.IsSpecialDiary,
                 Text = text,
                 TimeMinutes = row.TimeMinutes,
                 DisplaySeconds = row.DisplaySeconds
@@ -163,6 +169,8 @@ namespace Nekolpos.System
             int zhIndex = FindColumnIndex(headers, "zh", "zh_cn", "cn");
             int timeMinutesIndex = FindColumnIndex(headers, "time_minutes", "timeminutes");
             int displaySecondsIndex = FindColumnIndex(headers, "display_seconds", "displayseconds");
+            int diaryIdIndex = FindColumnIndex(headers, "diary_id", "diaryid");
+            int diaryKindIndex = FindColumnIndex(headers, "diary_kind", "diarykind");
             if (keyIndex < 0)
             {
                 Debug.LogWarning("[SystemTimedEventCatalog] key 列が見つかりません。");
@@ -181,6 +189,8 @@ namespace Nekolpos.System
                 TimedEventRow row = new TimedEventRow
                 {
                     Key = key,
+                    DiaryId = GetColumn(columns, diaryIdIndex).Trim(),
+                    IsSpecialDiary = string.Equals(GetColumn(columns, diaryKindIndex).Trim(), "special", StringComparison.OrdinalIgnoreCase),
                     TimeMinutes = ParseInt(GetColumn(columns, timeMinutesIndex), 0),
                     DisplaySeconds = ParseFloat(GetColumn(columns, displaySecondsIndex), 0f)
                 };

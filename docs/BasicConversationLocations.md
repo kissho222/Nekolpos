@@ -68,21 +68,43 @@ Affection >= 50 && H: Desk
 
 暗転、Audio、Signal、位置変更を含む場所移動演出は `DialogueTimelineSequenceController` へ登録しない。`TitleScene > OpenBetaSystems > OpenBetaTitleBootstrap > Conversation Timeline Actions` に、通常の `PlayableDirector` をIDとともに登録する。
 
-登録1件には出発用 `Start Director`、任意の到着用 `End Director`、`Change Home Location`、`Destination`、`Home Location Change Time` をまとめて設定する。`Home Location Change Time` には暗転完了の秒数を入力する。コードがその時刻で現在地・猫・カメラを更新し、Start終了後はEndを自動再生するので、地点ごとに位置更新やStart→End連結のSignal Asset / Signal Receiver Reactionを増やす必要はない。
+登録1件には出発用 `Start Director`、任意の到着用 `End Director`、`Change Home Location`、`Destination` をまとめて設定する。Directorと旧Sceneに残る `Home Location Change Phase` / `Home Location Change Time` は互換用の表示項目であり、基本会話地点の移動では再生・参照しない。コードがフェードの**暗転完了イベント**を受けてから現在地・猫・カメラを直接更新する。これにより地点ごとに位置更新やStart→End連結のSignal Asset / Signal Receiver Reactionを増やす必要はない。
 
-登録するDirectorは通常会話用に専用で用意する。OP用の `timelineDirector` は登録しない。Timelineの `Animation Track` はNormal CatのAnimator、`Audio Track` は使用するAudioSourceへバインドする。暗転・明転用の既存Signalは共通の `Signal Receiver` を利用できる。再生中は既存の `CatPresentationModeController` をTimelineモードにして通常待機との競合を防ぎ、終了時に現在の基本会話拠点へ復帰する。
+出発・到着Directorの既存参照はScene互換のため保持するが、基本会話地点の移動では再生しない。暗転・明転用の既存Signalは共通の `Signal Receiver` を利用できるが、会話から起動する移動中だけはコード側がフェードを所有し、Signalによる二重のフェード要求を抑止する。移動中は既存の `CatPresentationModeController` を一時的にTimelineモードへ切り替え、暗転中に待機姿勢へ復帰させる。
 
 CSVでは、最後に実行したい `Action` 行の `action_id` へ次を指定する。
 
 ```text
-play_conversation_timeline:MoveStartToDesk
+play_conversation_timeline:MoveToDesk
 ```
 
 Choiceの「はい」分岐先をこのAction行にすれば承認時に、通常会話の最終行をこのAction行にすれば発話完了後に再生する。
 
-現在位置の確定はCSVの `move_home:Desk` と重ねて指定しない。登録項目の `Destination` と `Home Location Change Time` がその役割を担う。これにより、暗転前に位置やカメラが切り替わらず、指定時点で猫・カメラ・`H: Desk` が同時に更新される。
+現在位置の確定はCSVの `move_home:Desk` と重ねて指定しない。登録項目の `Destination` がその役割を担う。会話からの拠点移動は常に次の順で進むため、フェード秒数を変更しても暗転途中・明転途中に猫のワープや視線の遅れが見えない。
+
+1. 移動開始後、コードが暗転を開始する。
+2. `FadeController.BecameOpaque`（完全暗転イベント）を待つ。
+3. 遷移先アンカーへ猫と拠点カメラを配置する。
+4. 待機姿勢とカメラ優先の視線Rigを更新する。Animation Riggingの評価のためフレーム終端を1回待って再更新する。
+5. 明転を開始する。基本会話地点の暗転・明転は各0.5秒（合計最低1秒）にし、共有Directorの再生時間やタブレットカメラ補間は待機しない。
+
+この経路での完了条件は、`FadeController.BecameTransparent`（明転完了イベント）を受けた後である。`WaitForSeconds` による暗転時間の推測は使わない。
 
 夜・翌朝・タブレット処理への自動接続は、TitleSceneの時間管理が遅延生成されるため、この段階では行わない。既存イベントから上記APIを呼び出して接続する。
+
+## タブレット閲覧カメラ
+
+`TitleScene > PlayerCameraRoot` 配下の `TabletCameraPoint` が、タブレット閲覧用の実カメラ姿勢を保持する。現在の位置は `(0.867, 0.851, -1.321)`、回転は `(71.9, 90, 0)` であり、`OpenBetaTitleBootstrap > Tablet Camera > Tablet Camera Point` から参照する。座標をコードへ固定値として持たないため、演出調整時はこのTransformだけを動かす。
+
+`Conversation Timeline Actions` の対象行で `Enter Tablet Camera After Playback` を有効にすると、猫の姿勢・視線更新と明転完了の後、Desk/Tableの完成状態を1フレーム表示してから `CameraEventPivot` がこのTransformへ0.4秒で補間移動する。`MoveToDesk` はこの設定を有効にしている。したがって、明転中に猫のワープ・視線遅れ・タブレット画面への切替が混ざらない。タブレットカメラ到着後はカーソルを解除してUIを操作できる。
+
+タブレット本体の `TabletCanvas` と `EmissionPanel` は通常時に消灯する。`OpenBetaTitleBootstrap` が閲覧カメラの到着時だけ両方を有効化し、`ExitTabletCameraView()` の開始時・タイトル遷移の中断時には即座に無効化する。Canvasはレイアウトを左右反転させない既存のY=180回転を維持し、`DisplayArea`の表面かつカメラ側となるローカルZ=+0.054に置く。`EmissionPanel`（Z=+0.051）よりわずかに前面へ置くため、DisplayAreaのMesh Rendererに隠れない。これによりMesh Rendererを無効化・マテリアル差し替えしない。`TabletDisplayController` は消灯時にCanvasGroupを透明へ戻すため、電源ONではActive化だけでなく`TabletCanvas`のCanvasGroupを`alpha=1`・操作可能へ復帰させる。これにより起動直後や会話中に画面が常時点灯して見える状態と、Activeでも黒いままになる状態の両方を防ぐ。
+
+タブレット画面内の `PowerIcon` は実行時にButtonとして接続される。押下するとタブレット画面だけが黒へ0.2秒でフェードし、黒になった後に画面を消灯する。Desk側の通常会話カメラへの復帰は即時スナップせず、`f(t)=(1+s)t/(1+st)` の反比例型イージングで補間する。既定の強さ `s=2` は開始直後を速く、到着前をゆっくりにする。`OpenBetaTitleBootstrap > Tablet Camera > Tablet Power Return Reciprocal Strength` で強さを調整できる。ゲーム画面全体のフェードは使わない。
+
+通常視点を操作するコンポーネントを導入した場合は、同じ欄の `Tablet Camera Input Controllers` に登録する。閲覧開始時に有効状態を保存して停止し、`OpenBetaTitleBootstrap.ExitTabletCameraView()` で元のカメラ姿勢・入力状態・カーソル状態へ安全に戻す。現在のTitleSceneには停止対象となるFPS視点操作コンポーネントがないため、この配列は空でよい。
+
+`OpenBetaCanvas/TabletButton` は `OpenBetaTitleBootstrap` が自動接続する。ボタンは現在の基本会話地点が `Desk` で、通常会話の入力欄が表示・操作可能な入力待ち中だけ有効になる。台詞の表示中、選択肢中、会話Timeline中、タブレットカメラ遷移中、またはタブレット閲覧中は非表示である。押すと会話入力UIを一時的に閉じてタブレットカメラへ遷移し、`ExitTabletCameraView()` の完了後に通常入力待ちへ戻る。
 
 ## Timeline によるシーン間の場所遷移
 

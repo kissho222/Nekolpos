@@ -15,6 +15,21 @@ namespace Nekolpos.ActionSystem
         private bool isInitialized;
         private int fadeRequestVersion;
 
+        /// <summary>
+        /// Raised once an active fade has reached a fully opaque black overlay.
+        /// Consumers that must update scene state while hidden should synchronize on this
+        /// event instead of duplicating the fade duration.
+        /// </summary>
+        public event Action BecameOpaque;
+
+        /// <summary>
+        /// Raised once an active fade has reached a fully transparent overlay.
+        /// </summary>
+        public event Action BecameTransparent;
+
+        public bool IsOpaque => fadeGroup != null && fadeGroup.alpha >= 0.999f;
+        public bool IsTransparent => fadeGroup == null || fadeGroup.alpha <= 0.001f;
+
         public void Initialize(Canvas canvas)
         {
             if (canvas != null)
@@ -180,6 +195,11 @@ namespace Nekolpos.ActionSystem
                 fadeGroup.blocksRaycasts = false;
                 fadeGroup.interactable = false;
                 fadeGroup.gameObject.SetActive(false);
+                BecameTransparent?.Invoke();
+            }
+            else if (targetAlpha >= 1f)
+            {
+                BecameOpaque?.Invoke();
             }
         }
 

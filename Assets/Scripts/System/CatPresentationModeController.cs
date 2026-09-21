@@ -134,6 +134,24 @@ namespace Nekolpos.System
             SetHomeLocation(CatHomeLocation.Desk);
         }
 
+        /// <summary>
+        /// Immediately rebuilds the normal cat's camera-priority look target after a
+        /// hidden location transition. The caller is responsible for waiting a frame
+        /// when Animation Rigging needs an additional evaluation pass.
+        /// </summary>
+        public void RefreshLookAtCameraImmediately()
+        {
+            ResolveNormalCatReferences();
+            if (lookRig == null)
+            {
+                return;
+            }
+
+            lookRig.enabled = true;
+            lookRig.ResetExternalWeight(true);
+            lookRig.ForceRuntimeRefresh(true, true);
+        }
+
         public void EnterOpeningMode()
         {
             StopIdleVariationLoop();
@@ -196,7 +214,10 @@ namespace Nekolpos.System
                 ? CatPresentationMode.Idle
                 : CurrentMode;
             ResolveNormalCatReferences();
-            positionController?.MoveToHome();
+
+            // 場所移動Timelineでは、開始Signalが暗転を始める前にホームへスナップしてはならない。
+            // ここで位置を変えると、ネルコが暗転前に消える／跳ぶように見える。
+            // 遷移先への配置はOpenBetaTitleBootstrapが暗転完了後に行う。
             CurrentMode = CatPresentationMode.Timeline;
             StopIdleVariationLoop();
             StopRestartIdleVariationCoroutine();
