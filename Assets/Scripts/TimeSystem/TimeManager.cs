@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using Backgammon.Conversation;
 using Nekolpos.System;
 using UnityEngine;
@@ -35,6 +36,7 @@ namespace Nekolpos.TimeSystem
     {
         private const int PeriodCountPerDay = 4;
         private const string LogPrefix = "[TimeManager]";
+        private const string GameStartDateTicksPrefsKey = "Nekolpos.Time.GameStartDateTicks";
 
         [Header("Timeline")]
         [SerializeField] [Min(1)] private int minutesPerPeriod = 120;
@@ -50,6 +52,7 @@ namespace Nekolpos.TimeSystem
 
         private int currentDay;
         private int minutesIntoDay;
+        private DateTime gameStartDate;
         private bool initialized;
         private bool weatherInitialized;
         private GameManager subscribedGameManager;
@@ -71,6 +74,30 @@ namespace Nekolpos.TimeSystem
             {
                 EnsureInitialized();
                 return ResolvePeriod(minutesIntoDay);
+            }
+        }
+
+        /// <summary>New-game day 1's locally captured calendar date. It is never recalculated from later PC time.</summary>
+        public DateTime GameStartDate
+        {
+            get
+            {
+                EnsureInitialized();
+                return gameStartDate;
+            }
+        }
+
+        public DateTime GetCalendarDate(int dayNumber)
+        {
+            EnsureInitialized();
+            int safeDay = Mathf.Max(1, dayNumber);
+            try
+            {
+                return gameStartDate.AddDays(safeDay - 1L);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return safeDay > 1 ? DateTime.MaxValue.Date : DateTime.MinValue.Date;
             }
         }
 
@@ -135,11 +162,37 @@ namespace Nekolpos.TimeSystem
             }
 
             currentDay = Mathf.Max(1, startingDay);
+            gameStartDate = LoadOrCreateGameStartDate();
             minutesIntoDay = Mathf.Clamp((int)startingPeriod * minutesPerPeriod, 0, (minutesPerPeriod * PeriodCountPerDay) - 1);
             initialized = true;
             TrySyncFromGameManager();
             EnsureWeatherInitialized();
             SyncConversationState(CurrentPeriod);
+        }
+
+        private static DateTime LoadOrCreateGameStartDate()
+        {
+            string serializedTicks = PlayerPrefs.GetString(GameStartDateTicksPrefsKey, string.Empty);
+            if (long.TryParse(serializedTicks, NumberStyles.Integer, CultureInfo.InvariantCulture, out long ticks))
+            {
+                try
+                {
+                    return new DateTime(ticks, DateTimeKind.Local).Date;
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    Debug.LogWarning($"{LogPrefix} Saved game start date was invalid; a new local date will be captured.");
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(serializedTicks))
+            {
+                Debug.LogWarning($"{LogPrefix} Saved game start date could not be read; a new local date will be captured.");
+            }
+
+            DateTime today = DateTime.Now.Date;
+            PlayerPrefs.SetString(GameStartDateTicksPrefsKey, today.Ticks.ToString(CultureInfo.InvariantCulture));
+            PlayerPrefs.Save();
+            return today;
         }
 
         public TimeAdvanceResult AdvanceTime(int minutes)

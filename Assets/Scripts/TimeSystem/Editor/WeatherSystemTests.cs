@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using Backgammon.Conversation;
 using NUnit.Framework;
 using UnityEngine;
@@ -7,6 +8,8 @@ namespace Nekolpos.TimeSystem.Editor
 {
     public sealed class WeatherSystemTests
     {
+        private const string GameStartDateTicksPrefsKey = "Nekolpos.Time.GameStartDateTicks";
+
         [Test]
         public void GenerateRandomWeather_MatchesWeightedBoundaries()
         {
@@ -168,6 +171,43 @@ namespace Nekolpos.TimeSystem.Editor
             }
             finally
             {
+                UnityEngine.Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
+        public void CalendarDate_UsesSavedStartDateAndClampsOutOfRangeDays()
+        {
+            bool hadPreviousValue = PlayerPrefs.HasKey(GameStartDateTicksPrefsKey);
+            string previousValue = PlayerPrefs.GetString(GameStartDateTicksPrefsKey, string.Empty);
+            GameObject gameObject = new GameObject("TimeManagerCalendarDateTest");
+            try
+            {
+                DateTime startDate = new DateTime(2026, 9, 19);
+                PlayerPrefs.SetString(
+                    GameStartDateTicksPrefsKey,
+                    startDate.Ticks.ToString(CultureInfo.InvariantCulture));
+
+                TimeManager timeManager = gameObject.AddComponent<TimeManager>();
+                timeManager.SetCurrentTime(3, DayPeriod.Morning);
+
+                Assert.That(timeManager.GameStartDate, Is.EqualTo(startDate));
+                Assert.That(timeManager.GetCalendarDate(timeManager.CurrentDay), Is.EqualTo(startDate.AddDays(2)));
+                Assert.That(timeManager.GetCalendarDate(0), Is.EqualTo(startDate));
+                Assert.That(timeManager.GetCalendarDate(int.MaxValue), Is.EqualTo(DateTime.MaxValue.Date));
+            }
+            finally
+            {
+                if (hadPreviousValue)
+                {
+                    PlayerPrefs.SetString(GameStartDateTicksPrefsKey, previousValue);
+                }
+                else
+                {
+                    PlayerPrefs.DeleteKey(GameStartDateTicksPrefsKey);
+                }
+
+                PlayerPrefs.Save();
                 UnityEngine.Object.DestroyImmediate(gameObject);
             }
         }

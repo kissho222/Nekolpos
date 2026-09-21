@@ -202,7 +202,7 @@ namespace Backgammon.Conversation.Editor
         {
             var csv =
                 "id,input,regex_jp,regex_zh,regex_en,output_ja,output_zh,output_en,alt,regex_id,pattern,order,response_type,action_id,condition,SpeechControl,emotion_change_type,emotion_change_value,WaitTime,HideUI,Animation,Priority,call_only,choice_yes_pattern,choice_no_pattern\n" +
-                "350,タブレット,(たぶれっと),,,,,phone,2,2,Action,,,Random,,0,0,true,timeline_sequence:MoveStartToDeskStart,40,true,,,\n";
+                "350,タブレット,(たぶれっと),,,,,phone,2,2,Action,,,Random,,0,0,true,timeline_sequence:MawStart,40,true,,,\n";
 
             var result = ConversationDataLoader.LoadFromCsvText(
                 csv,
@@ -214,8 +214,8 @@ namespace Backgammon.Conversation.Editor
 
             Assert.That(result.Succeeded, Is.True);
             Assert.That(result.catalog.Routes, Has.Count.EqualTo(1));
-            Assert.That(result.catalog.Routes[0].events, Is.EqualTo(new[] { "timeline_sequence:MoveStartToDeskStart" }));
-            Assert.That(result.catalog.Routes[0].metadata.actionId, Is.EqualTo("timeline_sequence:MoveStartToDeskStart"));
+            Assert.That(result.catalog.Routes[0].events, Is.EqualTo(new[] { "timeline_sequence:MawStart" }));
+            Assert.That(result.catalog.Routes[0].metadata.actionId, Is.EqualTo("timeline_sequence:MawStart"));
         }
 
         [Test]

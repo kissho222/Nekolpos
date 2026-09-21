@@ -150,6 +150,61 @@ namespace Nekolpos.System.Editor
             Assert.That(Contrast(button.colors.pressedColor, label.color), Is.GreaterThan(4.5f));
         }
 
+        [Test]
+        public void ApplyTree_LeavesTabletButtonOutsideAutomaticButtonConversion()
+        {
+            GameObject tabletButtonObject = new GameObject("TabletButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            tabletButtonObject.transform.SetParent(root.transform, false);
+            Image image = tabletButtonObject.GetComponent<Image>();
+            image.color = Color.magenta;
+            Button button = tabletButtonObject.GetComponent<Button>();
+            button.targetGraphic = image;
+            ColorBlock originalColors = button.colors;
+
+            GameObject labelObject = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+            labelObject.transform.SetParent(tabletButtonObject.transform, false);
+            TMP_Text label = labelObject.GetComponent<TMP_Text>();
+            label.color = Color.cyan;
+
+            UIStyle.ApplyTree(root.transform);
+
+            Assert.That(image.color, Is.EqualTo(Color.magenta));
+            Assert.That(button.colors.normalColor, Is.EqualTo(originalColors.normalColor));
+            Assert.That(label.color, Is.EqualTo(Color.cyan));
+            Assert.That(tabletButtonObject.transform.Find("UIStyleBorder"), Is.Null);
+            Assert.That(tabletButtonObject.GetComponent<Shadow>(), Is.Null);
+        }
+
+        [Test]
+        public void Rewriting_ResetsWritingPresentationBeforeShowingThePrompt()
+        {
+            DiaryCalendarController diary = root.AddComponent<DiaryCalendarController>();
+            GameObject bodyObject = new GameObject("WritingBody", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+            GameObject microphone = new GameObject("MicrophoneIndicator");
+            GameObject finishObject = new GameObject("WritingFinishButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            GameObject rewriteObject = new GameObject("ReWritingButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            bodyObject.transform.SetParent(root.transform, false);
+            microphone.transform.SetParent(root.transform, false);
+            finishObject.transform.SetParent(root.transform, false);
+            rewriteObject.transform.SetParent(root.transform, false);
+
+            bodyObject.GetComponent<TMP_Text>().text = "途中まで表示した本文";
+            microphone.SetActive(true);
+            finishObject.SetActive(true);
+            rewriteObject.SetActive(true);
+            SetField(diary, "writingBodyText", bodyObject.GetComponent<TMP_Text>());
+            SetField(diary, "microphoneIndicator", microphone);
+            SetField(diary, "writingFinishButton", finishObject.GetComponent<Button>());
+            SetField(diary, "reWritingButton", rewriteObject.GetComponent<Button>());
+
+            Invoke(diary, "ResetWritingPresentation");
+
+            Assert.That(bodyObject.GetComponent<TMP_Text>().text, Is.Empty);
+            Assert.That(microphone.activeSelf, Is.False);
+            Assert.That(finishObject.activeSelf, Is.False);
+            Assert.That(rewriteObject.activeSelf, Is.False);
+        }
+
         private static float Contrast(Color a, Color b)
         {
             float la = Luminance(a);

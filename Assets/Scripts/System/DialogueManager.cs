@@ -368,6 +368,14 @@ namespace Nekolpos.System
                 currentData != null ? currentData.TextJP : string.Empty,
                 currentData);
 
+            // 空テキストのAction行は会話ページではなく制御専用行である。
+            // 表示してから次クリックを待つと、空の会話ウィンドウが残るため即時実行する。
+            if (ShouldExecuteActionWithoutDisplay(currentData, displayText))
+            {
+                ExecuteActionResponse(currentData);
+                return;
+            }
+
             // メタ発言（INTENT_META等）でなければ、最後の猫発話として記憶
             if (currentData.IntentID != "INTENT_META" &&
                 string.Equals(speakerId, DialogueLogManager.SpeakerCat, StringComparison.Ordinal))
@@ -384,6 +392,13 @@ namespace Nekolpos.System
                 CreateReactionLogTemplate(currentData, speakerId, null, displayText));
 
             // この行独自の処理（選択肢や進行制御など）は、タイプ終了後 or 入力待ちのタイミングで評価する
+        }
+
+        private static bool ShouldExecuteActionWithoutDisplay(DialogueReactionData responseEntry, string displayText)
+        {
+            return responseEntry != null &&
+                   string.Equals(NormalizeResponseType(responseEntry.ResponseType), "Action", StringComparison.OrdinalIgnoreCase) &&
+                   string.IsNullOrWhiteSpace(displayText);
         }
 
         /// <summary>
@@ -1115,6 +1130,7 @@ namespace Nekolpos.System
 
                 string normalizedReason = NormalizePlayerDefeatReason(reason);
                 SetPlayerDefeatFlags(normalizedReason);
+                RecordPlayerDefeatDiaryPending(normalizedReason, responseEntry);
 
                 await PlayDefeatPresentationAsync(responseEntry);
                 await fadeController.FadeOutAsync();
@@ -1136,6 +1152,41 @@ namespace Nekolpos.System
                 Debug.LogException(ex);
                 ReturnToInputState();
             }
+        }
+
+        private void RecordPlayerDefeatDiaryPending(string normalizedReason, DialogueReactionData responseEntry)
+        {
+            if (timeManager == null)
+            {
+                return;
+            }
+
+            string diaryId = responseEntry?.TimedEventKey;
+            if (string.IsNullOrWhiteSpace(diaryId) &&
+                responseEntry != null &&
+                SystemTimedEventCatalog.Resolve(responseEntry.ActionId) != null)
+            {
+                diaryId = responseEntry.ActionId;
+            }
+
+            if (string.IsNullOrWhiteSpace(diaryId))
+            {
+                diaryId = $"death:{normalizedReason}";
+            }
+
+            string body = SystemTimedEventCatalog.Get(diaryId, string.Empty);
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                body = FormatRuntimeText(responseEntry?.TextJP, responseEntry);
+            }
+
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                Debug.LogWarning($"[DialogueManager] 死亡日記 '{diaryId}' のCSV本文が見つかりません。Pendingは追加しません。");
+                return;
+            }
+
+            DiaryJournalStore.RecordSpecialPending(diaryId, timeManager.CurrentDay, timeManager.CurrentPeriod, body);
         }
 
         private async UniTask PlayDefeatPresentationAsync(DialogueReactionData responseEntry)
@@ -1488,6 +1539,8 @@ namespace Nekolpos.System
                 EnsureTimedEventPresentation();
 
                 await fadeController.FadeOutAsync();
+                int diaryDay = timeManager.CurrentDay;
+                DayPeriod diaryPeriod = timeManager.CurrentPeriod;
                 int timeMinutes = timedEvent != null && timedEvent.TimeMinutes > 0
                     ? timedEvent.TimeMinutes
                     : UnknownWordTeachEventMinutesFallback;
@@ -1499,6 +1552,18 @@ namespace Nekolpos.System
                 if (string.IsNullOrWhiteSpace(resultMessage))
                 {
                     resultMessage = "少し時間が過ぎた。";
+                }
+
+                if (timedEvent != null)
+                {
+                    if (timedEvent.IsSpecialDiary)
+                    {
+                        DiaryJournalStore.RecordSpecialPending(timedEvent.DiaryId, diaryDay, diaryPeriod, resultMessage);
+                    }
+                    else
+                    {
+                        DiaryJournalStore.RecordNormalDraft(timedEvent.DiaryId, diaryDay, diaryPeriod, resultMessage);
+                    }
                 }
 
                 DialogueLogManager.Instance?.AddLog(new DialogueLogEntry
@@ -1522,15 +1587,25 @@ namespace Nekolpos.System
                 if (timeManager.TryGetTransitionGreeting(timeResult, out string greeting))
                 {
                     await PlayIsolatedGreetingAsync(greeting);
+                    StartNightDiaryIfNeeded(timeResult);
                     return;
                 }
 
+                StartNightDiaryIfNeeded(timeResult);
                 ReturnToInputState();
             }
             catch (Exception ex)
             {
                 Debug.LogException(ex);
                 ReturnToInputState();
+            }
+        }
+
+        private void StartNightDiaryIfNeeded(TimeAdvanceResult timeResult)
+        {
+            if (timeResult.CurrentPeriod == DayPeriod.Night && timeResult.PreviousPeriod != DayPeriod.Night)
+            {
+                DiaryCalendarController.Instance?.BeginNightDiary();
             }
         }
 
@@ -2640,6 +2715,9 @@ namespace Nekolpos.System
             }
 
             FinishDialogue();
+            chatUI?.ClearDialogueDisplay();
+            chatUI?.HideChoices();
+            chatUI?.RestoreNormalConversationInputMode();
             return true;
         }
 

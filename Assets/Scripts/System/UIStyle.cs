@@ -198,7 +198,7 @@ namespace Nekolpos.UI
             TMP_Text[] tmpTexts = root.GetComponentsInChildren<TMP_Text>(true);
             for (int i = 0; i < tmpTexts.Length; i++)
             {
-                if (tmpTexts[i] != null)
+                if (tmpTexts[i] != null && !IsInsideAutomaticButtonStyleExclusion(tmpTexts[i].transform))
                 {
                     tmpTexts[i].color = textColor;
                 }
@@ -207,7 +207,7 @@ namespace Nekolpos.UI
             Text[] legacyTexts = root.GetComponentsInChildren<Text>(true);
             for (int i = 0; i < legacyTexts.Length; i++)
             {
-                if (legacyTexts[i] != null)
+                if (legacyTexts[i] != null && !IsInsideAutomaticButtonStyleExclusion(legacyTexts[i].transform))
                 {
                     legacyTexts[i].color = textColor;
                 }
@@ -267,7 +267,10 @@ namespace Nekolpos.UI
             Button[] buttons = root.GetComponentsInChildren<Button>(true);
             for (int i = 0; i < buttons.Length; i++)
             {
-                ApplyButton(buttons[i], profile);
+                if (!IsAutomaticButtonStyleExcluded(buttons[i]))
+                {
+                    ApplyButton(buttons[i], profile);
+                }
             }
 
             InputField[] inputFields = root.GetComponentsInChildren<InputField>(true);
@@ -392,6 +395,17 @@ namespace Nekolpos.UI
         private static bool IsSteamButton(Button button)
         {
             return button != null && button.gameObject.name == "SteamButton";
+        }
+
+        private static bool IsAutomaticButtonStyleExcluded(Button button)
+        {
+            return button != null && button.gameObject.name == "TabletButton";
+        }
+
+        private static bool IsInsideAutomaticButtonStyleExclusion(Transform target)
+        {
+            Button button = target != null ? target.GetComponentInParent<Button>() : null;
+            return IsAutomaticButtonStyleExcluded(button);
         }
 
         private static bool IsTalkTopicHintBubbleButton(Button button)

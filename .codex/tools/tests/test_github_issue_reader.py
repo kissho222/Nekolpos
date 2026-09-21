@@ -58,6 +58,11 @@ class ReaderTests(unittest.TestCase):
         self.assertEqual("selected", result["status"])
         self.assertEqual(12, result["issue"]["number"])
 
+    def test_japanese_task_number_fetches_that_issue(self) -> None:
+        result = self.reader({"/repos/kissho222/Nekolpos/issues/12": issue(12)}).read("タスク12実行")
+        self.assertEqual("selected", result["status"])
+        self.assertEqual(12, result["issue"]["number"])
+
     def test_authentication_failure_is_safe(self) -> None:
         result = self.reader({"/repos/kissho222/Nekolpos/issues": IssueReadError("HTTP 401 token=secret")}).read("")
         self.assertEqual("issue_fetch_failed", result["status"])

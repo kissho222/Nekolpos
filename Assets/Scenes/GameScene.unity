@@ -860,9 +860,9 @@ Camera:
   m_NormalizedViewPortRect:
     serializedVersion: 2
     x: 0
-    y: 0
+    y: 0.00040322542
     width: 1
-    height: 1
+    height: 0.99919355
   near clip plane: 0.01
   far clip plane: 200
   field of view: 60
@@ -1524,6 +1524,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Nekolpos.System.YarnManager
   dialogueRunner: {fileID: 110345732}
+  yarnProject: {fileID: 0}
   dialogueBridge: {fileID: 0}
   chatUI: {fileID: 1573406061}
   actionManager: {fileID: 1573406063}
@@ -1532,6 +1533,8 @@ MonoBehaviour:
   conversationDataManager: {fileID: 0}
   gameFlagManager: {fileID: 1573406057}
   gameManager: {fileID: 1573406058}
+  timeManager: {fileID: 0}
+  statusManager: {fileID: 0}
   autoWireDialogueRunner: 1
   verboseLogging: 0
   morningGreetingNodeName: MorningGreeting
@@ -2132,6 +2135,10 @@ PrefabInstance:
     - target: {fileID: 100000, guid: 0d2ed163860809d48ab2e72792d683e8, type: 3}
       propertyPath: m_Name
       value: interior
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000, guid: 0d2ed163860809d48ab2e72792d683e8, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 100000, guid: 0d2ed163860809d48ab2e72792d683e8, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -3685,7 +3692,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4289916415
   m_fontColor: {r: 1, g: 0.93, b: 0.7, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -8601,6 +8608,7 @@ MonoBehaviour:
   gameStateManager: {fileID: 0}
   eventManager: {fileID: 0}
   personalityView: {fileID: 1965544614}
+  statusManager: {fileID: 0}
   debugRoot: {fileID: 689693023}
   hideWhenUnavailable: 1
   commitStateAfterTestRun: 1
@@ -12396,7 +12404,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -15170,7 +15178,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: 0, y: 33.56}
+  m_AnchoredPosition: {x: 0, y: 33.559998}
   m_SizeDelta: {x: 600, y: 60}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &1297731303
@@ -18162,15 +18170,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3051d7fe9c39a9846a43dd98bda93ba0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Nekolpos.System.RoomLightingManager
+  directionalLight: {fileID: 0}
   ceilingLightAnchor: {fileID: 1746208586}
+  tableLampLight: {fileID: 0}
+  nightCeilingLight: {fileID: 0}
   windowLightAnchor: {fileID: 702128846}
   windowInteriorTarget: {fileID: 193710901}
   globalVolume: {fileID: 1190658036}
+  fallbackWeather: 0
+  morningSkybox: {fileID: 0}
+  daySkybox: {fileID: 0}
+  eveningSkybox: {fileID: 0}
+  nightSkybox: {fileID: 0}
+  cloudySkybox: {fileID: 0}
+  rainySkybox: {fileID: 0}
   useWindowAreaLights: 1
   windowSourceHalfSize: 0.45
   areaLightIntensityMultiplier: 0.22
   windowLightOutsideOffset: 0.9
   windowLightAimDistance: 8
+  useOpenBetaConversationLighting: 1
+  openBetaRigRootName: Lighting_TimeOfDay
+  openBetaVolumePriority: 20
+  useNightLivingCeilingLight: 1
+  nightLivingCeilingIntensity: 0.5
+  globalLightIntensityMultiplier: 1.12
+  globalPostExposureOffset: 0.12
+  globalAmbientBrightenAmount: 0.08
+  useCatNightEyeReflection: 1
 --- !u!4 &1550098543
 Transform:
   m_ObjectHideFlags: 0
@@ -18536,6 +18563,7 @@ MonoBehaviour:
   vulgarDictFileName: VulgarLanguage
   loadDialoguePreviewCsv: 1
   dialoguePreviewCsvResourcePath: TalkCSV/DialoguePreview
+  useFoodHungryShortcut: 0
 --- !u!114 &1573406061
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18553,6 +18581,7 @@ MonoBehaviour:
   messageText: {fileID: 1514067512}
   chatInputField: {fileID: 285267773}
   choicePanel: {fileID: 876916460}
+  choiceQuestionText: {fileID: 0}
   choiceAcceptButton: {fileID: 263514931}
   choiceDeclineButton: {fileID: 1125557311}
   logWindowPanel: {fileID: 1021701316}
@@ -18563,11 +18592,21 @@ MonoBehaviour:
   logButton: {fileID: 1555701750}
   autoButton: {fileID: 1485070260}
   hideWindowButton: {fileID: 631370106}
+  backButton: {fileID: 0}
+  talkTopicHintBubble: {fileID: 0}
+  talkTopicHintsAllowed: 1
   typingSpeed: 0.05
   fadeDuration: 0.5
   inputLanguageMode: 0
   inputFocusDelayFrames: 2
+  inputImeStabilizeFrames: 8
   inputWarningDuration: 2
+  inputFieldActiveBackgroundColor: {r: 0.2, g: 0.16, b: 0.1, a: 0.96}
+  inputFieldActiveTextColor: {r: 1, g: 0.98, b: 0.88, a: 1}
+  inputFieldActiveOutlineColor: {r: 1, g: 0.84, b: 0.38, a: 0.88}
+  inputFieldActiveCaretColor: {r: 1, g: 0.92, b: 0.46, a: 1}
+  inputFieldActiveSelectionColor: {r: 1, g: 0.74, b: 0.18, a: 0.62}
+  inputFieldPulseSpeed: 2.4
 --- !u!114 &1573406063
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18608,6 +18647,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Nekolpos.System.FontPreloader
   targetFonts: []
   preloadCharacters: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789\u3041\u3042\u3043\u3044\u3045\u3046\u3047\u3048\u3049\u304A\u304B\u304D\u304F\u3051\u3053\u3055\u3057\u3059\u305B\u305D\u305F\u3061\u3064\u3066\u3068\u306A\u306B\u306C\u306D\u306E\u306F\u3072\u3075\u3078\u307B\u307E\u307F\u3080\u3081\u3082\u3084\u3086\u3088\u3089\u308A\u308B\u308C\u308D\u308F\u3092\u3093\u30A2\u30A4\u30A6\u30A8\u30AA\u30AB\u30AD\u30AF\u30B1\u30B3\u30B5\u30B7\u30B9\u30BB\u30BD\u30BF\u30C1\u30C4\u30C6\u30C8\u30CA\u30CB\u30CC\u30CD\u30CE\u30CF\u30D2\u30D5\u30D8\u30DB\u30DE\u30DF\u30E0\u30E1\u30E2\u30E4\u30E6\u30E8\u30E9\u30EA\u30EB\u30EC\u30ED\u30EF\u30F2\u30F3\uFF01\uFF1F\u3002\u3001\u30FB\u30FC\u300C\u300D\u300E\u300F\uFF08\uFF09\u732B\u53C8\u4E3B\u4EBA\u80CC\u4E2D\u5DE8\u5927\u65E5\u6708\u706B\u6C34\u6728\u91D1\u571F\u4EBA\u50D5\u4FFA\u541B\u5F7C\u5F7C\u5973\u4F55\u540D\u524D\u4ECA\u65E5\u660E\u6628\u65E5\u671D\u663C\u5915\u591C\u6625\u590F\u79CB\u51AC\u4E0A\u4E0B\u5DE6\u53F3\u524D\u5F8C\u601D\u51FA\u5909\u8A00\u8A71\u805E\u898B\u98DF"
+  playerInputVerificationCharacters: "\u4ECA\u65E5\u3001\u5929\u6C17\u3001\u5BFE\u99AC\u5C71\u732B\u3001\u732B\u53C8\u3001\u304A\u8179\u3001\u5FA1\u98EF\u3001\u53EF\u611B\u3044\u3001\u9B31\u9676\u3057\u3044\u3001\u9AD9\u6A4B\u3001\u308B"
 --- !u!1001 &1585265214
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -19420,6 +19460,11 @@ MonoBehaviour:
   - {fileID: 4900000, guid: 80d3dfee6d8897e4a861238adf0a1a63, type: 3}
   vulgarCsvConversationData: {fileID: 4900000, guid: adc628205b0b7794fa433517e86019df, type: 3}
   vulgarCsvConversationDataFiles: []
+  encryptedCsvConversationData: {fileID: 0}
+  encryptedCsvConversationDataFiles: []
+  encryptedVulgarCsvConversationData: {fileID: 0}
+  encryptedVulgarCsvConversationDataFiles: []
+  allowPlaintextCsvResourceFallbackInDevelopment: 1
   useCsv: 1
   locale: ja
 --- !u!4 &1629302618
@@ -24900,7 +24945,6 @@ MonoBehaviour:
   defaultBlurEndDistance: 4
   defaultBlurStrength: 0.45
   useHighQualitySampling: 0
-  useBokehForDefaultBlur: 1
   focusDistance: 0.8
   aperture: 3.5
   focalLength: 70
@@ -24911,6 +24955,9 @@ MonoBehaviour:
   initialMode: 0
   depthOfFieldEnabled: 1
   logMissingVolumeWarnings: 1
+  disableWhileOpeningCatActive: 1
+  openingCat: {fileID: 0}
+  normalCat: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

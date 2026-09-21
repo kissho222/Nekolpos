@@ -27,7 +27,7 @@ TASK_LABEL = "codex-task"
 REQUEST_TIMEOUT_SECONDS = 15
 MAX_PAGES = 10
 PAGE_SIZE = 100
-ISSUE_NUMBER_PATTERN = re.compile(r"(?:\bissue\s*#|\bissue\s+|(?<!\w)#)(\d+)(?!\d)", re.IGNORECASE)
+ISSUE_NUMBER_PATTERN = re.compile(r"(?:タスク\s*#?\s*|\bissue\s*#|\bissue\s+|(?<!\w)#)(\d+)(?!\d)", re.IGNORECASE)
 
 
 @dataclass(frozen=True)

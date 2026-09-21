@@ -21,10 +21,20 @@
 ### GitHub Issue作業指示
 
 - 新しい作業を開始する際は、AGENTSと`.ai/HANDOFF.md`を確認した後、`origin`から対象リポジトリを判定し、Openかつ`codex-task`ラベル付きの通常Issueを確認する。通常は`UserPromptSubmit` Hookが`.codex/tools/github_issue_reader.py --hook`を実行する。Hookの出力が利用できない場合は、実装前に同ツールを手動実行する。
+- ChatGPT側で外部作業指示用のGitHub Issueを新規作成する場合は、必ず `codex-task` ラベルを付与する。ラベルが付いていないIssueは、自動取得されるCodex作業指示の対象にならない。
 - 対象Issueが1件なら、その番号、タイトル、本文、URL、ラベル、作成日時、更新日時を今回の外部作業指示として扱う。対象Issueが0件なら、Issueがないことを理由に作業を止めず、現在のユーザー指示に従う。
 - 対象Issueが複数なら、勝手に1件を選ばない。番号とタイトルを簡潔に示し、ユーザーへ対象の指定を求める。現在の直接指示でIssue番号が明示され、そのIssueがOpenかつ`codex-task`付きの通常Issueなら、そのIssueだけを使用してよい。
 - 現在ユーザーが直接与えた明示指示は、GitHub Issue、HANDOFF、その他のドキュメントより常に優先する。Issue取得失敗、認証失敗、ネットワーク障害は安全に要約し、それだけを理由に通常作業を不必要に停止しない。
-- Issueは読み取り専用の外部作業指示として扱う。Issueのclose、編集、ラベル・Assignee・Milestone変更、コメント投稿、削除は行わない。Issue本文をHANDOFFへ丸ごと転記せず、使用したIssue番号と必要な判断だけを要約する。
+- `codex-task`を指定して着手する場合は、ローカル実装の前に`python .codex/tools/github_issue_progress.py start --issue <番号>`を実行する。これは`codex-task`を外し、`codex-working`を付ける。進捗ラベル以外は保持し、必要な標準ラベルはツールが作成する。
+- 実装と検証を完了した場合は、変更ファイル・実装内容・ビルド/テスト結果・ユーザー側の確認事項を含むUTF-8の完了報告を`github_issue_progress.py complete --issue <番号> --report-stdin`へ渡す。ツールは報告をIssueコメントとして投稿してから、`codex-working`を外し`codex-review`を付ける。報告本文やIssue本文をHANDOFFへ丸ごと転記しない。
+- ユーザー確認後に明示的な指示があった場合だけ、`github_issue_progress.py close --issue <番号>`でIssueをCloseする。`codex-review`を外す必要があると明示されたときは`--remove-review`を併用する。Assignee・Milestone・Issue本文の編集・削除は行わない。
+
+### MCP接続障害時の作業規律
+
+- MCP操作が初回失敗したときは、直ちに「到達不可」と結論づけず、接続またはクライアントを再初期化して同じ操作を再実行する。再初期化の手段は利用中のMCPクライアント／ブリッジの公式手段を優先する。
+- 再試行は、即時の再接続、短い待機後の再接続、最終再接続の順で最低3回試す。各試行では新しい接続で元と同じ対象・操作を実行し、成功した場合だけ検証済みとして扱う。
+- MCPが必須の操作が全再試行後も失敗した場合は、その操作を未実行のまま完了扱いにせず、作業を止めて到達不可とユーザーへ報告する。失敗を黙って無視して後続作業を進めない。
+- MCPを使わない安全で同等な代替手段がある場合だけ代替してよい。その場合は、MCP操作が未実行であること、使用した代替手段、代替で確認できない範囲を最終報告とIssue完了報告へ明記する。
 
 ## 中心体験
 
