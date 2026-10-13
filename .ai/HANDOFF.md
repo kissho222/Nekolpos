@@ -8,6 +8,8 @@
 
 ## 現在の作業
 
+GitHub同期: 2026-10-14、現在のコード・Scene/Prefab・データ・仕様書573ファイルをcb0e996（chore: checkpoint current game development）としてchore/ai-handoff-foundationへpush成功。originの先行4コミットはfast-forwardで取り込み済み。output/のビルド・検証成果物と既存Git除外資産は送信対象外。今回はコード修正・Unityテスト再実行なし。差分検査で既存の空白警告を検出（内容は保持）。
+
 ユーザー直接指定#58（Open・ラベルなし）は許可に基づき実装・検証完了。Window > Nekolpos > Timeline Paletteで既存Signal5件を自動収集し、名前/パス検索・カテゴリ・再生ヘッドLocal時刻へのクリック配置・Track自動作成/指定・一括Undo/Redoを提供。既存Receiver登録済みTrackを優先し、親を含むロック/ミュートを保護。Receiver/Binding/既存Marker・Scene・Runtime・台詞は変更しない。公開APIではドロップ座標→時刻取得が内部API依存のため、Issueの許容どおり再生ヘッド配置を正式仕様とした。新規: Assets/Scripts/Editor/NekolposTimelinePalette.cs、NekolposTimelinePaletteTests.csと各meta、docs/TimelinePalette.md。正式EditMode10/10成功、失敗/Skip0（実TimelineウィンドウのLocal再生ヘッド・Undo/Redo・Binding保全・無効時刻/参照/Trackを含む）。MCP job 9a0f7f91f93043e19ed5b25efcb76b32。Unityでパレットを開いた。MainScene dirty=false・Play停止・Console Error0。テスト用Asset削除済み。実際のマウス操作による検索/配置・演出再生の見た目確認はユーザー側に残る。GitHubラベル/コメント/Close・コミットは行っていない。
 
 ユーザー直接依頼#74〜#80の7段階を実装・検証完了、全7Issueへ完了報告投稿済み、Open/codex-review（Closeしていない）。F1共通Console/固定Prefab、共有入力Lease/安全ガード、既存DebugPanel統合と正規運搬、診断Trace/JSON、Scene Awake前から終了までの空メモリ保存隔離/猫Asset複製/副次保存抑止、許可IDのジャンプ・日記・運搬・死亡、Editor共通Runnerと終了後ハッシュ監査を導入。現行MainSceneにGameManager/ConversationDebugPanelはなく、入口はBootstrap実開始状態。未接続Managerは新設しない。
