@@ -34,6 +34,7 @@ namespace Nekolpos.System
         [SerializeField] private Button continueButton;
         [SerializeField] private Button backButton;
         [SerializeField] private bool japaneseCatNameWarningEnabled = true;
+        [SerializeField] private bool useAuthoredVisuals;
 
         private const int CatNameMaxLength = 20;
         private const string CatNameKanaWarningMessage = "ひらがな・カタカナ・漢字・数字のみ、20文字までです。";
@@ -404,6 +405,7 @@ namespace Nekolpos.System
 
         private void EnsurePanelVisuals()
         {
+            if (useAuthoredVisuals) return;
             UIStyle.ApplyPanel(gameObject);
             UIStyle.ApplyInputField(playerNameInput);
             UIStyle.ApplyInputField(catNameInput);
@@ -641,12 +643,6 @@ namespace Nekolpos.System
                 }
             }
 
-            if (backButton == null)
-            {
-                backButton = OpenBetaUiFactory.CreateButton("BackButton", transform, out TextMeshProUGUI createdLabel, new Vector2(260f, 48f));
-                backButtonLabel = createdLabel;
-            }
-
             if (backButtonLabel == null && backButton != null)
             {
                 backButtonLabel = backButton.GetComponentInChildren<TMP_Text>(true);
@@ -669,25 +665,7 @@ namespace Nekolpos.System
                 }
             }
 
-            if (catNameKanaWarningText == null)
-            {
-                Transform row = catNameInput != null ? catNameInput.transform.parent : FindDescendant(transform, "CatNameRow");
-                Transform parent = row != null && row.parent != null ? row.parent : transform;
-                TextMeshProUGUI warning = OpenBetaUiFactory.CreateTmpText("CatNameKanaWarningText", parent, 18f, FontStyles.Bold);
-                warning.color = new Color(0.86f, 0.08f, 0.08f, 1f);
-                warning.text = CatNameKanaWarningMessage;
-                LayoutElement layout = warning.gameObject.AddComponent<LayoutElement>();
-                layout.preferredWidth = 660f;
-                layout.preferredHeight = 24f;
-                layout.minHeight = 24f;
-
-                if (row != null)
-                {
-                    warning.transform.SetSiblingIndex(row.GetSiblingIndex());
-                }
-
-                catNameKanaWarningText = warning;
-            }
+            if (catNameKanaWarningText == null) return;
 
             catNameKanaWarningText.text = CatNameKanaWarningMessage;
             catNameKanaWarningText.gameObject.SetActive(false);

@@ -1,0 +1,26 @@
+# PC版リリースビルド
+
+`Nekolpos > Build > PC版ビルド...` で確認ウィンドウを開く。バージョンを変更する場合はチェックを入れ、半角数字の `X.X.X` を入力する。未チェック時は現在の `PlayerSettings.bundleVersion` を使用する。出力は選択した保存先の `Nekolpos X.X.X/Nekolpos.exe`（Windows 64bit）。バージョンは出力フォルダー名だけに付け、起動ファイル名は常に `Nekolpos.exe` とする。確認画面でも両方の名前を表示する。既存フォルダーへの更新時は確認する。
+
+Build Settingsで有効な全Sceneを検査・ビルドする。開いているSceneは現在の編集状態、未ロードSceneはPreview Sceneで検査し、検査後に閉じる。非Active一覧は `activeSelf=false` のObjectをScene名・階層パスで表示する。親が非Activeである主要コンポーネントも別途検出する。一覧は待機中のパネル等を含むため自動でActiveへ変更せず、確認チェックを必須とする。
+
+MainSceneではOpenBetaCanvas、OpenBetaSystems、DialogueSystem、EventSystem、PlayerCameraRootの存在と有効な親階層、Bootstrapの存在を必須とする。Bootstrap、TimeManager、ConversationDataManager、GameManager、EventSystem、OpenBetaCanvasのCanvas、起動時に有効なMainCameraが1台もない場合もビルドを停止する。待機中の散歩用PlayerCameraがOFFでも起動用MainCameraが有効なら正常とする。主要Objectを改名する場合は検査規則も更新する。これは全参照・全イベント・全Canvasの意味を保証する検査ではない。猫やイベント用UIの非Active状態は一覧で人が判断する。
+
+ビルド直前に対象Sceneの保存を求め、未保存変更が残る場合は停止する。再検査で一覧が変わった場合も再確認を求める。キャンセルではバージョンを変更しない。ビルド開始時に指定バージョンを反映し、Development Build、Script Debugging、Profiler接続、Deep ProfilingをOFFにする。失敗時も選択したバージョンとOFF設定は保持する。
+
+`PcReleaseBuildWindow.cs` は確認画面・バージョン検証・Scene検査・Windowsビルドを担当する。同ファイルの `PcReleaseDebugSanitizer` はリリースビルドのSceneコピーにのみ適用し、DebugButton、ConversationDebugPanel/NekolposDebugPanel、既知のenableDebugLogs/showDebugAimTarget/showDebugMarkerを無効化する。編集用Sceneへは保存しない。通常PlayerでもDebug Startボタンの生成・操作を禁止し、Editor/Development Buildでは既存動作を維持する。全てのDebug.Logや通常のエラー記録を消す仕組みではない。
+
+既存SecurityBuildGuardの機密資産・暗号設定検査は維持する。ビルド結果は成功/失敗、出力先、エラー/警告数をダイアログ表示し、例外はConsoleにも記録する。Windows Build Support未導入や暗号設定不足などもUnityのビルド失敗として報告される。
+
+旧Tools > NekolposおよびNekolpos > 開発ツールのメニュー登録は削除した。参照関係や既存データを壊さないよう、処理本体とAnimationTrackのAvatar Maskコンテキストメニューは保持する。旧Windows診断メニューも非表示、既存診断メソッドとWebGLメニューは維持する。
+
+`PcReleaseBuildTests.cs` はバージョン形式、不正なファイル名、親の非Active、Canvasコンポーネント無効、待機パネル、デバッグ除外の振る舞いをPreview Sceneで検証する。
+
+
+確認画面の「CSVを暗号化バイナリに変換してからビルド」は初期OFF。ONでは保存先確定後、CSVCryptoCompiler.CompileForBuildOrThrowでTalkSource/TalkCSV直下の全CSVをAssets/Resources/TalkDataの同名.bytesへ暗号化する。既存の環境変数/AES形式を使用し、入力全件の読取・暗号化を先に終えてから書き出し、同期Import後にPlayer Buildへ進む。鍵/IV不正、入力不存在/CSVなし、読取/書込/Import失敗では例外を伝播し、ビルド開始とバージョン更新を中止する。複数出力の書込途中で失敗した場合、先に書けた.bytesは残るため原因修正後に再変換する。CSV本文は変更しない。OFFでは既存.bytesでビルドする。単独CSV変換メニューとDialogue Previewからの呼出は維持し、失敗時は成功扱いしない。
+
+
+Windows全画面表示はFixedWindowResolutionがフォーカス中だけHWND_TOPMOSTへ変更し、タスクバーより前へ表示する。Windowed/フォーカス喪失/終了時はHWND_NOTOPMOSTへ戻す。位置・サイズ・入力フォーカスは変更せず、Editor/iOS/Android/WebGLには適用しない。実Windows Playerで全画面・Alt-Tab・ウィンドウ復帰の確認が必要。
+
+
+Windows版の初回起動はボーダーレス全画面（FullScreenWindow）、解像度はデスクトップのネイティブ解像度を使用する。PlayerSettingsもFullScreenWindow/defaultIsNativeResolution=true、allowFullscreenSwitch=0を維持する。共通SettingsManagerが保存済み表示設定を起動時に適用し、最大120フレームの非同期変更確認を行う。FixedWindowResolutionはフォーカス中TOPMOST/フォーカス喪失解除を維持する。共通設定で選択した非16:9解像度を尊重するため、Windowsの旧16:9補正は共通Managerが存在する間は行わない。Alt+Enterとタイトル/Pause設定については[共通設定画面](GameSettings.md)を参照。旧exeには反映されないため再ビルドが必要。

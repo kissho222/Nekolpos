@@ -91,3 +91,14 @@ unity-mcp/
 /RasterCommandBuffer.cs
 /UnsafeCommandBuffer.cs
 /Nekolpos 5.json
+
+# Nyanstagram local-photo pipeline.  These folders may contain real cats, contributor
+# information, and private source photos.  Keep only the empty-directory markers and
+# the explicitly anonymous catalog example in Git.
+/tools/nyanstagram/input/*
+!/tools/nyanstagram/input/.gitkeep
+/tools/nyanstagram/conversion-manifest.json
+/tools/nyanstagram/**/__pycache__/
+/Assets/StreamingAssets/Nyanstagram/Local/Images/*
+!/Assets/StreamingAssets/Nyanstagram/Local/Images/.gitkeep
+/Assets/StreamingAssets/Nyanstagram/Local/nyanstagram-local-catalog.json

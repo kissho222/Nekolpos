@@ -2952,6 +2952,7 @@ MonoBehaviour:
   fastMoveSpeed: 10
   smoothTime: 0.1
   mouseSensitivity: 2
+  acceptKeyboardInput: 1
 --- !u!81 &1651945861
 AudioListener:
   m_ObjectHideFlags: 0

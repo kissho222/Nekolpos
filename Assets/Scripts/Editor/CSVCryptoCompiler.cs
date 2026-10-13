@@ -27,80 +27,63 @@ namespace Nekolpos.EditorTools
         [MenuItem("Nekolpos/CSVを暗号化バイナリへ変換")]
         public static void CompileCSVToBytes()
         {
-            // 入力フォルダの確認
-            if (!Directory.Exists(INPUT_FOLDER))
-            {
-                Debug.LogError($"[CSVCryptoCompiler] 入力フォルダが見つかりません: {INPUT_FOLDER}");
-                return;
-            }
-
-            // 出力フォルダの作成（なければ）
-            if (!Directory.Exists(OUTPUT_FOLDER))
-            {
-                Directory.CreateDirectory(OUTPUT_FOLDER);
-            }
-
-            // フォルダ内の全CSVファイルを取得
-            string[] csvFiles = Directory.GetFiles(INPUT_FOLDER, "*.csv");
-            if (csvFiles.Length == 0)
-            {
-                Debug.LogWarning($"[CSVCryptoCompiler] {INPUT_FOLDER} にCSVファイルがありません。Notionからエクスポートしたファイルを配置してください。");
-                return;
-            }
-
-            int successCount = 0;
-            if (!TryResolveCryptoSettings(out string encryptionKey, out string encryptionIv))
-            {
-                return;
-            }
-
-            for (int i = 0; i < csvFiles.Length; i++)
-            {
-                ProcessCSV(csvFiles[i], encryptionKey, encryptionIv, ref successCount);
-            }
-
-            // Unityエクスプローラーを更新して見えるようにする
-            AssetDatabase.Refresh();
-            Debug.Log($"[CSVCryptoCompiler] 🎉 変換処理が完了しました！（成功: {successCount}件）\n出力先: {OUTPUT_FOLDER}");
-            Backgammon.Conversation.KanjiReadingDictionary.ResetDefaultForTests();
-        }
-
-        /// <summary>
-        /// 指定したキーワード（例:"正規表現"）を含むCSV群から、最も更新日時が新しいものを1つ選び、
-        /// 指定した英語名（例:"RegexDict"）で暗号化して保存する
-        /// </summary>
-        private static void ProcessCSV(
-            string csvPath,
-            string encryptionKey,
-            string encryptionIv,
-            ref int successCount)
-        {
             try
             {
-                // \ を / に統一して扱いやすくする
-                string normalizedPath = csvPath.Replace("\\", "/");
-                
-                // 生のテキストを読み込む
-                string rawCsvData = File.ReadAllText(normalizedPath, Encoding.UTF8);
-
-                // 暗号化処理
-                byte[] encryptedData = EncryptString(rawCsvData, encryptionKey, encryptionIv);
-
-                string outputName = Path.GetFileNameWithoutExtension(csvPath);
-                string outPath = $"{OUTPUT_FOLDER}/{outputName}.bytes";
-
-                // ファイルへ保存
-                File.WriteAllBytes(outPath, encryptedData);
-                successCount++;
-                
-                Debug.Log($"[CSVCryptoCompiler] 🔒 暗号化完了: {outputName}.bytes (元ファイル: {Path.GetFileName(csvPath)})");
+                int count = CompileForBuildOrThrow();
+                Debug.Log($"[CSVCryptoCompiler] 変換完了: {count}件。出力先: {OUTPUT_FOLDER}");
             }
-            catch (global::System.Exception e)
+            catch (global::System.Exception exception)
             {
-                Debug.LogError($"[CSVCryptoCompiler] {csvPath} の暗号化中にエラーが発生しました。\n{e.Message}");
+                Debug.LogError("[CSVCryptoCompiler] 変換失敗: " + exception.Message);
             }
         }
 
+        public static int CompileForBuildOrThrow()
+        {
+            TalkTopicMasterCsvUtility.Synchronize(TalkTopicMasterCsvUtility.SourcePath, TalkTopicMasterCsvUtility.RuntimePath);
+            if (!TryResolveCryptoSettings(out string key, out string iv))
+                throw new global::System.InvalidOperationException("CSV暗号化の環境変数が未設定、または鍵/IVの長さが不正です。");
+            Nekolpos.Dialogue.UnknownWord.WordKnowledge.ParseCsv(File.ReadAllText(Nekolpos.Dialogue.UnknownWord.WordKnowledge.SourcePath, Encoding.UTF8));
+            Nekolpos.Dialogue.UnknownWord.WordLearningDialogue.ParseCsv(File.ReadAllText(Nekolpos.Dialogue.UnknownWord.WordLearningDialogue.SourcePath, Encoding.UTF8));
+            byte[] diaryData = EncryptString(DialogueDiaryAuthoring.CompileJson(), key, iv);
+            string compiledDialogueJson = Authoring.DialogueCompiledBundleCompiler.CompileJson();
+            byte[] compiledDialogueData = EncryptString(compiledDialogueJson, key, iv);
+            int count = CompileDirectoryOrThrow(INPUT_FOLDER, OUTPUT_FOLDER, key, iv);
+            TalkTopicMasterCsvUtility.AtomicWrite(Path.Combine(OUTPUT_FOLDER, "DialogueDiary.bytes"), diaryData);
+            count++;
+            TalkTopicMasterCsvUtility.AtomicWrite(Path.Combine(OUTPUT_FOLDER, "DialoguePreviewRuntime.bytes"), compiledDialogueData);
+            count++;
+            Nekolpos.Dialogue.UnknownWord.WordKnowledge.ResetCache();
+            Nekolpos.System.DialogueDiaryCatalog.ResetCache();
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            Backgammon.Conversation.KanjiReadingDictionary.ResetDefaultForTests();
+            return count;
+        }
+
+        public static int CompileDirectoryOrThrow(string inputFolder, string outputFolder, string key, string iv)
+        {
+            if (!Directory.Exists(inputFolder))
+                throw new DirectoryNotFoundException("CSV入力フォルダーがありません: " + inputFolder);
+            string[] files = Directory.GetFiles(inputFolder, "*.csv");
+            if (files.Length == 0)
+                throw new global::System.InvalidOperationException("CSV入力フォルダーにCSVがありません: " + inputFolder);
+            global::System.Array.Sort(files, global::System.StringComparer.Ordinal);
+            var compiled = new global::System.Collections.Generic.List<global::System.Collections.Generic.KeyValuePair<string, byte[]>>();
+            // Read and encrypt every source first so a malformed/unreadable input cannot publish a partial conversion.
+            foreach (string file in files)
+            {
+                if (Path.GetFileName(file).Equals("DialoguePreview_Integrated.csv", global::System.StringComparison.OrdinalIgnoreCase)) continue;
+                string text = File.ReadAllText(file, Encoding.UTF8);
+                if (Path.GetFileName(file).Equals("WordLearningQuestions.csv", global::System.StringComparison.Ordinal)) Nekolpos.Dialogue.UnknownWord.WordKnowledge.ParseCsv(text);
+                if (Path.GetFileName(file).Equals("WordLearningDialogue.csv", global::System.StringComparison.Ordinal)) Nekolpos.Dialogue.UnknownWord.WordLearningDialogue.ParseCsv(text);
+                byte[] bytes = EncryptString(text, key, iv);
+                compiled.Add(new global::System.Collections.Generic.KeyValuePair<string, byte[]>(Path.GetFileNameWithoutExtension(file) + ".bytes", bytes));
+            }
+            Directory.CreateDirectory(outputFolder);
+            foreach (var item in compiled)
+                TalkTopicMasterCsvUtility.AtomicWrite(Path.Combine(outputFolder, item.Key), item.Value);
+            return compiled.Count;
+        }
         /// <summary>
         /// AES-256 (CBCモード) で文字列を暗号化し、バイト配列を返す
         /// </summary>

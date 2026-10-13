@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -30,7 +30,8 @@ namespace Nekolpos.System
         {
             new ApplicationDefinition("NyanstaIcon", "NyanstaPanel", new Color(0.96f, 0.82f, 0.88f, 1f)),
             new ApplicationDefinition("ShopIcon", "ShopPanel", new Color(0.83f, 0.92f, 0.82f, 1f)),
-            new ApplicationDefinition("demaeIcon", "DemaePanel", new Color(0.96f, 0.88f, 0.72f, 1f))
+            new ApplicationDefinition("demaeIcon", "DemaePanel", new Color(0.96f, 0.88f, 0.72f, 1f)),
+            new ApplicationDefinition("GameIcon", "GameCenterPanel", new Color(0.78f, 0.86f, 0.96f, 1f))
         };
 
         public static TabletHomeApplicationController Instance { get; private set; }
@@ -57,6 +58,15 @@ namespace Nekolpos.System
             {
                 Instance = null;
             }
+        }
+
+        public void ResetRuntimeStateForTitleReload()
+        {
+            transition?.Stop();
+            foreach (GameObject appPanel in panelsByName.Values)
+                if (appPanel != null) appPanel.SetActive(false);
+            if (startPanel != null) startPanel.SetActive(true);
+            if (panelRoot != null) panelRoot.SetActive(false);
         }
 
         public static bool TryGetPanelName(string iconName, out string panelName)
@@ -166,6 +176,9 @@ namespace Nekolpos.System
                 panelsByName[diaryPanel.name] = diaryPanel;
                 iconsByPanelName[diaryPanel.name] = diaryIcon.GetComponent<RectTransform>();
             }
+            GameObject wordMemo = FindSceneObject("WordMemoPanel");
+            GameObject wordIcon = FindSceneObject("WordMemoIcon");
+            if (wordMemo != null && wordIcon != null) RegisterApplication(wordIcon, wordMemo);
         }
 
         private GameObject ResolvePanelRoot(GameObject iconParent, GameObject existingStartPanel)

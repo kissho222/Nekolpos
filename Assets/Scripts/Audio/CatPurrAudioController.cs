@@ -350,7 +350,7 @@ namespace Nekolpos.Audio
             purrAudioSource.clip = purrClip;
             purrAudioSource.loop = true;
             purrAudioSource.playOnAwake = false;
-            OpenBetaPauseMenuController.ApplySavedAudioState(purrAudioSource, false);
+            SettingsManager.RouteAudio(purrAudioSource, SettingsAudioCategory.CatVoice);
             purrAudioSource.spatialBlend = 1f;
             purrAudioSource.minDistance = minDistance;
             purrAudioSource.maxDistance = maxDistance;

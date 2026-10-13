@@ -8,10 +8,10 @@ namespace Backgammon.Conversation
         {
             get
             {
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 return true;
 #else
-                return Debug.isDebugBuild;
+                return false;
 #endif
             }
         }

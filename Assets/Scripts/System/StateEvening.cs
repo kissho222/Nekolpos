@@ -43,22 +43,8 @@ namespace Nekolpos.System
             }
         }
 
-        public void Execute()
-        {
-            // 時間経過や特定のアクションで夜にする
-            
-            // 例：Nキーを押すと夜（日記）になるテスト
-            if (Input.GetKeyDown(KeyCode.N))
-            {
-                gm.ChangeState(new StateNight(gm));
-            }
-            
-            // いつ死んでも大丈夫なようにイレギュラー対応を入れておく
-            if (Input.GetKeyDown(KeyCode.X))
-            {
-                gm.ChangeState(new StateDead(gm));
-            }
-        }
+        public void Execute() { } // Development time advancement uses the debug panel's shared TimeFlow.
+
 
         public void Exit()
         {

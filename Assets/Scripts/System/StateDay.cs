@@ -42,23 +42,8 @@ namespace Nekolpos.System
             }
         }
 
-        public void Execute()
-        {
-            // 時間経過で夜にする、などの処理をここに書きます
-            
-            // 例：Eキーで夕方になるテスト
-            if (Input.GetKeyDown(KeyCode.E))
-            {
-                gm.ChangeState(new StateEvening(gm));
-            }
-            
-            // 例：敵に倒されたら（Xキーなら）どこからでも死亡へのジャンプができる
-            if (Input.GetKeyDown(KeyCode.X))
-            {
-                // まったく違うフェーズ（死亡）へ強制移動するイレギュラー対応の力
-                gm.ChangeState(new StateDead(gm));
-            }
-        }
+        public void Execute() { } // Development time advancement uses the debug panel's shared TimeFlow.
+
 
         public void Exit()
         {

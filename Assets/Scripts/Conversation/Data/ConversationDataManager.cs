@@ -23,7 +23,7 @@ namespace Backgammon.Conversation
 
         private static readonly string[] DefaultCsvResourcePaths =
         {
-            "TalkCSV/DialoguePreview_Integrated",
+            "TalkCSV/DialoguePreview",
             "TalkCSV/CatCharacters",
             "TalkCSV/teacchseries_dialogue_source_2201",
             "TalkCSV/teacchTalk_body",
@@ -490,37 +490,8 @@ namespace Backgammon.Conversation
 
         private static bool ShouldSkipLegacyDialoguePreview(TextAsset asset, TextAsset[] availableAssets)
         {
-            if (!IsLegacyDialoguePreviewAsset(asset))
-            {
-                return false;
-            }
-
-            if (availableAssets == null)
-            {
-                return false;
-            }
-
-            for (int i = 0; i < availableAssets.Length; i++)
-            {
-                if (IsIntegratedDialoguePreviewAsset(availableAssets[i]))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool IsLegacyDialoguePreviewAsset(TextAsset asset)
-        {
-            return asset != null &&
-                   string.Equals(asset.name?.Trim(), "DialoguePreview", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool IsIntegratedDialoguePreviewAsset(TextAsset asset)
-        {
-            return asset != null &&
-                   string.Equals(asset.name?.Trim(), "DialoguePreview_Integrated", StringComparison.OrdinalIgnoreCase);
+            // The renamed canonical manuscript is required; never silently use the historical copy.
+            return asset != null && string.Equals(asset.name?.Trim(), "DialoguePreview_Integrated", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsDevelopmentRuntime()
@@ -1077,6 +1048,8 @@ namespace Backgammon.Conversation
             string normalized = assetName.Trim();
             return string.Equals(normalized, "BasicSystemDialogue", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(normalized, "InternalDialogue", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(normalized, "WordLearningDialogue", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(normalized, "WordLearningQuestions", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(normalized, "SystemTimedEvent", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(normalized, "OBTTutorial", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(normalized, "Regular Expression", StringComparison.OrdinalIgnoreCase) ||

@@ -71,6 +71,26 @@ namespace Nekolpos.System.Editor
         }
 
         [Test]
+        public void TransitionSuppression_HidesMenuButtonAndRejectsPauseUntilRestored()
+        {
+            var menu = root.AddComponent<OpenBetaPauseMenuController>();
+            var button = new GameObject("Menu", typeof(RectTransform), typeof(Button));
+            button.transform.SetParent(root.transform);
+            SetField(menu, "menuButton", button.GetComponent<Button>());
+            SetField(menu, "initialConversationCompleted", true);
+            menu.SetTransitionSuppressed(true);
+            Assert.That(button.activeSelf, Is.False);
+            menu.OpenMenu();
+            menu.ToggleMenu();
+            Assert.That(menu.IsPaused, Is.False);
+            typeof(OpenBetaPauseMenuController).GetMethod("SetMenuButtonVisible", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(menu, new object[] { true });
+            Assert.That(button.activeSelf, Is.False);
+            menu.SetTransitionSuppressed(false);
+            Assert.That(button.activeSelf, Is.True);
+        }
+
+        [Test]
         public void DisabledPause_RestoresTimeAndUnblocksChat()
         {
             OpenBetaPauseMenuController menu = root.AddComponent<OpenBetaPauseMenuController>();
@@ -85,6 +105,31 @@ namespace Nekolpos.System.Editor
 
             Assert.That(Time.timeScale, Is.EqualTo(0.5f));
             Assert.That(chat.IsMenuInputBlocked, Is.False);
+        }
+
+        [Test]
+        public void PauseLogWindow_KeepsThePauseStateAndPointerAvailable()
+        {
+            OpenBetaPauseMenuController menu = root.AddComponent<OpenBetaPauseMenuController>();
+            GameObject logObject = new GameObject("Pause log window", typeof(LogWindowPanel));
+            LogWindowPanel logWindow = logObject.GetComponent<LogWindowPanel>();
+            SetField(menu, "logWindowPanel", logWindow);
+            SetField(menu, "isPaused", true);
+            Time.timeScale = 0f;
+
+            try
+            {
+                Invoke(menu, "OpenLogFromMenu");
+
+                Assert.That(menu.IsPaused, Is.True);
+                Assert.That(Time.timeScale, Is.Zero);
+                Assert.That(Cursor.lockState, Is.EqualTo(CursorLockMode.None));
+                Assert.That(Cursor.visible, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(logObject);
+            }
         }
 
         [TestCase(true)]
@@ -106,30 +151,6 @@ namespace Nekolpos.System.Editor
 
             Assert.That(input.interactable, Is.EqualTo(wasInteractable));
             Assert.That(input.text, Is.EqualTo("draft"));
-        }
-
-        [TestCase(true)]
-        [TestCase(false)]
-        public void NewAudioSource_UsesSavedMuteBeforePlayback(bool isBgm)
-        {
-            string key = isBgm ? "OpenBeta.Audio.BgmMuted" : "OpenBeta.Audio.SeMuted";
-            bool hadPreference = PlayerPrefs.HasKey(key);
-            int previous = PlayerPrefs.GetInt(key);
-            try
-            {
-                AudioSource source = root.AddComponent<AudioSource>();
-                PlayerPrefs.SetInt(key, 1);
-                OpenBetaPauseMenuController.ApplySavedAudioState(source, isBgm);
-                Assert.That(source.mute, Is.True);
-                PlayerPrefs.SetInt(key, 0);
-                OpenBetaPauseMenuController.ApplySavedAudioState(source, isBgm);
-                Assert.That(source.mute, Is.False);
-            }
-            finally
-            {
-                if (hadPreference) PlayerPrefs.SetInt(key, previous);
-                else PlayerPrefs.DeleteKey(key);
-            }
         }
 
         [Test]

@@ -65,6 +65,16 @@ namespace Nekolpos.System
         [SerializeField] private GameObject openingCat;
         [SerializeField] private GameObject normalCat;
 
+        [Header("Opening Focus")]
+        [Tooltip("OP猫注視中だけ、注視Targetの距離からGaussian DoFの遠景ぼかし開始位置を決める余白です。猫自身をぼかさないため、通常は0以上にします。")]
+        [SerializeField, Min(0f)] private float openingFocusStartOffset = 0.15f;
+        [Tooltip("OP猫注視中に、ぼかし開始位置から最大ぼかしに達するまでの距離です。短いほど猫の背後が早くぼけます。")]
+        [SerializeField, Min(0.01f)] private float openingFocusFalloffDistance = 1.5f;
+        [Tooltip("OP猫注視中のGaussian DoF強度です。通常時の遠景ぼかしとは独立して調整できます。")]
+        [SerializeField, Range(0f, 1f)] private float openingFocusBlurStrength = 0.45f;
+        [Tooltip("OP猫の移動にDoF範囲が追従する補間時間です。短いほど接近時の追従が速くなります。")]
+        [SerializeField, Min(0.01f)] private float openingFocusTransitionSeconds = 0.2f;
+
         private DepthOfField depthOfField;
         private NekolposDepthOfFieldMode mode;
         private Transform focusTarget;
@@ -90,6 +100,8 @@ namespace Nekolpos.System
         private float temporaryFocusDistance;
         private float temporaryFocusRemaining;
         private float nextOpeningCatResolveTime;
+        private Transform openingFocusTarget;
+        private bool openingFocusActive;
 
         public NekolposDepthOfFieldMode Mode => mode;
         public bool DepthOfFieldEnabled => depthOfFieldEnabled;
@@ -126,7 +138,10 @@ namespace Nekolpos.System
             defaultBlurEndDistance = Mathf.Max(defaultBlurEndDistance, defaultBlurStartDistance + 0.01f);
             defaultBlurStrength = Mathf.Clamp01(defaultBlurStrength);
             focusBlurStrength = Mathf.Clamp01(focusBlurStrength);
+            openingFocusBlurStrength = Mathf.Clamp01(openingFocusBlurStrength);
             focusDistance = Mathf.Max(0.1f, focusDistance);
+            openingFocusFalloffDistance = Mathf.Max(0.01f, openingFocusFalloffDistance);
+            openingFocusTransitionSeconds = Mathf.Max(0.01f, openingFocusTransitionSeconds);
 
             if (!Application.isPlaying)
             {
@@ -195,6 +210,24 @@ namespace Nekolpos.System
         public void SetDefaultBlurStrength(float strength)
         {
             defaultBlurStrength = Mathf.Clamp01(strength);
+        }
+
+        /// <summary>
+        /// OP猫注視中のGaussian DoF追従を開始する。実際のVolume更新はこのControllerだけが行う。
+        /// </summary>
+        public void BeginOpeningFocus(Transform target)
+        {
+            openingFocusTarget = target;
+            openingFocusActive = target != null;
+        }
+
+        /// <summary>
+        /// OP猫注視用のDoF追従を終了し、通常のOP猫DoF抑止ルールへ戻す。
+        /// </summary>
+        public void EndOpeningFocus()
+        {
+            openingFocusActive = false;
+            openingFocusTarget = null;
         }
 
         public void ResetToDefault()
@@ -325,14 +358,16 @@ namespace Nekolpos.System
 
         private void SmoothValues()
         {
-            float targetStart = defaultBlurStartDistance;
-            float targetEnd = Mathf.Max(defaultBlurEndDistance, targetStart + 0.01f);
+            ResolveTargetBlurDistances(out float targetStart, out float targetEnd);
             float targetStrength = ResolveTargetStrength();
             float targetFocusDistance = ResolveTargetFocusDistance();
+            float blurTransitionSeconds = openingFocusActive
+                ? openingFocusTransitionSeconds
+                : transitionSeconds;
 
-            currentStart = Mathf.SmoothDamp(currentStart, targetStart, ref startVelocity, transitionSeconds);
-            currentEnd = Mathf.SmoothDamp(currentEnd, targetEnd, ref endVelocity, transitionSeconds);
-            currentStrength = Mathf.SmoothDamp(currentStrength, targetStrength, ref strengthVelocity, transitionSeconds);
+            currentStart = Mathf.SmoothDamp(currentStart, targetStart, ref startVelocity, blurTransitionSeconds);
+            currentEnd = Mathf.SmoothDamp(currentEnd, targetEnd, ref endVelocity, blurTransitionSeconds);
+            currentStrength = Mathf.SmoothDamp(currentStrength, targetStrength, ref strengthVelocity, blurTransitionSeconds);
             currentFocusDistance = Mathf.SmoothDamp(
                 currentFocusDistance,
                 targetFocusDistance,
@@ -345,14 +380,34 @@ namespace Nekolpos.System
 
         private float ResolveTargetStrength()
         {
-            if (ShouldSuppressDepthOfFieldForOpening() || !depthOfFieldEnabled || mode == NekolposDepthOfFieldMode.Disabled)
+            if (!depthOfFieldEnabled || mode == NekolposDepthOfFieldMode.Disabled ||
+                (!openingFocusActive && ShouldSuppressDepthOfFieldForOpening()))
             {
                 return 0f;
+            }
+
+            if (openingFocusActive)
+            {
+                return Mathf.Clamp01(openingFocusBlurStrength);
             }
 
             return mode == NekolposDepthOfFieldMode.Focus
                 ? Mathf.Clamp01(focusBlurStrength)
                 : Mathf.Clamp01(defaultBlurStrength);
+        }
+
+        private void ResolveTargetBlurDistances(out float start, out float end)
+        {
+            if (openingFocusActive && openingFocusTarget != null && targetCamera != null)
+            {
+                float targetDistance = Vector3.Distance(targetCamera.transform.position, openingFocusTarget.position);
+                start = Mathf.Max(0f, targetDistance + openingFocusStartOffset);
+                end = start + openingFocusFalloffDistance;
+                return;
+            }
+
+            start = defaultBlurStartDistance;
+            end = Mathf.Max(defaultBlurEndDistance, start + 0.01f);
         }
 
         private float ResolveTargetFocusDistance()
@@ -401,7 +456,8 @@ namespace Nekolpos.System
 
             OverrideDepthOfFieldParameters(true);
 
-            if (ShouldSuppressDepthOfFieldForOpening() || !depthOfFieldEnabled || mode == NekolposDepthOfFieldMode.Disabled || currentStrength <= 0.01f)
+            if (!depthOfFieldEnabled || mode == NekolposDepthOfFieldMode.Disabled ||
+                (!openingFocusActive && ShouldSuppressDepthOfFieldForOpening()) || currentStrength <= 0.01f)
             {
                 depthOfField.mode.value = DepthOfFieldMode.Off;
                 return;

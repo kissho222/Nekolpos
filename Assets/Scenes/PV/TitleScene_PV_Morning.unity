@@ -26877,7 +26877,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 23f0f767b47a4a5e9a994d1821d084f9, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Nekolpos.System.OpenBetaTitleBootstrap
+  m_EditorClassIdentifier: Assembly-CSharp::Nekolpos.System.NekolposGameBootstrap
   introPanel: {fileID: 374635302}
   aboutPanel: {fileID: 0}
   worldviewPanel: {fileID: 0}

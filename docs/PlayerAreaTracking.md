@@ -1,15 +1,16 @@
 # プレイヤー現在地エリア判定
 
-`PlayerAreaTracker` は、プレイヤーがScene上のどの`PlayerAreaVolume`にいるかを判定し、会話・ワープなどの将来機能が参照できる現在地IDを提供する。安全歩行を担当する`PlayerSafetyMovementController`とは独立しており、移動・Rigidbody・Walkable判定を変更しない。
+`PlayerAreaTracker` は、プレイヤーがScene上のどの`PlayerAreaVolume`にいるかを判定し、会話・ワープなどが参照する現在地IDを提供する。安全歩行を担当する`PlayerSafetyMovementController`とは独立しており、移動・Rigidbody・Walkable判定を変更しない。
 
-## GameSceneへの設定
+## Sceneへの設定
 
 1. 本番Playerのルートに`PlayerAreaTracker`を追加する。`CharacterController`が同じルートにある場合は自動で判定位置に使用する。
 2. 空のGameObjectへ`BoxCollider`などのColliderと`PlayerAreaVolume`を追加する。Colliderは`PlayerAreaVolume`によりTriggerへ設定される。
 3. `Area Id`へ`Desk`、`Table`、`Bathroom`、`Bed`などを設定する。これらは予約済みの列挙値ではないため、将来のIDも追加できる。`None`は未所属を表す予約値なのでArea Idに使わない。
 4. 領域が重なる場合は、優先させたいVolumeの`Priority`を大きくする。同値なら`Resolve Order`が大きい方を優先し、さらに同値なら`Area Id`の文字列順で決定する。
+5. `MainScene > NekolposGameBootstrap` の `Player Area Tracker` に、本番Player上のTrackerを割り当てる。Bootstrapが`H:`の評価用Trackerとして明示的に登録する。
 
-現在のワークスペースでは安全移動を持つPlayerが`TitleScene`に保存され、`GameScene`にはPlayerがシリアライズされていない。対象Sceneが確定するまでPlayerやAreaVolumeを自動追加しない。各領域は実際のプレイヤー導線とScene縮尺を確認して配置する。
+現在のワークスペースでは安全移動を持つPlayerが`MainScene`に保存され、`GameScene`にはPlayerがシリアライズされていない。対象Sceneが確定するまでPlayerやAreaVolumeを自動追加しない。各領域は実際のプレイヤー導線とScene縮尺を確認して配置する。
 
 ## 判定とデバッグ
 
@@ -30,4 +31,8 @@ playerAreaTracker.AreaChanged += (previousAreaId, currentAreaId) =>
 };
 ```
 
-今回の対象は現在地判定と参照APIだけであり、Dialogue Conditionへの接続、ケーブル移動、ネルコ搭乗・追従、Scene全体への領域自動配置は行わない。
+## 会話Condition `H:` との接続
+
+`MainScene`では、`H:`の正本はBootstrapが登録した`PlayerAreaTracker.CurrentAreaId`である。`H: Desk`、`H: Desk Table Bathroom`、`H: !Desk`といった既存CSV構文はそのまま使える。`None`では正のID条件は不成立、否定ID条件は成立する。未定義IDはWarningを出して不成立になる。
+
+`CatPositionController.CurrentConversationLocation`は猫の基本会話拠点・猫/カメラ配置の正本として残る。PlayerAreaTrackerを持たない旧テストSceneだけ、互換用として猫ホーム位置を`H:`の判定元にする。MainSceneではTrackerを見つけられない場合に猫ホーム位置へ黙って戻さないよう、Bootstrapの参照を設定する。

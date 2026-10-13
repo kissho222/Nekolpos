@@ -1,0 +1,14 @@
+{
+  "Photos": [
+    {
+        "SourceFileName": "replace-with-a-local-source-file.jpg",
+        "PhotoId": "0000001",
+        "CatName": "ミィ",
+        "ContributorName": "チップス",
+        "ContributorUrl": "Chips_VL",
+        "Approved": true,
+        "AllowGameUse": true,
+        "AllowPromotionUse": true
+    }
+  ]
+}

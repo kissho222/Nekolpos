@@ -17,8 +17,10 @@ public class FPSCamera : MonoBehaviour
 
     void Update()
     {
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
-        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+        if (Nekolpos.System.DebugConsoleInput.IsBlocked || Time.timeScale <= 0f || Nekolpos.System.SettingsPanel.IsOpen) return;
+        Vector2 look = Nekolpos.System.SettingsManager.LookInput(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"), mouseSensitivity);
+        float mouseX = look.x;
+        float mouseY = look.y;
 
         rotX -= mouseY;
         rotY += mouseX;

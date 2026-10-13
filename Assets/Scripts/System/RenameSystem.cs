@@ -131,7 +131,7 @@ namespace Nekolpos.System
             catData.playerName = SanitizeRenameValue(GetPersistentString(SaveKeyPlayerName, LegacyOpenBetaPlayerNameKey, catData.playerName));
             catData.catName = SanitizeRenameValue(GetPersistentString(SaveKeyCatName, LegacyOpenBetaCatNameKey, catData.catName));
             catData.playerCalling = SanitizeRenameValue(GetPersistentString(SaveKeyPlayerCalling, LegacyOpenBetaPlayerCallingKey, catData.playerCalling));
-            catData.catPronoun = SanitizeRenameValue(PlayerPrefs.GetString(SaveKeyCatPronoun, catData.catPronoun));
+            catData.catPronoun = SanitizeRenameValue(ProgressSaveStore.GetString(SaveKeyCatPronoun, catData.catPronoun));
             ApplyToState(catData);
         }
 
@@ -150,14 +150,14 @@ namespace Nekolpos.System
             catData.catName = catName;
             catData.playerCalling = playerCalling;
             catData.catPronoun = catPronoun;
-            PlayerPrefs.SetString(SaveKeyPlayerName, playerName);
-            PlayerPrefs.SetString(SaveKeyCatName, catName);
-            PlayerPrefs.SetString(SaveKeyPlayerCalling, playerCalling);
-            PlayerPrefs.SetString(SaveKeyCatPronoun, catPronoun);
-            PlayerPrefs.SetString(LegacyOpenBetaPlayerNameKey, playerName);
-            PlayerPrefs.SetString(LegacyOpenBetaCatNameKey, catName);
-            PlayerPrefs.SetString(LegacyOpenBetaPlayerCallingKey, playerCalling);
-            PlayerPrefs.Save();
+            ProgressSaveStore.SetString(SaveKeyPlayerName, playerName);
+            ProgressSaveStore.SetString(SaveKeyCatName, catName);
+            ProgressSaveStore.SetString(SaveKeyPlayerCalling, playerCalling);
+            ProgressSaveStore.SetString(SaveKeyCatPronoun, catPronoun);
+            ProgressSaveStore.SetString(LegacyOpenBetaPlayerNameKey, playerName);
+            ProgressSaveStore.SetString(LegacyOpenBetaCatNameKey, catName);
+            ProgressSaveStore.SetString(LegacyOpenBetaPlayerCallingKey, playerCalling);
+            ProgressSaveStore.Save();
             ApplyToState(catData);
         }
 
@@ -466,14 +466,14 @@ namespace Nekolpos.System
 
         private static string GetPersistentString(string primaryKey, string fallbackKey, string defaultValue)
         {
-            if (!string.IsNullOrWhiteSpace(primaryKey) && PlayerPrefs.HasKey(primaryKey))
+            if (!string.IsNullOrWhiteSpace(primaryKey) && ProgressSaveStore.HasKey(primaryKey))
             {
-                return PlayerPrefs.GetString(primaryKey, defaultValue);
+                return ProgressSaveStore.GetString(primaryKey, defaultValue);
             }
 
-            if (!string.IsNullOrWhiteSpace(fallbackKey) && PlayerPrefs.HasKey(fallbackKey))
+            if (!string.IsNullOrWhiteSpace(fallbackKey) && ProgressSaveStore.HasKey(fallbackKey))
             {
-                return PlayerPrefs.GetString(fallbackKey, defaultValue);
+                return ProgressSaveStore.GetString(fallbackKey, defaultValue);
             }
 
             return defaultValue;

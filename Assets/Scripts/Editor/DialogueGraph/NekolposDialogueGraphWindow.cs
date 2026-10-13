@@ -33,6 +33,18 @@ namespace Nekolpos.EditorTools.DialogueGraph
         [MenuItem("Nekolpos/Dialogue Graph")]
         private static void Open() => GetWindow<NekolposDialogueGraphWindow>("Nekolpos Dialogue Graph");
 
+        public static void OpenUnknownWordFlow()
+        {
+            var window = GetWindow<NekolposDialogueGraphWindow>("Nekolpos Dialogue Graph");
+            if (window.data == null) window.Refresh();
+            window.dialogueId = DialogueGraphDataProvider.UnknownWordId;
+            window.sourceFilter = DialogueGraphDataProvider.UnknownWordSource;
+            window.selectedDialogueSourcePath = DialogueGraphDataProvider.UnknownWordPath;
+            window.patternId = string.Empty; window.timelineOnly = false;
+            window.selected = window.data.Nodes["runtime:unknown:entry"];
+            window.RebuildVisibleGraph(); window.Repaint();
+        }
+
         private void OnEnable() { Refresh(); }
         private void Refresh() { data = DialogueGraphDataProvider.Load(); BuildDialogueIdOptions(); selected = null; RebuildVisibleGraph(); Repaint(); }
 
@@ -96,6 +108,7 @@ namespace Nekolpos.EditorTools.DialogueGraph
             GUILayout.Label("Depth", GUILayout.Width(40));
             int previousDepthIndex = depthIndex;
             depthIndex = EditorGUILayout.Popup(depthIndex, DepthLabels, EditorStyles.toolbarPopup, GUILayout.Width(52));
+            if (GUILayout.Button("未知語フロー", EditorStyles.toolbarButton, GUILayout.Width(95))) OpenUnknownWordFlow();
             if (!string.Equals(previousSource, sourceFilter, StringComparison.Ordinal) || previousTimelineOnly != timelineOnly || previousDepthIndex != depthIndex)
             {
                 if (!string.Equals(previousSource, sourceFilter, StringComparison.Ordinal)) selectedDialogueSourcePath = string.Empty;
@@ -159,8 +172,8 @@ namespace Nekolpos.EditorTools.DialogueGraph
             {
                 EditorGUILayout.LabelField("Type", selected.Kind.ToString());
                 EditorGUILayout.TextArea(selected.Detail ?? string.Empty, GUILayout.MinHeight(180));
-                if (selected.Entry != null) EditorGUILayout.LabelField("CSV", $"{selected.Entry.SourcePath}:{selected.Entry.Line}", EditorStyles.wordWrappedMiniLabel);
-                if (selected.Asset != null && GUILayout.Button("Select Timeline Asset")) { Selection.activeObject = selected.Asset; EditorGUIUtility.PingObject(selected.Asset); }
+                if (selected.Entry != null) EditorGUILayout.LabelField(selected.Entry.IsRuntimeFlow ? "Runtimeフロー" : "CSV", selected.Entry.IsRuntimeFlow ? selected.Entry.SourcePath : $"{selected.Entry.SourcePath}:{selected.Entry.Line}", EditorStyles.wordWrappedMiniLabel);
+                if (selected.Asset != null && GUILayout.Button(selected.Entry != null && selected.Entry.IsRuntimeFlow ? "実装を選択" : "Select Timeline Asset")) { Selection.activeObject = selected.Asset; EditorGUIUtility.PingObject(selected.Asset); }
             }
             if (data.Warnings.Count > 0) { GUILayout.Space(12); GUILayout.Label("Read warnings", EditorStyles.boldLabel); foreach (string warning in data.Warnings) EditorGUILayout.HelpBox(warning, MessageType.Warning); }
             EditorGUILayout.EndScrollView(); GUILayout.EndArea();
@@ -242,7 +255,7 @@ namespace Nekolpos.EditorTools.DialogueGraph
                 int lane = lanes.TryGetValue(rank, out int currentLane) ? currentLane : 0;
                 lanes[rank] = lane + 1;
                 Vector2 fallback = new Vector2(30 + rank * 270, 30 + lane * 145);
-                Vector2 position = DialogueGraphLayoutStore.instance.TryGet(nodeId, out Vector2 saved) ? saved : fallback;
+                Vector2 position = DialogueGraphLayoutStore.instance.TryGet(nodeId, out Vector2 saved) ? saved : data.Nodes[nodeId].SuggestedPosition ?? fallback;
                 nodeRects[nodeId] = new Rect(position, new Vector2(NodeWidth, NodeHeight));
             }
             FocusVisibleGraph();

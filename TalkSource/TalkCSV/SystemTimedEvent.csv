@@ -1,89 +1,184 @@
-﻿key,ja,en,zh,time_minutes,display_seconds,notes,diary_id,diary_kind
+key,ja,en,zh,time_minutes,display_seconds,notes,diary_id,diary_kind,diary_ja,diary_en,diary_zh,display_variants,diary_variants,diary_selection_mode
 TEMP_SPECIAL_DIARY_001,"今日は、{{CAT_NAME}}に顔を近づけられた。
 息がかかるくらい近くて、逃げようと思えば逃げられたはずなのに、なぜかそのまま動けなかった。
 大きな舌先がほんの少し触れただけなのに、全身がぞくっとしてしまって、しばらく何も考えられなかった。
-……こういうの、癖になったらどうしよう。",,,,,仮特別日記の表示確認用,TEMP_SPECIAL_DIARY_001,special
-PRD_CONVERSATION_RESULT_NORMAL,そのまま{{CAT_NAME}}と会話を楽しんだ。,,,,,会話でステータス変動時,,
-PRD_CONVERSATION_RESULT_AFFECTION,そのまま、{{CAT_NAME}}に甘やかしてもらった。,,,,,会話でステータス変動時,,
-PRD_CONVERSATION_RESULT_CONCERN,そのまま{{CAT_NAME}}は、とにかく心配しているようだった。,,,,,会話でステータス変動時,,
-PRD_CONVERSATION_RESULT_HOSTILITY,そのまま、{{CAT_NAME}}に戦いたいと言い続けた。,,,,,会話でステータス変動時,,
-PRD_CONVERSATION_RESULT_INSTINCT,そのまま、{{CAT_NAME}}の本能をくすぐるようなことを言ってみた。,,,,,会話でステータス変動時,,
-PRD_CONVERSATION_RESULT_SADISTIC,そのまま、{{CAT_NAME}}様に罵ってもらった。,,,,,会話でステータス変動時,,
-PRD_CONVERSATION_RESULT_OBEDIENCE,そのまま、{{CAT_NAME}}に命令口調で話した。,,,,,会話でステータス変動時,,
-PRD_ESTRUS_INSTINCT_HIGH,{{CAT_NAME}}の発散に付き合った。,,,,,発情期・本能8,,
-PRD_SPECIAL_PATTERN_MATING_AWAY,{{CAT_NAME}}は遠くへ行ってしまった。,,,,,こうびしよう,,
-PRD_SPECIAL_PATTERN_MATING_DONE,{{CAT_NAME}}の発散に付き合った,,,,,こうびしよう,,
+……こういうの、癖になったらどうしよう。",,,,,仮特別日記の表示確認用,TEMP_SPECIAL_DIARY_001,special,"今日は、{{CAT_NAME}}に顔を近づけられた。
+息がかかるくらい近くて、逃げようと思えば逃げられたはずなのに、なぜかそのまま動けなかった。
+大きな舌先がほんの少し触れただけなのに、全身がぞくっとしてしまって、しばらく何も考えられなかった。
+……こういうの、癖になったらどうしよう。",,,,,Random
+PRD_CONVERSATION_RESULT_NORMAL,そのまま{{CAT_NAME}}と会話を楽しんだ。,,,,,会話でステータス変動時,PRD_CONVERSATION_RESULT_NORMAL,,そのまま{{CAT_NAME}}と会話を楽しんだ。,,,,,Random
+PRD_CONVERSATION_RESULT_AFFECTION,そのまま、{{CAT_NAME}}に甘やかしてもらった。,,,,,会話でステータス変動時,PRD_CONVERSATION_RESULT_AFFECTION,,そのまま、{{CAT_NAME}}に甘やかしてもらった。,,,,,Random
+PRD_CONVERSATION_RESULT_CONCERN,そのまま{{CAT_NAME}}は、とにかく心配しているようだった。,,,,,会話でステータス変動時,PRD_CONVERSATION_RESULT_CONCERN,,そのまま{{CAT_NAME}}は、とにかく心配しているようだった。,,,,,Random
+PRD_CONVERSATION_RESULT_HOSTILITY,そのまま、{{CAT_NAME}}に戦いたいと言い続けた。,,,,,会話でステータス変動時,PRD_CONVERSATION_RESULT_HOSTILITY,,そのまま、{{CAT_NAME}}に戦いたいと言い続けた。,,,,,Random
+PRD_CONVERSATION_RESULT_INSTINCT,そのまま、{{CAT_NAME}}の本能をくすぐるようなことを言ってみた。,,,,,会話でステータス変動時,PRD_CONVERSATION_RESULT_INSTINCT,,そのまま、{{CAT_NAME}}の本能をくすぐるようなことを言ってみた。,,,,,Random
+PRD_CONVERSATION_RESULT_SADISTIC,そのまま、{{CAT_NAME}}様に罵ってもらった。,,,,,会話でステータス変動時,PRD_CONVERSATION_RESULT_SADISTIC,,そのまま、{{CAT_NAME}}様に罵ってもらった。,,,,,Random
+PRD_CONVERSATION_RESULT_OBEDIENCE,そのまま、{{CAT_NAME}}に命令口調で話した。,,,,,会話でステータス変動時,PRD_CONVERSATION_RESULT_OBEDIENCE,,そのまま、{{CAT_NAME}}に命令口調で話した。,,,,,Random
+PRD_ESTRUS_INSTINCT_HIGH,{{CAT_NAME}}の発散に付き合った。,,,,,発情期・本能8,PRD_ESTRUS_INSTINCT_HIGH,,{{CAT_NAME}}の発散に付き合った。,,,,,Random
+PRD_SPECIAL_PATTERN_MATING_AWAY,{{CAT_NAME}}は遠くへ行ってしまった。,,,,,こうびしよう,PRD_SPECIAL_PATTERN_MATING_AWAY,,{{CAT_NAME}}は遠くへ行ってしまった。,,,,,Random
+PRD_SPECIAL_PATTERN_MATING_DONE,{{CAT_NAME}}の発散に付き合った,,,,,こうびしよう,PRD_SPECIAL_PATTERN_MATING_DONE,,{{CAT_NAME}}の発散に付き合った,,,,,Random
 janken_teach_event,"{{CAT_NAME}}にジャンケンを教えた。
 {{CAT_NAME}}は真剣に練習したが、
-チョキだけは会得出来なかった！",,,,,じゃんけん結果,,
+チョキだけは会得出来なかった！",,,,,じゃんけん結果,janken_teach_event,,"{{CAT_NAME}}にジャンケンを教えた。
+{{CAT_NAME}}は真剣に練習したが、
+チョキだけは会得出来なかった！",,,,,Random
 janken_teach_second_event,"{{CAT_NAME}}にジャンケンを教えた。
 チョキっぽい手が出せるようになった！
 どうやらそれが嬉しいらしく、
-その後チョキばっかり出していた。",,,,,じゃんけん結果,,
-unknown_word_teach_event,{{CAT_NAME}}に新しい言葉を教えた,You taught Nekomata a new word.,你教给了{{CAT_NAME}}一个新词,120,2.8,未知語を教える時間経過イベント,,
+その後チョキばっかり出していた。",,,,,じゃんけん結果,janken_teach_second_event,normal,"{{CAT_NAME}}にジャンケンを教えた。
+チョキっぽい手が出せるようになった！
+どうやらそれが嬉しいらしく、
+その後チョキばっかり出していた。",,,,,Random
+unknown_word_teach_event,{{CAT_NAME}}に新しい言葉を教えた,You taught Nekomata a new word.,你教给了{{CAT_NAME}}一个新词,120,2.8,未知語を教える時間経過イベント,unknown_word_teach_event,,{{CAT_NAME}}に新しい言葉を教えた,You taught Nekomata a new word.,你教给了{{CAT_NAME}}一个新词,,,Random
 action_ball_play_result,{{CAT_NAME}}とボール遊びをして過ごした。,"You spent time playing ball with Nekomata.
 In the full version, you'll actually be able to play!","你和{{CAT_NAME}}一起玩球度过了时间。
-正式版中将可以真正地游玩！",,,ボール遊び結果,,
+正式版中将可以真正地游玩！",,,ボール遊び結果,action_ball_play_result,normal,{{CAT_NAME}}とボール遊びをして過ごした。,"You spent time playing ball with Nekomata.
+In the full version, you'll actually be able to play!","你和{{CAT_NAME}}一起玩球度过了时间。
+正式版中将可以真正地游玩！",,,Random
 action_nap_together_result,"{{CAT_NAME}}のお腹の上で横になる。
 ゆっくりと上下する毛皮で、あっという間に眠ってしまった。","You spent the time taking a nap with Nekomata.
 It was very warm.","你和{{CAT_NAME}}一起午睡度过了时间。
-非常温暖。",,,一緒に昼寝結果,,
+非常温暖。",,,一緒に昼寝結果,action_nap_together_result,,"{{CAT_NAME}}のお腹の上で横になる。
+ゆっくりと上下する毛皮で、あっという間に眠ってしまった。","You spent the time taking a nap with Nekomata.
+It was very warm.","你和{{CAT_NAME}}一起午睡度过了时间。
+非常温暖。",,,Random
 action_brushing_result,"毛並みを整えながら、ゆっくり触れ合って過ごした。
 {{CAT_NAME}}は気持ちよさそうに目を細めていた。","You spent the time gently brushing and bonding together.
 Nekomata narrowed their eyes contentedly.","你一边整理毛发，一边慢慢地亲近相处。
-{{CAT_NAME}}舒服地眯起了眼睛。",,,ブラッシング結果,,
+{{CAT_NAME}}舒服地眯起了眼睛。",,,ブラッシング結果,action_brushing_result,,"毛並みを整えながら、ゆっくり触れ合って過ごした。
+{{CAT_NAME}}は気持ちよさそうに目を細めていた。","You spent the time gently brushing and bonding together.
+Nekomata narrowed their eyes contentedly.","你一边整理毛发，一边慢慢地亲近相处。
+{{CAT_NAME}}舒服地眯起了眼睛。",,,Random
 action_gentle_petting_result,"{{CAT_NAME}}をゆっくり撫でながら、静かな時間を過ごした。
 ","You spent a quiet time gently petting Nekomata together.
 Little by little, the tension left your shoulders.","你一边轻轻抚摸{{CAT_NAME}}，一边共同度过了安静的时光。
-肩膀上的紧绷感一点点消失了。",,,ゆっくり撫でる結果,,
+肩膀上的紧绷感一点点消失了。",,,ゆっくり撫でる結果,action_gentle_petting_result,,"{{CAT_NAME}}をゆっくり撫でながら、静かな時間を過ごした。
+","You spent a quiet time gently petting Nekomata together.
+Little by little, the tension left your shoulders.","你一边轻轻抚摸{{CAT_NAME}}，一边共同度过了安静的时光。
+肩膀上的紧绷感一点点消失了。",,,Random
 action_petting_me_result,"{{CAT_NAME}}の巨大な前足が、おそるおそるあなたの頭に触れた。
-{{CAT_NAME}}はどこか嬉しそうだ。",,,,,,,
+{{CAT_NAME}}はどこか嬉しそうだ。",,,,,,action_petting_me_result,normal,"{{CAT_NAME}}の巨大な前足が、おそるおそるあなたの頭に触れた。
+{{CAT_NAME}}はどこか嬉しそうだ。",,,,,Random
 action_vore1_result,"{{CAT_NAME}}の赤い口が迫り、あなたはその中へと囚われた。
 急にとても怖くなり、大声で助けを求めても{{CAT_NAME}}は聞き入れない。
-無理やり喉へと押し込まれ、そこで気を失った。",,,,,,,
+無理やり喉へと押し込まれ、そこで気を失った。",,,,,,action_vore1_result,special,"ついに、{{CAT_NAME}}に食べてもらった。生きたまま飲み込んでもらった。
+{{CAT_NAME}}の胃袋の中に入り、少しだけ意識を保てていたけれど、少しして気絶してしまったのだと思う。気がついたらベッドにいた。
+すぐに心配そうな{{CAT_NAME}}の顔が見ていた。
+それにしても……胃壁の蠕動、響く{{CAT_NAME}}のゴロゴロ音、あの暖かさ。しばらくは忘れられなさそう。",,,,,Random
 action_vore2_result,"{{CAT_NAME}}は口を開いて舌を伸ばす。
 あなたは、自らの意思でで口内へと歩みを進め、
 {{CAT_NAME}}のザラザラした舌に身を任せた。
 {{CAT_NAME}}はあなたを味わった後、
-難なく呑み込んでしまった。",,,,,,,
+難なく呑み込んでしまった。",,,,,,action_vore2_result,normal,"{{CAT_NAME}}に、また食べてもらった。なんとかして、生きたまま胃の中に居られないかな。
+{{CAT_NAME}}にとって私はどの程度の食料なんだろう？
+カリカリ3粒分？",,,,,Random
 action_nekosui_result,"{{CAT_NAME}}の毛皮に全身埋めて、思う存分猫吸いした。
-{{CAT_NAME}}は少し居心地が悪そうだが、止めはしなかった。",,,,,,,
+{{CAT_NAME}}は少し居心地が悪そうだが、止めはしなかった。",,,,,,action_nekosui_result,,"{{CAT_NAME}}の毛皮に全身埋めて、思う存分猫吸いした。
+{{CAT_NAME}}は少し居心地が悪そうだが、止めはしなかった。",,,,,Random
 action_brushing_me_result,"{{CAT_NAME}}の舌が、あなたの全身を撫で回す。
-少し痛かったが、{{CAT_NAME}}は満足げだ。",,,,,,,
+少し痛かったが、{{CAT_NAME}}は満足げだ。",,,,,,action_brushing_me_result,,"{{CAT_NAME}}の舌が、あなたの全身を撫で回す。
+少し痛かったが、{{CAT_NAME}}は満足げだ。",,,,,Random
 action_biting_me_result,"{{CAT_NAME}}の口が迫り、遠慮がちにあなたの身体に牙を立てる。
-突然、まるで重機で挟まれたかのような痛みが走り、意識を失った……。",,,,,,,
+突然、まるで重機で挟まれたかのような痛みが走り、意識を失った……。",,,,,,action_biting_me_result,special,"{{CAT_NAME}}に、また噛んでもらった。
+元々、{{CAT_NAME}}に噛んでもらうのは好きだった。
+本気で噛まれるのは痛かったが、
+",,,,"{""items"":[{""ja"":""{{CAT_NAME}}に、また噛んでもらった。\n元々、{{CAT_NAME}}に噛んでもらうのは好きだった。\n体の大きな人間に向かって、精一杯牙を立てる姿が愛おしかった。\n今は、捕まえた獲物が暴れないようにトドメを刺すような噛み方だ。苦しむこと無く、気がつけば翌朝になっている。\n{{CAT_NAME}}はどんな気持ちで噛んでいるんだろう。\n私の願いを叶えるために噛んでくれているけど、{{CAT_NAME}}はあまり望んでなさそう。\nいつでも噛んでくれていいんだけどな！"",""en"":"""",""zh"":""""}]}",Sequence
 action_softbiting_me_result,"{{CAT_NAME}}の口が迫り、遠慮がちにあなたの身体に牙を立てる。
-優しく噛まれているが……巨大生物の口が間近にあるのは怖い！",,,,,,,
+優しく噛まれているが……巨大生物の口が間近にあるのは怖い！",,,,,,action_softbiting_me_result,,"{{CAT_NAME}}の口が迫り、遠慮がちにあなたの身体に牙を立てる。
+優しく噛まれているが……巨大生物の口が間近にあるのは怖い！",,,,,Random
 action_play_game,"タブレットで{{CAT_NAME}}と一緒に遊べるゲームをやってみた。
-少し時間は掛かったが、ルールを覚えてくれた！",,,,,,,
+少し時間は掛かったが、ルールを覚えてくれた！",,,,,,action_play_game,normal,"{{CAT_NAME}}と一緒にゲームで遊んだ。
+ルールを覚えるのは苦手みたいだが、私と一緒に遊べるのが楽しいらしい。
+私も{{CAT_NAME}}と一緒にゲームで遊べる日が来るなんて思っていなかった。
+でも、{{CAT_NAME}}がゲームで私に勝つにはまだまだ時間が必要だろうな。",,,"{""items"":[{""ja"":""タブレットで{{CAT_NAME}}と一緒に遊べるゲームをやってみた。\nまだまだルールは曖昧だけど、ちょっとずつ上手くなってる気がする！"",""en"":"""",""zh"":""""}]}","{""items"":[{""ja"":""{{CAT_NAME}}と一緒にゲームで遊んだ。\nまだまだルールを覚えるのは苦手みたい。\nとりあえず押せる所を押すだけ……でも、少しずつ意図を感じられるようになった気がする。\nもっと{{CAT_PRONOUN}}と遊びたい！"",""en"":"""",""zh"":""""}]}",Sequence
 action_HOSTILITY_MAX_punch,"{{CAT_NAME}}はついに戦ってくれた！
 しかし{{CAT_NAME}}の言う通り、あまりにも圧倒的だった。
-攻撃を避けるどころか視認すらできず、あなたの意識は途絶えた。",,,,,,,
+攻撃を避けるどころか視認すらできず、あなたの意識は途絶えた。",,,,,,action_HOSTILITY_MAX_punch,,"{{CAT_NAME}}はついに戦ってくれた！
+しかし{{CAT_NAME}}の言う通り、あまりにも圧倒的だった。
+攻撃を避けるどころか視認すらできず、あなたの意識は途絶えた。",,,,,Random
 action_angry_punch,"{{CAT_NAME}}が前足を振り上げる。
-鋭く鈍い痛みの直後、あなたの意識は途絶えた。",,,,,,,
+鋭く鈍い痛みの直後、あなたの意識は途絶えた。",,,,,,action_angry_punch,special,"勝てるはずないのは分かっていた。それでも、{{CAT_NAME}}なら手加減してくれるかもと思った。
+結果は、爪の一撃で、私は翌朝ベッドで目を覚ますことになった。
+勝ち負けというより、ここまで抵抗する理由を察して欲しかったのだけれど、まあ、猫には難しいか。
+それとも{{CAT_NAME}}は、そこまで理解した上で全力で戦ってくれたのかな。",,,,"{""items"":[{""ja"":""本当に強い。体格差と力の差が絶望的すぎる。私はアクションゲームの主人公じゃないから回避もパリィもできない。\nもしも出来たとしても、その上で勝つことは絶対に出来ない。\n普段は優しい{{CAT_NAME}}が、戦う時だけは容赦しないのは、本当に戦いたくないからこそ私に諦めてほしいと願っているのだろうか。\nこれ以上無意味に死ぬのも、{{CAT_NAME}}の手を汚すのも、私はもう望んでいない。"",""en"":"""",""zh"":""""}]}",Sequence
+action_normal_punch,"{{CAT_NAME}}が前足を振り上げる。
+鋭く鈍い痛みの直後、あなたの意識は途絶えた。",,,,,,action_normal_punch,normal,"{{CAT_NAME}}に叩いてと頼んだら、あっさり死んでしまったらしい。
+興奮のあまり何回も猫パンチをおねだりしてしまったが……。
+{{CAT_NAME}}のためにも、もう猫パンチは我慢しようかな。",,,,"{""items"":[{""ja"":""{{CAT_NAME}}に、また猫パンチしてもらった。\nもう作業のように殴られてしまった。\nこういう扱いも興奮するには興奮するけど、これ以上殴られるのはあまり意味がないかもしれない。\nなにより、{{CAT_NAME}}の肉球に血がつくのが嫌だ。"",""en"":"""",""zh"":""""}]}",Sequence
+action_angry_claw,"{{CAT_NAME}}が唸りながら前足を振り上げ、長い爪が光った。
+とてつもない痛みののち、すぐに目の前が真っ暗になった。",,,,,,action_angry_claw,special,"{{CAT_NAME}}を怒らせてしまった。
+{{CAT_NAME}}が言葉を話すのが嫌だっただけなのに。実力行使までしてくるとは。
+私も流石に言い過ぎた。でもそんなに怒ることも無いんじゃないかな。
+私はただ、{{CAT_NAME}}には猫らしくいてほしかっただけなのに。",,,,"{""items"":[{""ja"":""{{CAT_NAME}}は、言葉を話すのを辞めないらしい。\n「黙るのは{{PLAYER_CALLING}}の方だよ」なんて言わせてしまった。\nもう喋るのを辞めさせるのは無理だろう。これ以上、無意味に殺されるのは勘弁だ。"",""en"":"""",""zh"":""""}]}",Sequence
 system_food_hungry_complete,"{{CAT_NAME}}に、食べられるものを見繕ってもらった。
 少し時間はかかったけれど、なんとか食事を済ませることができた。","{{CAT_NAME}} found something I could eat.
 It took a little while, but I managed to finish a meal.","{{CAT_NAME}}帮我找了些我也能吃的东西。
-虽然花了一点时间，但总算吃完了一顿饭。",120,2.8,OB向け食事完了,,
+虽然花了一点时间，但总算吃完了一顿饭。",120,2.8,OB向け食事完了,system_food_hungry_complete,normal,"{{CAT_NAME}}に、食べられるものを見繕ってもらった。
+少し時間はかかったけれど、なんとか食事を済ませることができた。","{{CAT_NAME}} found something I could eat.
+It took a little while, but I managed to finish a meal.","{{CAT_NAME}}帮我找了些我也能吃的东西。
+虽然花了一点时间，但总算吃完了一顿饭。",,,Random
 action_gameoftag_play_result,"{{CAT_NAME}}とおいかけっこをした。
-もちろん勝てるはずもなく、手加減して遊んでくれた。",,,,,,,
+もちろん勝てるはずもなく、手加減して遊んでくれた。",,,,,,action_gameoftag_play_result,,"{{CAT_NAME}}とおいかけっこをした。
+もちろん勝てるはずもなく、手加減して遊んでくれた。",,,,,Random
 action_gototoilet_result,"トイレを済ませた。
 もちろん人間用は大きすぎて使えないので、
-猫用トイレを借りることになった。恥ずかしい……。",,,,,,,
+猫用トイレを借りることになった。恥ずかしい……。",,,,,,action_gototoilet_result,normal,"トイレを済ませた。
+もちろん人間用は大きすぎて使えないので、
+猫用トイレを借りることになった。恥ずかしい……。",,,,,Random
 action_hideandseek_result,"{{CAT_NAME}}とかくれんぼをした。
 足音だけでどこに隠れたのか推測された。
-勝ち目がない。",,,,,,,
+勝ち目がない。",,,,,,action_hideandseek_result,normal,"{{CAT_NAME}}とかくれんぼをした。
+足音だけでどこに隠れたのか推測された。
+勝ち目がない。",,,,,Random
 TEACH_TIME_PASSAGE,"その後もしばらく{{CAT_NAME}}と話しているうちに、
-気づけばあっという間に時間が経っていた。",,,,,,,
-TEACH_OUT_OF_CATEGORY_TOLD_RESULT,{{CAT_NAME}}に{word}について教えた。,,,120,2.8,トークテーマ外確認YES後の教示結果,,
+気づけばあっという間に時間が経っていた。",,,,,,TEACH_TIME_PASSAGE,,"その後もしばらく{{CAT_NAME}}と話しているうちに、
+気づけばあっという間に時間が経っていた。",,,,,Random
+TEACH_OUT_OF_CATEGORY_TOLD_RESULT,{{CAT_NAME}}に{word}について教えた。,,,120,2.8,トークテーマ外確認YES後の教示結果,TEACH_OUT_OF_CATEGORY_TOLD_RESULT,,{{CAT_NAME}}に{word}について教えた。,,,,,Random
 action_ote,"{{CAT_NAME}}の前足が、あなたの全身を押しつぶす。
 流石に無茶があったみたい……。
-その後、気をつけながらお手の練習をした。",,,,,,,
+その後、気をつけながらお手の練習をした。",,,,,,action_ote,,"{{CAT_NAME}}の前足が、あなたの全身を押しつぶす。
+流石に無茶があったみたい……。
+その後、気をつけながらお手の練習をした。",,,,,Random
 action_drink_water_result,"{{CAT_NAME}}用の自動給水器に乗せてもらい、水を飲んだ。
-ここから水を飲む日が来るなんて想像していなかった。",,,,,,,
+ここから水を飲む日が来るなんて想像していなかった。",,,,,,action_drink_water_result,normal,"{{CAT_NAME}}用の自動給水器に乗せてもらい、水を飲んだ。
+ここから水を飲む日が来るなんて想像していなかった。",,,,,Random
 event_bath_time,"{{CAT_NAME}}に風呂場に連れて行って貰った。
 床に立って、{{CAT_NAME}}がシャワーを全開にする。
 
-もちろん、排水溝に流されそうになった。",,,,,,,
+もちろん、排水溝に流されそうになった。",,,,,,event_bath_time,normal,"{{CAT_NAME}}に風呂場に連れて行って貰った。
+床に立って、{{CAT_NAME}}がシャワーを全開にする。
+
+もちろん、排水溝に流されそうになった。",,,,,Random
 action_rejection_result,"{{CAT_NAME}}に、離れるように命令した。
-{{CAT_NAME}}は、離れたところでこちらをじっと見ていた。……悲しそうだ。",,,,,,,
+{{CAT_NAME}}は、離れたところでこちらをじっと見ていた。……悲しそうだ。",,,,,,action_rejection_result,,"{{CAT_NAME}}に、離れるように命令した。
+{{CAT_NAME}}は、離れたところでこちらをじっと見ていた。……悲しそうだ。",,,,,Random
+action_walk_result,"{{CAT_NAME}}と散歩をした。
+見慣れた我が家も、小さい視点だと別世界だ。",,,,,,action_walk_result,,"{{CAT_NAME}}と散歩をした。
+見慣れた我が家も、小さい視点だと別世界だ。",,,,,Random
+action_walk_result2,"{{CAT_NAME}}と散歩をした。
+散歩は楽しいけど、虫と出くわさないことを祈る……。
+{{CAT_NAME}}が倒してくれると思うけど、倒してるところを見たくない！",,,,,,action_walk_result2,,"{{CAT_NAME}}と散歩をした。
+散歩は楽しいけど、虫と出くわさないことを祈る……。
+{{CAT_NAME}}が倒してくれると思うけど、倒してるところを見たくない！",,,,,Random
+action_walk_result3,"{{CAT_NAME}}と散歩をした。
+テーブルに登るのも一苦労。
+{{CAT_NAME}}の機嫌を損ねたりしないようにしよう。",,,,,,action_walk_result3,,"{{CAT_NAME}}と散歩をした。
+テーブルに登るのも一苦労。
+{{CAT_NAME}}の機嫌を損ねたりしないようにしよう。",,,,,Random
+action_paw_press_death_result,"{{CAT_NAME}}の肉球が、私の全身を覆う。
+徐々に圧力がかかり、肉球と床の間で……
+
+ぐちゃっという音と同時に気を失った。",,,120,2.8,,action_paw_press_death_result_diary,special,"{{CAT_NAME}}に遠慮なく踏んでもらった結果、死んでしまったようだ。
+死んでも生き返れるなら悔いはないが、
+{{CAT_NAME}}の肉球を私の血で汚してしまってないか、それだけが心配だ。
+またあの肉球に踏まれたい……。",,,,,Random
+action_paw_press,"そのまましばらく{{CAT_NAME}}に踏んでもらった。
+少し苦しいが、柔らかな肉球に全身が包まれるのは最高の気分だ。
+{{CAT_NAME}}は最初嫌がっていたが、しばらくすると楽しそうにしていたように見えた。",,,120,2.8,,action_paw_press_diary,normal,"{{CAT_NAME}}に踏んでもらった。
+今回は優しく踏んでもらったから体は無事だけど、本気で体重をかけてきたらどうなっちゃうんだろう。
+{{CAT_NAME}}は嫌がっていたけど、もっと頼んだらさらに強く踏んでくれるだろうか。",,,,,Random
+smart,"{{CAT_NAME}}は少し困ったように笑った。
+何故そんな顔をしたのかしばらく考えているうちに、気付けば時間が経っていた。",,,120,2.8,,smart_diary,special,"{{CAT_NAME}}に、自身の知性について話してもらった。
+{{CAT_NAME}}の話を聞きながら、『アルジャーノンに花束を』を思い浮かべた。
+知性を持つことは、果たして幸せなのか。{{CAT_NAME}}は今、幸せなのか。
+今幸せだとしても、今後もずっと幸せでいられるのか。
+あの小説の終わり方はどうだったっけな……。",,,,,Random

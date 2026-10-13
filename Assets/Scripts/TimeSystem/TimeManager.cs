@@ -37,11 +37,11 @@ namespace Nekolpos.TimeSystem
         private const int PeriodCountPerDay = 4;
         private const string LogPrefix = "[TimeManager]";
         private const string GameStartDateTicksPrefsKey = "Nekolpos.Time.GameStartDateTicks";
+        // 既存Debug Startの保存値を引き継ぎ、日数の保存先を一つに保つ。
+        public const string CurrentDayPrefsKey = "Nekolpos.Debug.StartDay.v1";
 
         [Header("Timeline")]
         [SerializeField] [Min(1)] private int minutesPerPeriod = 120;
-        [SerializeField] [Min(1)] private int startingDay = 1;
-        [SerializeField] private DayPeriod startingPeriod = DayPeriod.Morning;
         [SerializeField] private bool synchronizeGameState = true;
         [SerializeField] private ConversationGameStateManager conversationGameStateManager;
         [SerializeField] private ConversationDebugPanel conversationDebugPanel;
@@ -54,10 +54,14 @@ namespace Nekolpos.TimeSystem
         private int minutesIntoDay;
         private DateTime gameStartDate;
         private bool initialized;
+        public bool IsInitialized => initialized;
         private bool weatherInitialized;
         private GameManager subscribedGameManager;
+        private bool synchronizingGameManager;
 
         public event Action<TimeAdvanceResult> OnTimeAdvanced;
+        public int MinutesUntilNight { get { EnsureInitialized(); return Mathf.Max(0, minutesPerPeriod * 3 - minutesIntoDay); } }
+        public int MinutesUntilNextPeriod { get { EnsureInitialized(); return minutesPerPeriod - minutesIntoDay % minutesPerPeriod; } }
 
         public int CurrentDay
         {
@@ -146,12 +150,27 @@ namespace Nekolpos.TimeSystem
         {
             EnsureInitialized();
             BindGameManager();
-            SyncFromGameManagerState(false);
+            // 再開時は保存日数の朝を正本とし、前セッションのStateを取り込まない。
         }
+
+        private void OnEnable()
+        {
+            if (initialized) BindGameManager();
+        }
+
+        private void OnDisable() => UnbindGameManager();
 
         private void OnDestroy()
         {
             UnbindGameManager();
+        }
+
+        private void PublishTimeAdvanced(TimeAdvanceResult result)
+        {
+            foreach (var status in FindObjectsByType<Nekolpos.StatusSystem.StatusManager>(FindObjectsSortMode.None))
+                status.ProcessDateUpdate(result.CurrentDay);
+            Nekolpos.System.DebugConsoleTrace.TimeAdvanced(result.PreviousDay, result.CurrentDay, (int)result.PreviousPeriod, (int)result.CurrentPeriod);
+            OnTimeAdvanced?.Invoke(result);
         }
 
         public void EnsureInitialized()
@@ -161,18 +180,52 @@ namespace Nekolpos.TimeSystem
                 return;
             }
 
-            currentDay = Mathf.Max(1, startingDay);
             gameStartDate = LoadOrCreateGameStartDate();
-            minutesIntoDay = Mathf.Clamp((int)startingPeriod * minutesPerPeriod, 0, (minutesPerPeriod * PeriodCountPerDay) - 1);
+            currentDay = LoadCurrentDay();
+            minutesIntoDay = 0;
             initialized = true;
-            TrySyncFromGameManager();
+            BindGameManager();
             EnsureWeatherInitialized();
             SyncConversationState(CurrentPeriod);
         }
 
+        public static bool HasSavedProgress => IsValidSavedDay(ProgressSaveStore.GetInt(CurrentDayPrefsKey, 0));
+
+        private static bool IsValidSavedDay(int day) => day > 0 &&
+            day <= (DateTime.MaxValue.Date - LoadOrCreateGameStartDate()).Days + 1;
+
+        public static int LoadCurrentDay()
+        {
+            int day = ProgressSaveStore.GetInt(CurrentDayPrefsKey, 0);
+            if (!IsValidSavedDay(day))
+            {
+                LogSave("No valid save -> Day1");
+                return 1;
+            }
+            LogSave($"Load CurrentDay={day}");
+            return day;
+        }
+
+        public static void SaveCurrentDay(int day)
+        {
+            ProgressSaveStore.SetInt(CurrentDayPrefsKey, Mathf.Max(1, day));
+            ProgressSaveStore.Save();
+            LogSave($"Save CurrentDay={Mathf.Max(1, day)}");
+        }
+
+        [global::System.Diagnostics.Conditional("UNITY_EDITOR")]
+        [global::System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        private static void LogSave(string message) => Debug.Log($"[SAVE] {message}");
+
+        public void RestoreSavedMorning()
+        {
+            EnsureInitialized();
+            SetCurrentTime(LoadCurrentDay(), DayPeriod.Morning);
+        }
+
         private static DateTime LoadOrCreateGameStartDate()
         {
-            string serializedTicks = PlayerPrefs.GetString(GameStartDateTicksPrefsKey, string.Empty);
+            string serializedTicks = ProgressSaveStore.GetString(GameStartDateTicksPrefsKey, string.Empty);
             if (long.TryParse(serializedTicks, NumberStyles.Integer, CultureInfo.InvariantCulture, out long ticks))
             {
                 try
@@ -190,10 +243,27 @@ namespace Nekolpos.TimeSystem
             }
 
             DateTime today = DateTime.Now.Date;
-            PlayerPrefs.SetString(GameStartDateTicksPrefsKey, today.Ticks.ToString(CultureInfo.InvariantCulture));
-            PlayerPrefs.Save();
+            ProgressSaveStore.SetString(GameStartDateTicksPrefsKey, today.Ticks.ToString(CultureInfo.InvariantCulture));
+            ProgressSaveStore.Save();
             return today;
         }
+
+        /// <summary>
+        /// Resets the locally captured Day 1 date and returns the development session to Day 1 morning.
+        /// This is deliberately explicit so normal play never changes its saved calendar origin.
+        /// </summary>
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public void ResetGameStartDateForDebug()
+        {
+            EnsureInitialized();
+
+            gameStartDate = DateTime.Now.Date;
+            ProgressSaveStore.SetString(GameStartDateTicksPrefsKey, gameStartDate.Ticks.ToString(CultureInfo.InvariantCulture));
+            ProgressSaveStore.Save();
+            SetCurrentTime(1, DayPeriod.Morning);
+            SaveCurrentDay(1);
+        }
+#endif
 
         public TimeAdvanceResult AdvanceTime(int minutes)
         {
@@ -222,8 +292,9 @@ namespace Nekolpos.TimeSystem
             ApplyLightingForPeriod(currentPeriod);
 
             TimeAdvanceResult result = new TimeAdvanceResult(previousPeriod, currentPeriod, previousDay, currentDay, safeMinutes);
+            if (currentDay != previousDay) SaveCurrentDay(currentDay);
             Debug.Log($"{LogPrefix} AdvanceTime minutes={safeMinutes}, day {previousDay}->{currentDay}, period {previousPeriod}->{currentPeriod}, changed={result.PeriodChanged}");
-            OnTimeAdvanced?.Invoke(result);
+            PublishTimeAdvanced(result);
             return result;
         }
 
@@ -253,7 +324,8 @@ namespace Nekolpos.TimeSystem
                 currentDay,
                 0);
             Debug.Log($"{LogPrefix} AdvanceToNextMorning day {previousDay}->{currentDay}, period {previousPeriod}->Morning, changed={result.PeriodChanged}");
-            OnTimeAdvanced?.Invoke(result);
+            SaveCurrentDay(currentDay);
+            PublishTimeAdvanced(result);
             return result;
         }
 
@@ -284,7 +356,8 @@ namespace Nekolpos.TimeSystem
                 previousDay,
                 currentDay,
                 0);
-            OnTimeAdvanced?.Invoke(result);
+            if (currentDay != previousDay) SaveCurrentDay(currentDay);
+            PublishTimeAdvanced(result);
             return result;
         }
 
@@ -316,41 +389,8 @@ namespace Nekolpos.TimeSystem
             return string.Empty;
         }
 
-        public bool TryGetTransitionGreeting(TimeAdvanceResult result, out string greeting)
-        {
-            if (!result.PeriodChanged)
-            {
-                greeting = string.Empty;
-                return false;
-            }
-
-            switch (result.CurrentPeriod)
-            {
-                case DayPeriod.Morning:
-                    greeting = BasicSystemDialogueCatalog.Get(
-                        BasicSystemDialogueCatalog.GreetingMorningKey,
-                        "おはよう！朝だね。今日はなにしようか。");
-                    return true;
-                case DayPeriod.Afternoon:
-                    greeting = BasicSystemDialogueCatalog.Get(
-                        BasicSystemDialogueCatalog.GreetingDayKey,
-                        "昼だね。お腹空いてない？");
-                    return true;
-                case DayPeriod.Evening:
-                    greeting = BasicSystemDialogueCatalog.Get(
-                        BasicSystemDialogueCatalog.GreetingEveningKey,
-                        "夕方だね。やり忘れたことはない？");
-                    return true;
-                case DayPeriod.Night:
-                    greeting = BasicSystemDialogueCatalog.Get(
-                        BasicSystemDialogueCatalog.GreetingNightKey,
-                        "夜だね。寝る前に何かする？");
-                    return true;
-                default:
-                    greeting = string.Empty;
-                    return false;
-            }
-        }
+        public bool TryGetTransitionGreeting(TimeAdvanceResult result, out string greeting) =>
+            TimeFlowCoordinator.TryGetTransitionGreeting(result, out greeting);
 
         public static string GetPeriodLabel(DayPeriod period)
         {
@@ -389,13 +429,14 @@ namespace Nekolpos.TimeSystem
             return DayPeriod.Night;
         }
 
-        private void TrySyncFromGameManager()
+        private void SyncGameManager(DayPeriod period)
         {
-            BindGameManager();
-            SyncFromGameManagerState(false);
+            synchronizingGameManager = true;
+            try { SyncGameManagerState(period); }
+            finally { synchronizingGameManager = false; }
         }
 
-        private void SyncGameManager(DayPeriod period)
+        private void SyncGameManagerState(DayPeriod period)
         {
             GameManager manager = GameManager.Instance;
             if (manager == null)
@@ -626,6 +667,7 @@ namespace Nekolpos.TimeSystem
 
         private void HandleGameStateChanged(IGameState state)
         {
+            if (synchronizingGameManager) return;
             EnsureInitialized();
             DayPeriod previousPeriod = CurrentPeriod;
             int previousDay = currentDay;
@@ -650,7 +692,7 @@ namespace Nekolpos.TimeSystem
             if (result.PeriodChanged)
             {
                 Debug.Log($"{LogPrefix} GameManager state changed to {stateName}: day {previousDay}->{currentDay}, period {previousPeriod}->{currentPeriod}; invoking OnTimeAdvanced");
-                OnTimeAdvanced?.Invoke(result);
+                PublishTimeAdvanced(result);
             }
             else
             {
@@ -687,6 +729,7 @@ namespace Nekolpos.TimeSystem
             {
                 currentDay++;
                 AdvanceWeatherToNextDay();
+                SaveCurrentDay(currentDay);
             }
 
             return true;

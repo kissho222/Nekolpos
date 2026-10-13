@@ -24,11 +24,10 @@ namespace Nekolpos.ActionSystem
 
     public readonly struct ActionExecutionResult
     {
-        public ActionExecutionResult(ActionData actionData, string message, TimeAdvanceResult timeResult, IReadOnlyList<StatusChangeResult> statusChanges)
+        public ActionExecutionResult(ActionData actionData, string message, IReadOnlyList<StatusChangeResult> statusChanges)
         {
             ActionData = actionData;
             Message = message;
-            TimeResult = timeResult;
             StatusChanges = statusChanges;
         }
 
@@ -36,14 +35,11 @@ namespace Nekolpos.ActionSystem
 
         public string Message { get; }
 
-        public TimeAdvanceResult TimeResult { get; }
-
         public IReadOnlyList<StatusChangeResult> StatusChanges { get; }
     }
 
     public class ActionExecutor : MonoBehaviour
     {
-        [SerializeField] private TimeManager timeManager;
         [SerializeField] private StatusManager statusManager;
 
         private void Awake()
@@ -63,19 +59,14 @@ namespace Nekolpos.ActionSystem
             // 実ミニゲームや Timeline に差し替わる余地を残すため、Action 本体はここで完結させる。
             await UniTask.Yield();
 
-            TimeAdvanceResult timeResult = timeManager.AdvanceTime(actionData.TimeCost);
+            // TimeFlow advances the clock around this action's presentation; execution only applies action effects.
             IReadOnlyList<StatusChangeResult> statusChanges = statusManager.ApplyEffects(actionData.Effects, "Action", actionData.ActionId);
             string message = ComposeResultText(actionData);
-            return new ActionExecutionResult(actionData, message, timeResult, statusChanges);
+            return new ActionExecutionResult(actionData, message, statusChanges);
         }
 
         private void EnsureReferences()
         {
-            if (timeManager == null)
-            {
-                timeManager = GetComponent<TimeManager>() ?? gameObject.AddComponent<TimeManager>();
-            }
-
             if (statusManager == null)
             {
                 statusManager = GetComponent<StatusManager>() ?? FindFirstObjectByType<StatusManager>();

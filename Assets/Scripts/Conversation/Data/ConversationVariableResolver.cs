@@ -1,11 +1,42 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Backgammon.Conversation
 {
     public static class ConversationVariableResolver
     {
+        private static readonly Regex RuntimePlaceholderRegex = new Regex(
+            @"\{\{\s*([A-Za-z0-9_?]+)\s*\}\}|(?<!\{)\{\s*([A-Za-z_][A-Za-z0-9_?]*)\s*\}(?!\})", RegexOptions.Compiled);
+
+        /// <summary>既存・保存済みテキストの表記揺れを1回の走査で展開する。nullの結果は未定義として保持する。</summary>
+        public static string ReplaceRuntimePlaceholders(string template, Func<string, string> resolve)
+        {
+            if (string.IsNullOrEmpty(template)) return string.Empty;
+            string normalized = template.Replace(@"\{", "{").Replace(@"\}", "}").Replace(@"\_", "_");
+            return RuntimePlaceholderRegex.Replace(normalized, match =>
+            {
+                string key = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
+                return resolve(key) ?? match.Value;
+            });
+        }
+
+        public static string CanonicalizeRuntimeKey(string key)
+        {
+            string normalized = (key ?? string.Empty).Trim().Trim('{', '}').Trim().ToUpperInvariant();
+            switch (normalized)
+            {
+                case "CATNAME": return "CAT_NAME";
+                case "CATPRONOUN": return "CAT_PRONOUN";
+                case "CATGENDER": return "CAT_GENDER";
+                case "PLAYERCALLING": return "PLAYER_CALLING";
+                case "PLAYERNAME": return "PLAYER_NAME";
+                case "PENDINGVALUE": return "PENDING_VALUE";
+                default: return normalized;
+            }
+        }
+
         public static string Resolve(string template, ConversationGameState state, IReadOnlyDictionary<string, string> overrides = null)
         {
             if (string.IsNullOrEmpty(template))
@@ -51,6 +82,9 @@ namespace Backgammon.Conversation
             {
                 return SanitizeResolvedValue(token, overrideValue);
             }
+
+            if (Nekolpos.Dialogue.UnknownWord.WordVariables.IsVariable(token))
+                return Nekolpos.Dialogue.UnknownWord.WordVariables.Resolve(token, state);
 
             if (state == null || !state.TryGetValue(token, out var value) || value == null)
             {

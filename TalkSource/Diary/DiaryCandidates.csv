@@ -1,0 +1,5 @@
+DiaryId,kind,ja,en,zh,Enabled,diary_variants,diary_selection_mode
+kill_player,normal,"{{CAT_NAME}}を怒らせてしまった。
+まあ、流石に私が悪かったことは認めざるを得ない。あれだけ暴言を繰り返したんだ。自分の立場を弁えなくては。
+
+私は、{{CAT_NAME}}に従って行きていくしかないのだ。",,,FALSE,,Random

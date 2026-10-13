@@ -4,6 +4,8 @@ using Backgammon.Conversation;
 using Nekolpos.Data;
 using Nekolpos.System;
 using UnityEngine;
+using Nekolpos.TimeSystem;
+using Newtonsoft.Json;
 
 namespace Nekolpos.StatusSystem
 {
@@ -68,13 +70,108 @@ namespace Nekolpos.StatusSystem
         [Header("Fallback Defaults")]
         [SerializeField] [Range(0, 100)] private int defaultAffection = 50;
         [SerializeField] [Range(0, 100)] private int defaultHostility = 0;
-        [SerializeField] [Range(0, 100)] private int defaultConcern = 20;
+        [SerializeField] [Range(0, 100)] private int defaultConcern = 30;
 
         private readonly Dictionary<StatusType, int> values = new Dictionary<StatusType, int>();
         private readonly Dictionary<StatusType, long> lastChangeOrder = new Dictionary<StatusType, long>();
         private readonly List<StatusChangeResult> changeHistory = new List<StatusChangeResult>();
         private bool initialized;
         private long nextChangeOrder;
+        public const string SaveKey = "Nekolpos.Status.State.v1";
+        private readonly Dictionary<StatusType, int> lastRiseDays = new Dictionary<StatusType, int>();
+        private int lastDecayDay;
+        private bool applyingNaturalRecovery;
+
+        [Serializable] private sealed class SavedStatus
+        {
+            public StatusType type;
+            public int value;
+            public int? lastRiseDay;
+            public long riseOrder;
+        }
+        [Serializable] private sealed class SavedState
+        {
+            public int version = 1;
+            public int? lastDecayDay;
+            public List<SavedStatus> statuses;
+        }
+
+        private int CurrentGameDay => FindFirstObjectByType<TimeManager>()?.CurrentDay ?? Mathf.Max(1, ProgressSaveStore.GetInt(TimeManager.CurrentDayPrefsKey, 1));
+        public StatusRepresentativeState RepresentativeState => GetRepresentativeState();
+        public bool IsInitialized => initialized;
+
+        public int GetBaseline(StatusType type)
+        {
+            int value = type switch
+            {
+                StatusType.Affection => initializeFromCatData && catData != null ? catData.affectionLevel : defaultAffection,
+                StatusType.Sadistic => initializeFromCatData && catData != null ? catData.sadisticLevel : 30,
+                StatusType.Concern => initializeFromCatData && catData != null ? catData.concernLevel : defaultConcern,
+                StatusType.Hostility => initializeFromCatData && catData != null ? catData.hostilityLevel : defaultHostility,
+                StatusType.Obedience => initializeFromCatData && catData != null ? catData.obedienceLevel : 30,
+                StatusType.Instinct => initializeFromCatData && catData != null ? catData.instinctLevel : 0,
+                _ => throw new ArgumentOutOfRangeException(nameof(type))
+            };
+            return Mathf.Clamp(value, MinimumValue, MaximumValue);
+        }
+
+        private void SaveState()
+        {
+            var saved = new SavedState { lastDecayDay = lastDecayDay, statuses = new List<SavedStatus>() };
+            foreach (StatusType type in Enum.GetValues(typeof(StatusType)))
+                saved.statuses.Add(new SavedStatus { type = type, value = values[type], lastRiseDay = lastRiseDays[type], riseOrder = lastChangeOrder[type] });
+            ProgressSaveStore.SetString(SaveKey, JsonConvert.SerializeObject(saved));
+            ProgressSaveStore.Save();
+        }
+
+        private void RestoreState(string json, int day)
+        {
+            var saved = JsonConvert.DeserializeObject<SavedState>(json);
+            if (saved == null || saved.version != 1 || saved.statuses == null)
+                throw new InvalidOperationException("心理値保存データの形式が不正です。既存データを上書きせず読み込みを中止します。");
+            var seen = new HashSet<StatusType>();
+            foreach (var entry in saved.statuses)
+            {
+                if (entry == null || !Enum.IsDefined(typeof(StatusType), entry.type) || !seen.Add(entry.type) || entry.value < 0 || entry.value > 100 || entry.riseOrder < 0 || entry.lastRiseDay < 1)
+                    throw new InvalidOperationException("心理値保存データに不正な値または重複があります。");
+            }
+            if (seen.Count != Enum.GetValues(typeof(StatusType)).Length || saved.lastDecayDay < 1)
+                throw new InvalidOperationException("心理値保存データが不足しています。");
+            foreach (var entry in saved.statuses)
+            {
+                values[entry.type] = entry.value;
+                lastRiseDays[entry.type] = entry.lastRiseDay ?? day;
+                lastChangeOrder[entry.type] = entry.riseOrder;
+                nextChangeOrder = Math.Max(nextChangeOrder, entry.riseOrder);
+            }
+            lastDecayDay = saved.lastDecayDay ?? day;
+        }
+
+        public void ProcessDateUpdate(int day)
+        {
+            EnsureInitialized();
+            if (day <= lastDecayDay) return;
+            // The saved checkpoint prevents duplicate decay, including after a reload.
+            for (int date = lastDecayDay + 1; date <= day; date++)
+            {
+                applyingNaturalRecovery = true;
+                try
+                {
+                    foreach (StatusType type in Enum.GetValues(typeof(StatusType)))
+                    {
+                        if ((long)date - lastRiseDays[type] < 2) continue;
+                        int baseline = GetBaseline(type);
+                        int current = values[type];
+                        int next = current > baseline ? Math.Max(baseline, current - 10) : Math.Min(baseline, current + 10);
+                        if (next != current) SetValue(type, next, "NaturalRecovery", "Day:" + date);
+                    }
+                    lastDecayDay = date;
+                }
+                finally { applyingNaturalRecovery = false; }
+            }
+            SyncAllToConversationState();
+            if (Application.isPlaying) SaveState();
+        }
 
         public event Action<StatusType, int> OnStatusChanged;
         public event Action<StatusChangeResult> OnStatusChangeApplied;
@@ -134,21 +231,34 @@ namespace Nekolpos.StatusSystem
             else
             {
                 values[StatusType.Affection] = defaultAffection;
-                values[StatusType.Sadistic] = 50;
+                values[StatusType.Sadistic] = 30;
                 values[StatusType.Concern] = defaultConcern;
                 values[StatusType.Hostility] = defaultHostility;
-                values[StatusType.Obedience] = 50;
-                values[StatusType.Instinct] = 50;
+                values[StatusType.Obedience] = 30;
+                values[StatusType.Instinct] = 0;
             }
 
             foreach (StatusType statusType in Enum.GetValues(typeof(StatusType)))
             {
                 values[statusType] = Mathf.Clamp(values[statusType], MinimumValue, MaximumValue);
                 lastChangeOrder[statusType] = 0;
+                lastRiseDays[statusType] = CurrentGameDay;
             }
 
+            lastDecayDay = CurrentGameDay;
+            if (Application.isPlaying && ProgressSaveStore.HasKey(SaveKey)) RestoreState(ProgressSaveStore.GetString(SaveKey), CurrentGameDay);
             initialized = true;
             SyncAllToConversationState();
+            if (Application.isPlaying) { ProcessDateUpdate(CurrentGameDay); SaveState(); }
+        }
+
+        public void ResetForNewGame()
+        {
+            ProgressSaveStore.DeleteKey(SaveKey);
+            nextChangeOrder = 0;
+            changeHistory.Clear();
+            initialized = false;
+            EnsureInitialized();
         }
 
         public int GetValue(StatusType statusType)
@@ -206,16 +316,19 @@ namespace Nekolpos.StatusSystem
             int previous = GetValue(statusType);
             int next = Mathf.Clamp(value, MinimumValue, MaximumValue);
             values[statusType] = next;
-            if (next != previous)
+            if (next > previous && !applyingNaturalRecovery)
             {
                 lastChangeOrder[statusType] = ++nextChangeOrder;
+                lastRiseDays[statusType] = CurrentGameDay;
             }
 
             SyncToConversationState(statusType, next);
             StatusChangeResult result = new StatusChangeResult(statusType, previous, next, reason, sourceId);
             RecordChange(result);
+            Nekolpos.System.DebugConsoleTrace.StatusChanged((int)statusType, previous, next);
             OnStatusChanged?.Invoke(statusType, next);
             OnStatusChangeApplied?.Invoke(result);
+            if (Application.isPlaying && !applyingNaturalRecovery) SaveState();
             return result;
         }
 
@@ -382,8 +495,22 @@ namespace Nekolpos.StatusSystem
             };
         }
 
+        public StatusType? GetHighestPriorityStatus(IEnumerable<StatusType> candidates)
+        {
+            EnsureInitialized();
+            StatusType? selected = null;
+            if (candidates == null) return selected;
+            foreach (StatusType candidate in candidates)
+            {
+                if (!selected.HasValue || CompareRepresentativePriority(candidate, selected.Value) < 0)
+                    selected = candidate;
+            }
+            return selected;
+        }
+
         private int CompareRepresentativePriority(StatusType left, StatusType right)
         {
+            // Keep the tie policy separate so future special priorities can be added here.
             int valueComparison = GetValue(right).CompareTo(GetValue(left));
             if (valueComparison != 0)
             {

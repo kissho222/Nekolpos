@@ -24,7 +24,8 @@ namespace Nekolpos.Dialogue.UnknownWord
             string normalized = NormalizeInput(inputContext != null ? inputContext.NormalizedInput : string.Empty);
             UnknownWordResult result = new UnknownWordResult
             {
-                NormalizedInput = normalized
+                NormalizedInput = normalized,
+                OriginalInput = inputContext?.OriginalInput
             };
 
             if (string.IsNullOrWhiteSpace(normalized))

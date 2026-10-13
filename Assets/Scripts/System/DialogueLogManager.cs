@@ -112,7 +112,7 @@ namespace Nekolpos.System
             }
 
             instance = this;
-            clientInstallId = ResolveClientInstallId();
+            clientInstallId = DebugSaveSession.IsIsolated ? Guid.NewGuid().ToString("N") : ResolveClientInstallId();
             clientSessionId = Guid.NewGuid().ToString("N");
             fileExporter = CreateFileExporter();
             uploadHistory = new DialogueLogUploadHistory();
@@ -288,6 +288,7 @@ namespace Nekolpos.System
 
         public List<DialogueLogEntry> GetPendingUploadLogs(int maxCount = 0)
         {
+            if (DebugSaveSession.IsIsolated) return new List<DialogueLogEntry>();
             return GetUploadService().LoadPendingLogs(maxCount);
         }
 
@@ -298,18 +299,21 @@ namespace Nekolpos.System
 
         public void MarkLogsUploaded(IEnumerable<string> logIds)
         {
+            if (DebugSaveSession.IsIsolated) return ;
             GetUploadService().MarkUploaded(logIds);
             InvalidateHistoryCacheAndNotify();
         }
 
         public void MarkLogsFailed(IEnumerable<string> logIds)
         {
+            if (DebugSaveSession.IsIsolated) return ;
             GetUploadService().MarkFailed(logIds);
             InvalidateHistoryCacheAndNotify();
         }
 
         public bool SaveUploadReview(IEnumerable<string> queuedLogIds, IEnumerable<string> excludedLogIds)
         {
+            if (DebugSaveSession.IsIsolated) return false;
             DialogueLogUploadService service = GetUploadService();
             service.MarkQueued(queuedLogIds);
             service.MarkExcluded(excludedLogIds);
@@ -319,6 +323,7 @@ namespace Nekolpos.System
 
         public int DeleteLogsNotSelectedForUpload(IEnumerable<string> selectedLogIds)
         {
+            if (DebugSaveSession.IsIsolated) return 0;
             HashSet<string> selectedIds = new HashSet<string>(StringComparer.Ordinal);
             if (selectedLogIds != null)
             {
@@ -396,7 +401,7 @@ namespace Nekolpos.System
 
         private void WriteLogToFile(DialogueLogEntry entry)
         {
-            if (!exportJsonl || entry == null)
+            if (DebugSaveSession.IsIsolated || !exportJsonl || entry == null)
             {
                 return;
             }
@@ -507,6 +512,7 @@ namespace Nekolpos.System
 
         private bool TryStartQueuedUpload()
         {
+            if (DebugSaveSession.IsIsolated) return false;
             if (uploadCoroutine != null)
             {
                 return true;
@@ -600,7 +606,7 @@ namespace Nekolpos.System
         {
             if (string.IsNullOrWhiteSpace(clientInstallId))
             {
-                clientInstallId = ResolveClientInstallId();
+                clientInstallId = DebugSaveSession.IsIsolated ? Guid.NewGuid().ToString("N") : ResolveClientInstallId();
             }
 
             if (string.IsNullOrWhiteSpace(clientSessionId))

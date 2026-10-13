@@ -36,6 +36,52 @@ namespace Nekolpos.System
         [SerializeField] private Button trainingDataButton;
         [SerializeField] private Button creditButton;
         [SerializeField] private Button debugButton;
+        [SerializeField] private Toggle skipOpeningToggle;
+        [SerializeField] private Button settingsButton;
+        [SerializeField] private SettingsPanel settingsPanel;
+
+        public bool SkipOpeningRequested => skipOpeningToggle != null &&
+            skipOpeningToggle.gameObject.activeSelf && skipOpeningToggle.isOn;
+
+        public const string SkipOpeningPreferenceKey = "Nekolpos.Title.SkipOpening";
+
+        private void OnEnable()
+        {
+            RefreshSkipOpeningOption();
+            EnsureSettingsButton();
+        }
+
+        private void OnDisable() => SettingsPanel.CloseForOwner(this);
+
+        private void EnsureSettingsButton()
+        {
+            if (settingsButton == null) return;
+            settingsButton.onClick.RemoveListener(OpenSettings);
+            settingsButton.onClick.AddListener(OpenSettings);
+        }
+
+        private void OpenSettings()
+        {
+            if (settingsPanel != null) settingsPanel.Show(this);
+            else Debug.LogError("[OpenBetaIntro] SettingsPanel参照が未設定です。", this);
+        }
+
+        public void RefreshSkipOpeningOption()
+        {
+            if (skipOpeningToggle == null) return;
+            bool hasSave = Nekolpos.TimeSystem.TimeManager.HasSavedProgress;
+            skipOpeningToggle.SetIsOnWithoutNotify(hasSave && PlayerPrefs.GetInt(SkipOpeningPreferenceKey, 0) == 1);
+            skipOpeningToggle.onValueChanged.RemoveListener(SaveSkipOpeningPreference);
+            skipOpeningToggle.onValueChanged.AddListener(SaveSkipOpeningPreference);
+            skipOpeningToggle.gameObject.SetActive(hasSave);
+        }
+
+        private void SaveSkipOpeningPreference(bool enabled)
+        {
+            if (DebugSaveSession.IsIsolated) return;
+            PlayerPrefs.SetInt(SkipOpeningPreferenceKey, enabled ? 1 : 0);
+            PlayerPrefs.Save();
+        }
 
         public void Configure(string body, string startLabel, string aboutLabel, string quitLabel, Action onStart, Action onAbout, Action onQuit)
         {
@@ -75,6 +121,15 @@ namespace Nekolpos.System
         public void ConfigureDebugButton(string label, Action onDebugStart)
         {
             ResolveButtonReferences();
+            if (!Application.isEditor && !Debug.isDebugBuild)
+            {
+                if (debugButton != null)
+                {
+                    debugButton.onClick.RemoveAllListeners();
+                    debugButton.gameObject.SetActive(false);
+                }
+                return;
+            }
             if (debugButtonLabel != null)
             {
                 debugButtonLabel.text = label;
@@ -113,28 +168,7 @@ namespace Nekolpos.System
             ResolveButton("TrainingDataButton", ref trainingDataButton, ref trainingDataButtonLabel);
             ResolveButton("CreditButton", ref creditButton, ref creditButtonLabel);
             ResolveButton("DebugButton", ref debugButton, ref debugButtonLabel);
-            EnsureDebugButton();
-        }
-
-        private void EnsureDebugButton()
-        {
-            if (debugButton != null || startButton == null)
-            {
-                return;
-            }
-
-            // Older title scenes did not serialize DebugButton yet. Clone the established button style
-            // so the same bootstrap can still expose the requested development entry point.
-            debugButton = Instantiate(startButton, startButton.transform.parent);
-            debugButton.name = "DebugButton";
-            RectTransform startRect = startButton.transform as RectTransform;
-            RectTransform debugRect = debugButton.transform as RectTransform;
-            if (startRect != null && debugRect != null)
-            {
-                debugRect.anchoredPosition = startRect.anchoredPosition + new Vector2(0f, -56f);
-            }
-
-            debugButtonLabel = debugButton.GetComponentInChildren<TMP_Text>(true);
+            EnsureSettingsButton();
         }
 
         private void ResolveTextReferences()

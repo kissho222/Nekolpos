@@ -21,7 +21,7 @@ Timeline再生中も通常Animatorは稼働させます。呼吸・瞬き・待�
 ### Animation TrackからAvatar Maskを生成する
 
 Timeline上の `Animation Track` を選択し、Inspectorの右クリックメニューから
-`Auto Generate Avatar Mask` を実行します。`Tools > Nekolpos > Timeline > Auto Generate Avatar Mask for Selected Track`
+TimelineのAnimationTrackを右クリックして `Auto Generate Avatar Mask` を実行します。開発ツールのメニューバー項目は廃止しました。
 からも実行できます。ツールは有限ClipとInfinite ClipのTransform位置・回転・スケールCurveを
 和集合として解析し、Curve対象とAnimatorルートまでの親だけをTransform Maskへ登録します。
 親は階層を成立させるための登録のみで、実際に有効化するのはCurve対象Transformだけです。
@@ -43,7 +43,7 @@ PlayableDirectorのBinding、選択中Animator、Cat Presentation Controllerの�
 
 ## 2. シーンに登録し、視線を設定する
 
-Playを停止し、`TitleScene > OpenBetaSystems` を選択します。Inspectorの `Dialogue Timeline Sequence Controller > Sequences` に要素を追加し、次を設定してシーンを保存します。
+Playを停止し、`MainScene > OpenBetaSystems` を選択します。Inspectorの `Dialogue Timeline Sequence Controller > Sequences` に要素を追加し、次を設定してシーンを保存します。
 
 | 項目 | 設定例・意味 |
 | --- | --- |

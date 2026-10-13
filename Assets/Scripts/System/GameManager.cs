@@ -12,7 +12,7 @@ namespace Nekolpos.System
     /// </summary>
     public class GameManager : MonoBehaviour
     {
-        private const string TitleSceneName = "TitleScene";
+        private const string MainSceneName = "MainScene";
 
         // 他のクラスから GameManager.Instance.ChangeState() のように呼べるようにする
         public static GameManager Instance { get; private set; }
@@ -72,7 +72,7 @@ namespace Nekolpos.System
 
         private void Start()
         {
-            if (string.Equals(SceneManager.GetActiveScene().name, TitleSceneName, StringComparison.Ordinal))
+            if (string.Equals(SceneManager.GetActiveScene().name, MainSceneName, StringComparison.Ordinal))
             {
                 return;
             }
@@ -106,7 +106,7 @@ namespace Nekolpos.System
 
         private void Update()
         {
-            if (string.Equals(SceneManager.GetActiveScene().name, TitleSceneName, StringComparison.Ordinal))
+            if (string.Equals(SceneManager.GetActiveScene().name, MainSceneName, StringComparison.Ordinal))
             {
                 return;
             }

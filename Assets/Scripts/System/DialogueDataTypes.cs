@@ -2,6 +2,18 @@ using System.Collections.Generic;
 
 namespace Nekolpos.Data
 {
+    public enum ReactionIcon { None, Exclamation, Question, Shock, Angry, Sad, Sweat, Heart, Sparkle, Ellipsis, Confused }
+
+    public static class ReactionIconUtility
+    {
+        public static ReactionIcon Parse(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return ReactionIcon.None;
+            if (global::System.Enum.TryParse(value.Trim(), true, out ReactionIcon result) && global::System.Enum.IsDefined(typeof(ReactionIcon), result)) return result;
+            UnityEngine.Debug.LogWarning("[ReactionIcon] 未対応の値をNoneとして扱います: " + value);
+            return ReactionIcon.None;
+        }
+    }
     // ============================================
     // 会話エンジン用の列挙型・状態管理構造
     // ============================================
@@ -55,10 +67,14 @@ namespace Nekolpos.Data
     /// <summary>
     /// 第3関門：特定のラベル（意味キー）に対して、どう反応するかの「台本」
     /// </summary>
+    [global::System.Serializable]
     public class DialogueReactionData
     {
         public int LabelHash;      // どの言葉に対する反応か
         public string PatternID;   // 同一の会話（複数ウィンドウ表示）を束ねるグループID
+        public string DiarySourceCsv;
+        public string DiarySourceEntryId;
+        public string DiarySourceRegexId;
         
         // 新・発言制御システム (Random, Sequence, RepeatEvent)
         public SpeechControlType SpeechControl = SpeechControlType.Random;
@@ -88,6 +104,7 @@ namespace Nekolpos.Data
         public float WaitTime;
         public bool HideUI;
         public string Animation;
+        public ReactionIcon ReactionIcon;
         public string EmotionChangeType;
         public int EmotionChangeValue;
         public string BranchResolver; // Choice 分岐先の解決元。BasicSystemDialogue など

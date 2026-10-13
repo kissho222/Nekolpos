@@ -32,15 +32,37 @@ namespace Nekolpos.System
         private const float DefaultDefeatMotionSeconds = 1.5f;
         internal const string PlayerDefeatLastReasonPrefsKey = "Nekolpos.PlayerDefeat.LastReason";
         internal const string PlayerDefeatReasonPrefsPrefix = "Nekolpos.PlayerDefeat.By.";
+        internal static readonly string[] PersistentPlayerDefeatReasons = { "Nekomata", "Predation", "Anger", "Accident" };
 
         // 現在再生中の会話リスト
         private List<DialogueReactionData> currentReactions = new List<DialogueReactionData>();
+        private readonly HashSet<DialogueReactionData> independentDiaryRecordedReactions = new HashSet<DialogueReactionData>();
         private int currentLineIndex = 0;
         private const int MaxCallDepth = 5;
         private readonly Stack<DialogueCallFrame> callStack = new Stack<DialogueCallFrame>();
 
         // 状態管理
         private bool isProcessingDialog = false;
+        private readonly TimeFlowCoordinator timeFlow = new TimeFlowCoordinator();
+        private global::System.Threading.CancellationTokenSource timeFlowCancellation;
+        private global::System.Threading.CancellationTokenSource nightSleepCancellation;
+        private global::System.Threading.CancellationTokenSource defeatFlowCancellation;
+        [SerializeField, Min(0f)] private float defeatBlackHoldSeconds = .5f;
+        public bool IsPlayerDefeatRunning => defeatFlowCancellation != null;
+        public bool IsNightSleepRunning => nightSleepCancellation != null;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public string DebugCurrentPatternId => currentPatternId;
+        public int DebugCurrentLineIndex => currentLineIndex;
+        public int DebugConversationCount => completedNormalConversations;
+#endif
+        private OpenBetaPauseMenuController defeatPauseMenu;
+
+        private void SetDefeatUiSuppressed(bool suppressed)
+        {
+            chatUI?.SetUiSuppressed(suppressed);
+            if (defeatPauseMenu == null) defeatPauseMenu = FindFirstObjectByType<OpenBetaPauseMenuController>(FindObjectsInactive.Include);
+            defeatPauseMenu?.SetTransitionSuppressed(suppressed);
+        }
 
         private ActionManager actionManager;
         private DialogueEngine subscribedEngine;
@@ -64,6 +86,12 @@ namespace Nekolpos.System
         // 【新機能】直近の「猫又の純粋な発言（メタ会話を除く）」を保持
         private string lastNekomataLine = "おはよう。今日はなにしよっか？"; // デフォルト発言
         private bool pendingEmotionChangeApplied;
+        private const int NormalConversationInterval = 5;
+        private const string ConversationResultPrefix = "PRD_CONVERSATION_RESULT_";
+        private int completedNormalConversations;
+        private bool pendingNormalConversation;
+        private readonly HashSet<StatusType> conversationChangedStatuses = new HashSet<StatusType>();
+        private global::System.Threading.CancellationTokenSource conversationResultCancellation;
 
         private sealed class LastPatternState
         {
@@ -145,6 +173,9 @@ namespace Nekolpos.System
 
         private void OnDestroy()
         {
+            ResetNormalConversationInterval();
+            CancelNightSleep();
+            CancelTimeFlow();
             if (Instance == this)
             {
                 Instance = null;
@@ -165,6 +196,8 @@ namespace Nekolpos.System
 
         public void RebuildRuntimeReferences(ChatUIController resolvedChatUI = null, CatDataSO resolvedCatData = null, bool enterInputMode = false)
         {
+            catData = DebugSaveSession.GetRuntimeCatData(catData);
+            resolvedCatData = DebugSaveSession.GetRuntimeCatData(resolvedCatData);
             if (resolvedChatUI != null)
             {
                 chatUI = resolvedChatUI;
@@ -191,9 +224,14 @@ namespace Nekolpos.System
 
         public void ResetRuntimeStateForTitleRestart()
         {
+            FindFirstObjectByType<Nekolpos.Dialogue.UnknownWord.WordLearningController>()?.Cancel();
+            ResetNormalConversationInterval();
+            CancelNightSleep();
+            CancelTimeFlow();
             Debug.Log($"[DialogueManager][Reset] ResetRuntimeStateForTitleRestart processing={isProcessingDialog} reactions={(currentReactions != null ? currentReactions.Count : -1)} line={currentLineIndex} callStack={callStack.Count} eventTransition={eventTransitionCoroutine != null} subscribedEngine={(subscribedEngine != null)} subscribedChatUI={(subscribedChatUI != null)}");
             CancelPendingUiTransitions();
             currentReactions = new List<DialogueReactionData>();
+            independentDiaryRecordedReactions.Clear();
             currentLineIndex = 0;
             callStack.Clear();
             isProcessingDialog = false;
@@ -270,7 +308,7 @@ namespace Nekolpos.System
 
         private static bool ShouldEnterInputModeOnStart()
         {
-            return !OpenBetaSceneNames.IsTitleLikeScene(SceneManager.GetActiveScene().name);
+            return !OpenBetaSceneNames.IsMainGameplayScene(SceneManager.GetActiveScene().name);
         }
 
         /// <summary>
@@ -280,9 +318,22 @@ namespace Nekolpos.System
         {
             if (chatUI == null) return;
             if (reactions == null || reactions.Count == 0) return;
+            DebugConsoleTrace.DialogueSelected(reactions[0].LabelHash, reactions.Count, reactions[0].PatternID, reactions[0].DiarySourceRegexId);
+            if (timeFlow.IsRunning || (timeManager != null && timeManager.CurrentPeriod == DayPeriod.Night)) return;
+            if (conversationResultCancellation != null) return;
+
+            if (string.Equals(reactions[0].ReactionType, "UnknownWord", StringComparison.OrdinalIgnoreCase))
+            {
+                pendingNormalConversation = false;
+                ApplySubmittedCommand(DialogueEngine.Instance?.ActiveSubmittedCommand);
+                BeginWordLearning(reactions[0]);
+                return;
+            }
 
             activeInputLogContext = DialogueEngine.Instance != null ? DialogueEngine.Instance.LastInputLogContext : null;
-            StartPatternPlayback(reactions, isRepeat: false);
+            StartPatternPlayback(reactions, isRepeat: false, countAsNormalConversation:
+                IsNormalConversation(reactions) && !(DialogueEngine.Instance != null && DialogueEngine.Instance.IsTeachingModeActive),
+                submittedCommand: DialogueEngine.Instance?.ActiveSubmittedCommand);
         }
 
         /// <summary>
@@ -291,6 +342,8 @@ namespace Nekolpos.System
         public void PlayIsolatedGreeting(string message)
         {
             if (chatUI == null) return;
+            Nekolpos.Dialogue.UnknownWord.WordVariables.BeginConversation();
+            pendingNormalConversation = false;
 
             message = FormatRuntimeText(message);
             if (string.IsNullOrWhiteSpace(message))
@@ -970,7 +1023,7 @@ namespace Nekolpos.System
             if (string.Equals(actionId, UnknownWordTeachEventActionId, StringComparison.OrdinalIgnoreCase))
             {
                 FinishDialogue();
-                RunUnknownWordTeachEventAsync().Forget();
+                BeginWordLearning(responseEntry);
                 return;
             }
 
@@ -1061,68 +1114,30 @@ namespace Nekolpos.System
         }
 
         private async UniTaskVoid RunTeachingTimePassageAsync(
-            string message,
-            IReadOnlyDictionary<string, string> placeholders,
-            List<DialogueReactionData> followUpReactions,
-            bool advanceTime)
+            string message, IReadOnlyDictionary<string, string> placeholders,
+            List<DialogueReactionData> followUpReactions, bool advanceTime)
         {
-            try
-            {
-                EnsureTimedEventPresentation();
-                chatUI?.SetUiSuppressed(true);
-                chatUI?.ClearDialogueDisplay();
-                chatUI?.HideChoices();
-                await fadeController.FadeOutAsync();
-
-                TimeAdvanceResult result = default;
-                bool hasTimeResult = false;
-                if (advanceTime)
-                {
-                    result = timeManager.AdvanceTime(120);
-                    hasTimeResult = true;
-                }
-
-                DialogueReactionData placeholderSource = placeholders != null
-                    ? new DialogueReactionData { RuntimePlaceholders = new Dictionary<string, string>(placeholders, StringComparer.OrdinalIgnoreCase) }
-                    : null;
-                string resultMessage = FormatRuntimeText(message, placeholderSource);
-                if (string.IsNullOrWhiteSpace(resultMessage))
-                {
-                    resultMessage = advanceTime
-                        ? FormatRuntimeText(SystemTimedEventCatalog.Get("TEACH_TIME_PASSAGE", string.Empty))
-                        : string.Empty;
-                }
-
-                fadeController.BringToFront();
-                resultTextUi.BringToFront();
-                await resultTextUi.ShowResultAsync(resultMessage, DefaultTimedEventDisplaySecondsFallback);
-                await fadeController.FadeInAsync();
-                chatUI?.SetUiSuppressed(false);
-
-                if (followUpReactions != null && followUpReactions.Count > 0)
-                {
-                    StartPatternPlayback(followUpReactions, false);
-                    return;
-                }
-
-                if (hasTimeResult && timeManager.TryGetTransitionGreeting(result, out string greeting))
-                {
-                    await PlayIsolatedGreetingAsync(greeting);
-                    return;
-                }
-
-                ReturnToInputState();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogException(ex);
-                chatUI?.SetUiSuppressed(false);
-                ReturnToInputState();
-            }
+            DialogueReactionData source = placeholders != null
+                ? new DialogueReactionData { RuntimePlaceholders = new Dictionary<string, string>(placeholders, StringComparer.OrdinalIgnoreCase) }
+                : null;
+            string text = FormatRuntimeText(message, source);
+            if (string.IsNullOrWhiteSpace(text) && advanceTime)
+                text = FormatRuntimeText(SystemTimedEventCatalog.Get("TEACH_TIME_PASSAGE", string.Empty));
+            await RequestTimeAdvanceAsync(new TimeAdvanceRequest(advanceTime ? 120 : 0, TimeAdvanceReason.Teaching),
+                async result => { if (advanceTime) RecordTimedEventDiary(SystemTimedEventCatalog.Resolve("TEACH_TIME_PASSAGE"), result.PreviousDay, result.PreviousPeriod, source);
+                    await resultTextUi.ShowResultAsync(text, DefaultTimedEventDisplaySecondsFallback); },
+                () => { if (followUpReactions == null || followUpReactions.Count == 0) return false;
+                    StartPatternPlayback(followUpReactions, false); return true; });
         }
 
         private async UniTaskVoid RunPlayerDefeatFlowAsync(string reason, DialogueReactionData responseEntry)
         {
+            if (defeatFlowCancellation != null) return;
+            CancelNightSleep();
+            CancelTimeFlow();
+            var cancellation = global::System.Threading.CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
+            defeatFlowCancellation = cancellation;
+            var token = cancellation.Token;
             try
             {
                 EnsureTimedEventPresentation();
@@ -1132,13 +1147,23 @@ namespace Nekolpos.System
                 SetPlayerDefeatFlags(normalizedReason);
                 RecordPlayerDefeatDiaryPending(normalizedReason, responseEntry);
 
-                await PlayDefeatPresentationAsync(responseEntry);
-                await fadeController.FadeOutAsync();
-                await ShowDefeatTimedEventTextAsync(responseEntry);
-
+                await PlayDefeatPresentationAsync(responseEntry).AttachExternalCancellation(token);
+                SetDefeatUiSuppressed(true);
+                await fadeController.FadeOutAsync().AttachExternalCancellation(token);
+                await ShowDefeatTimedEventTextAsync(responseEntry, token);
+                token.ThrowIfCancellationRequested();
+                float hold = float.IsNaN(defeatBlackHoldSeconds) || float.IsInfinity(defeatBlackHoldSeconds)
+                    ? .5f : Mathf.Max(0f, defeatBlackHoldSeconds);
+                await UniTask.Delay(TimeSpan.FromSeconds(hold), DelayType.UnscaledDeltaTime, cancellationToken: token);
+                // The existing clock event restores player/cat pose and gaze while fully covered.
+                fadeController.BeginRevivalTransition();
                 timeManager.AdvanceToNextMorning();
-                await UniTask.Delay(TimeSpan.FromSeconds(0.25f), DelayType.UnscaledDeltaTime);
-                await fadeController.FadeInAsync();
+                await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate, token);
+                await fadeController.PlayRevivalSunriseAsync().AttachExternalCancellation(token);
+                await fadeController.FadeInAsync().AttachExternalCancellation(token);
+                token.ThrowIfCancellationRequested();
+                SetDefeatUiSuppressed(false);
+                defeatFlowCancellation = null;
 
                 if (TryStartPostActionPattern(responseEntry))
                 {
@@ -1147,15 +1172,28 @@ namespace Nekolpos.System
 
                 ReturnToInputState();
             }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { }
             catch (Exception ex)
             {
                 Debug.LogException(ex);
+                fadeController?.SetTransparent();
+                resultTextUi?.HideInstant();
+                SetDefeatUiSuppressed(false);
                 ReturnToInputState();
+            }
+            finally
+            {
+                if (ReferenceEquals(defeatFlowCancellation, cancellation))
+                {
+                    defeatFlowCancellation = null;
+                }
+                cancellation.Dispose();
             }
         }
 
         private void RecordPlayerDefeatDiaryPending(string normalizedReason, DialogueReactionData responseEntry)
         {
+            if (independentDiaryRecordedReactions.Contains(responseEntry)) return;
             if (timeManager == null)
             {
                 return;
@@ -1174,6 +1212,13 @@ namespace Nekolpos.System
                 diaryId = $"death:{normalizedReason}";
             }
 
+            var diaryEvent = SystemTimedEventCatalog.Resolve(diaryId);
+            if (diaryEvent != null)
+            {
+                DiaryJournalStore.RecordVariants(diaryEvent.DiaryId, timeManager.CurrentDay, timeManager.CurrentPeriod, true,
+                    diaryEvent.DiaryVariants, diaryEvent.DiarySelectionMode, diaryEvent.Locale, value => FormatRuntimeText(value, responseEntry));
+                return;
+            }
             string body = SystemTimedEventCatalog.Get(diaryId, string.Empty);
             if (string.IsNullOrWhiteSpace(body))
             {
@@ -1186,7 +1231,7 @@ namespace Nekolpos.System
                 return;
             }
 
-            DiaryJournalStore.RecordSpecialPending(diaryId, timeManager.CurrentDay, timeManager.CurrentPeriod, body);
+            DiaryJournalStore.RecordSpecialPending(diaryId, timeManager.CurrentDay, timeManager.CurrentPeriod, FormatRuntimeText(body, responseEntry));
         }
 
         private async UniTask PlayDefeatPresentationAsync(DialogueReactionData responseEntry)
@@ -1212,7 +1257,8 @@ namespace Nekolpos.System
             }
         }
 
-        private async UniTask ShowDefeatTimedEventTextAsync(DialogueReactionData responseEntry)
+        private async UniTask ShowDefeatTimedEventTextAsync(DialogueReactionData responseEntry,
+            global::System.Threading.CancellationToken cancellationToken = default)
         {
             string timedEventKey = responseEntry != null ? responseEntry.TimedEventKey : string.Empty;
             if (string.IsNullOrWhiteSpace(timedEventKey) &&
@@ -1250,7 +1296,7 @@ namespace Nekolpos.System
             float displaySeconds = timedEvent.DisplaySeconds > 0f
                 ? timedEvent.DisplaySeconds
                 : DefaultTimedEventDisplaySecondsFallback;
-            await resultTextUi.ShowResultAsync(resultMessage, displaySeconds);
+            await resultTextUi.ShowResultAsync(resultMessage, displaySeconds, cancellationToken);
         }
 
         private bool TryPlayDefeatTimeline(string presentationId, out PlayableDirector director)
@@ -1466,25 +1512,19 @@ namespace Nekolpos.System
 
         private static void StorePersistentPlayerDefeatFlags(string normalizedReason, string currentFlagName)
         {
-            PlayerPrefs.SetString(PlayerDefeatLastReasonPrefsKey, normalizedReason ?? string.Empty);
+            ProgressSaveStore.SetString(PlayerDefeatLastReasonPrefsKey, normalizedReason ?? string.Empty);
 
-            string[] defeatReasons =
-            {
-                "Nekomata",
-                "Predation",
-                "Anger",
-                "Accident"
-            };
+            string[] defeatReasons = PersistentPlayerDefeatReasons;
 
             for (int i = 0; i < defeatReasons.Length; i++)
             {
                 string flagName = "PlayerDefeatedBy" + defeatReasons[i];
-                PlayerPrefs.SetInt(
+                ProgressSaveStore.SetInt(
                     PlayerDefeatReasonPrefsPrefix + defeatReasons[i],
                     string.Equals(flagName, currentFlagName, StringComparison.Ordinal) ? 1 : 0);
             }
 
-            PlayerPrefs.Save();
+            ProgressSaveStore.Save();
         }
 
         private static string NormalizePlayerDefeatReason(string reason)
@@ -1531,184 +1571,246 @@ namespace Nekolpos.System
         }
 
         private async UniTaskVoid RunSystemTimedEventAsync(
-            SystemTimedEventCatalog.ResolvedTimedEvent timedEvent,
-            DialogueReactionData responseEntry)
+            SystemTimedEventCatalog.ResolvedTimedEvent timedEvent, DialogueReactionData responseEntry,
+            Action onBecameOpaque = null, bool advanceAfterResult = false,
+            global::System.Threading.CancellationToken cancellationToken = default)
         {
+            var intervalCancellation = advanceAfterResult ? conversationResultCancellation : null;
+            if (!advanceAfterResult) ResetNormalConversationInterval();
+            int minutes = timedEvent != null && timedEvent.TimeMinutes > 0 ? timedEvent.TimeMinutes : UnknownWordTeachEventMinutesFallback;
+            try
+            {
+                await RequestTimeAdvanceAsync(new TimeAdvanceRequest(minutes, TimeAdvanceReason.SystemEvent), async result =>
+                {
+                    int diaryDay = advanceAfterResult ? timeManager.CurrentDay : result.PreviousDay;
+                    DayPeriod diaryPeriod = advanceAfterResult ? timeManager.CurrentPeriod : result.PreviousPeriod;
+                    string text = FormatTimedEventText(timedEvent != null ? timedEvent.Text : string.Empty, responseEntry);
+                    if (string.IsNullOrWhiteSpace(text)) text = "少し時間が過ぎた。";
+                    if (timedEvent != null && !independentDiaryRecordedReactions.Contains(responseEntry))
+                    {
+                        RecordTimedEventDiary(timedEvent, diaryDay, diaryPeriod, responseEntry);
+                    }
+                    DialogueLogManager.Instance?.AddLog(new DialogueLogEntry { Speaker = DialogueLogManager.SpeakerSystem,
+                        Text = text, Source = DialogueLogManager.SourceAction });
+                    await resultTextUi.ShowResultAsync(text, timedEvent != null && timedEvent.DisplaySeconds > 0f
+                        ? timedEvent.DisplaySeconds : DefaultTimedEventDisplaySecondsFallback);
+                    if (advanceAfterResult) { completedNormalConversations = 0; conversationChangedStatuses.Clear(); }
+                }, () => TryStartPostActionPattern(responseEntry), advanceAfterResult, cancellationToken, onBecameOpaque);
+            }
+            finally
+            {
+                if (intervalCancellation != null && ReferenceEquals(conversationResultCancellation, intervalCancellation))
+                {
+                    intervalCancellation.Dispose(); conversationResultCancellation = null;
+                    completedNormalConversations = 0; conversationChangedStatuses.Clear();
+                }
+            }
+        }
+
+        private void CancelTimeFlow()
+        {
+            if (defeatFlowCancellation != null)
+            {
+                var defeat = defeatFlowCancellation;
+                defeatFlowCancellation = null;
+                defeat.Cancel();
+                fadeController?.SetTransparent();
+                resultTextUi?.HideInstant();
+                SetDefeatUiSuppressed(false);
+            }
+            if (timeFlowCancellation != null)
+            {
+                fadeController?.SetTransparent();
+                resultTextUi?.HideInstant();
+            }
+            timeFlowCancellation?.Cancel();
+            timeFlowCancellation = null;
+            timeFlow.Reset();
+        }
+
+        public bool IsTimeFlowRunning => timeFlow.IsRunning;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public void DebugAdvanceToNextPeriod()
+        {
+            EnsureTimedEventPresentation();
+            RequestTimeAdvanceAsync(new TimeAdvanceRequest(timeManager.MinutesUntilNextPeriod, TimeAdvanceReason.Debug)).Forget();
+        }
+#endif
+
+        public async UniTask RequestTimeAdvanceAsync(TimeAdvanceRequest request,
+            Func<TimeAdvanceResult, UniTask> presentation = null, Func<bool> followUp = null,
+            bool advanceAfterResult = false, global::System.Threading.CancellationToken cancellationToken = default,
+            Action onBecameOpaque = null)
+        {
+            DebugConsoleTrace.TimeRequested(request.Minutes, (int)request.Reason);
+            // Reject concurrent requests; do not queue obsolete actions into tomorrow.
+            if (defeatFlowCancellation != null || nightSleepCancellation != null || !timeFlow.TryBegin()) return;
+            var cancellation = global::System.Threading.CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken, this.GetCancellationTokenOnDestroy());
+            timeFlowCancellation = cancellation;
+            var token = cancellation.Token;
+            bool nightGate = false;
             try
             {
                 EnsureTimedEventPresentation();
-
-                await fadeController.FadeOutAsync();
-                int diaryDay = timeManager.CurrentDay;
-                DayPeriod diaryPeriod = timeManager.CurrentPeriod;
-                int timeMinutes = timedEvent != null && timedEvent.TimeMinutes > 0
-                    ? timedEvent.TimeMinutes
-                    : UnknownWordTeachEventMinutesFallback;
-                TimeAdvanceResult timeResult = timeManager.AdvanceTime(timeMinutes);
-
-                string resultMessage = FormatTimedEventText(
-                    timedEvent != null ? timedEvent.Text : string.Empty,
-                    responseEntry);
-                if (string.IsNullOrWhiteSpace(resultMessage))
+                if (timeManager.CurrentPeriod == DayPeriod.Night && timeFlow.HasClaimedNightDiary(timeManager.CurrentDay)) return;
+                chatUI?.SetUiSuppressed(true);
+                chatUI?.ClearDialogueDisplay();
+                chatUI?.HideChoices();
+                isProcessingDialog = false;
+                fadeController.BeginTimeTransition();
+                await fadeController.FadeOutAsync().AttachExternalCancellation(token);
+                token.ThrowIfCancellationRequested();
+                onBecameOpaque?.Invoke();
+                TimeAdvanceResult result = default;
+                if (!advanceAfterResult) result = timeFlow.Advance(timeManager, request);
+                if (!advanceAfterResult) nightGate = result.CurrentPeriod == DayPeriod.Night;
+                if (presentation != null)
+                    await presentation(result).AttachExternalCancellation(token);
+                token.ThrowIfCancellationRequested();
+                if (advanceAfterResult) result = timeFlow.Advance(timeManager, request);
+                nightGate = result.CurrentPeriod == DayPeriod.Night;
+                await fadeController.WaitForTransitionBackgroundAsync().AttachExternalCancellation(token);
+                await fadeController.FadeInAsync().AttachExternalCancellation(token);
+                token.ThrowIfCancellationRequested();
+                chatUI?.SetUiSuppressed(false);
+                await timeFlow.CompleteAsync(result,
+                    () => { chatUI?.EnterDialogueMode();
+                        FindFirstObjectByType<YarnManager>()?.StopDialogue();
+                        var diary = DiaryCalendarController.Instance;
+                        if (diary == null) throw new InvalidOperationException("Night diary controller is missing.");
+                        diary.BeginNightDiary();
+                        if (!diary.HasCurrentNightDiary) throw new InvalidOperationException("Night diary UI could not be opened.");
+                        return UniTask.CompletedTask; },
+                    async () => { if (TimeFlowCoordinator.TryGetTransitionGreeting(result, out string greeting))
+                        await PlayIsolatedGreetingAsync(greeting).AttachExternalCancellation(token); },
+                    followUp, ReturnToInputState);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                if (ReferenceEquals(timeFlowCancellation, cancellation))
                 {
-                    resultMessage = "少し時間が過ぎた。";
+                    fadeController?.SetTransparent();
+                    resultTextUi?.HideInstant();
+                    chatUI?.SetUiSuppressed(false);
                 }
-
-                if (timedEvent != null)
-                {
-                    if (timedEvent.IsSpecialDiary)
-                    {
-                        DiaryJournalStore.RecordSpecialPending(timedEvent.DiaryId, diaryDay, diaryPeriod, resultMessage);
-                    }
-                    else
-                    {
-                        DiaryJournalStore.RecordNormalDraft(timedEvent.DiaryId, diaryDay, diaryPeriod, resultMessage);
-                    }
-                }
-
-                DialogueLogManager.Instance?.AddLog(new DialogueLogEntry
-                {
-                    Speaker = DialogueLogManager.SpeakerSystem,
-                    Text = resultMessage,
-                    Source = DialogueLogManager.SourceAction
-                });
-
-                float displaySeconds = timedEvent != null && timedEvent.DisplaySeconds > 0f
-                    ? timedEvent.DisplaySeconds
-                    : DefaultTimedEventDisplaySecondsFallback;
-                await resultTextUi.ShowResultAsync(resultMessage, displaySeconds);
-                await fadeController.FadeInAsync();
-
-                if (TryStartPostActionPattern(responseEntry))
-                {
-                    return;
-                }
-
-                if (timeManager.TryGetTransitionGreeting(timeResult, out string greeting))
-                {
-                    await PlayIsolatedGreetingAsync(greeting);
-                    StartNightDiaryIfNeeded(timeResult);
-                    return;
-                }
-
-                StartNightDiaryIfNeeded(timeResult);
-                ReturnToInputState();
             }
             catch (Exception ex)
             {
                 Debug.LogException(ex);
-                ReturnToInputState();
+                fadeController?.SetTransparent();
+                resultTextUi?.HideInstant();
+                if (!nightGate) { timeFlow.End(); chatUI?.SetUiSuppressed(false); ReturnToInputState(); }
             }
-        }
-
-        private void StartNightDiaryIfNeeded(TimeAdvanceResult timeResult)
-        {
-            if (timeResult.CurrentPeriod == DayPeriod.Night && timeResult.PreviousPeriod != DayPeriod.Night)
+            finally
             {
-                DiaryCalendarController.Instance?.BeginNightDiary();
+                if (ReferenceEquals(timeFlowCancellation, cancellation))
+                { timeFlowCancellation = null; timeFlow.End(); }
+                cancellation.Dispose();
             }
         }
 
-        private async UniTaskVoid RunUnknownWordTeachEventAsync()
+        public bool TryBeginNightSleep()
         {
+            if (defeatFlowCancellation != null || timeFlow.IsRunning || nightSleepCancellation != null || conversationResultCancellation != null || isProcessingDialog || chatUI == null) return false;
+            BasicSystemDialogueCatalog.ResolvedDialogue sleepDialogue = BasicSystemDialogueCatalog.Resolve(BasicSystemDialogueCatalog.GreetingAfterDiaryKey);
+            if (sleepDialogue == null || string.IsNullOrWhiteSpace(sleepDialogue.Text))
+            {
+                Debug.LogWarning("[DialogueManager] 条件に合う日記後の就寝前会話（greeting_after_diary）が見つかりません。", this);
+                return false;
+            }
+            ResetNormalConversationInterval();
+            EnsureTimedEventPresentation();
+            var cancellation = global::System.Threading.CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
+            nightSleepCancellation = cancellation;
+            CompleteNightSleepAsync(sleepDialogue.Text, cancellation).Forget();
+            return true;
+        }
+
+        private void CancelNightSleep()
+        {
+            if (nightSleepCancellation != null) fadeController?.SetTransparent();
+            nightSleepCancellation?.Cancel();
+            nightSleepCancellation = null;
+        }
+
+        private async UniTaskVoid CompleteNightSleepAsync(string sleepMessage, global::System.Threading.CancellationTokenSource cancellation)
+        {
+            var token = cancellation.Token;
             try
             {
-                EnsureTimedEventPresentation();
-                SystemTimedEventCatalog.ResolvedTimedEvent timedEvent =
-                    SystemTimedEventCatalog.Resolve(SystemTimedEventCatalog.UnknownWordTeachEventKey);
-
-                await fadeController.FadeOutAsync();
-                int timeMinutes = timedEvent != null && timedEvent.TimeMinutes > 0
-                    ? timedEvent.TimeMinutes
-                    : UnknownWordTeachEventMinutesFallback;
-                TimeAdvanceResult timeResult = timeManager.AdvanceTime(timeMinutes);
-
-                string resultMessage = FormatRuntimeText(
-                    timedEvent != null && !string.IsNullOrWhiteSpace(timedEvent.Text)
-                        ? timedEvent.Text
-                        : "猫又に新しい言葉を教えた");
-                DialogueLogManager.Instance?.AddLog(new DialogueLogEntry
+                PlayIsolatedGreeting(FormatRuntimeText(sleepMessage));
+                await UniTask.WaitUntil(() => !isProcessingDialog, cancellationToken: token);
+                chatUI.EnterDialogueMode();
+                fadeController.BeginTimeTransition();
+                await fadeController.FadeOutAsync().AttachExternalCancellation(token);
+                token.ThrowIfCancellationRequested();
+                double morningMayBeginAt = Time.realtimeSinceStartupAsDouble + 3.0;
+                await UniTask.WaitUntil(() => Time.realtimeSinceStartupAsDouble >= morningMayBeginAt, cancellationToken: token);
+                token.ThrowIfCancellationRequested();
+                // Day change relocates the player and cat while the shared fade is fully opaque.
+                TimeAdvanceResult result = timeManager.AdvanceToNextMorning();
+                await fadeController.WaitForTransitionBackgroundAsync().AttachExternalCancellation(token);
+                await fadeController.FadeInAsync().AttachExternalCancellation(token);
+                if (TimeFlowCoordinator.TryGetTransitionGreeting(result, out string greeting))
                 {
-                    Speaker = DialogueLogManager.SpeakerSystem,
-                    Text = resultMessage,
-                    Source = DialogueLogManager.SourceAction
-                });
-
-                float displaySeconds = timedEvent != null && timedEvent.DisplaySeconds > 0f
-                    ? timedEvent.DisplaySeconds
-                    : DefaultTimedEventDisplaySecondsFallback;
-                await resultTextUi.ShowResultAsync(resultMessage, displaySeconds);
-                await fadeController.FadeInAsync();
-
-                if (timeManager.TryGetTransitionGreeting(timeResult, out string greeting))
-                {
-                    await PlayIsolatedGreetingAsync(greeting);
-                    return;
+                    PlayIsolatedGreeting(greeting);
+                    await UniTask.WaitUntil(() => !isProcessingDialog, cancellationToken: token);
                 }
-
-                ReturnToInputState();
+                else ReturnToInputState();
             }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { }
             catch (Exception ex)
             {
                 Debug.LogException(ex);
+                fadeController?.SetTransparent();
                 ReturnToInputState();
             }
+            finally
+            {
+                if (nightSleepCancellation == cancellation) nightSleepCancellation = null;
+                cancellation.Dispose();
+            }
+        }
+
+        private void BeginWordLearning(DialogueReactionData reaction)
+        {
+            var learning = FindFirstObjectByType<Nekolpos.Dialogue.UnknownWord.WordLearningController>();
+            if (learning == null)
+            { Debug.LogError("[DialogueManager] WordLearning prefab is not configured."); ReturnToInputState(); return; }
+            CancelPendingUiTransitions(); FinishDialogue(); pendingNormalConversation = false;
+            string word = "", original = "";
+            reaction?.RuntimePlaceholders?.TryGetValue("unknown_word", out word);
+            reaction?.RuntimePlaceholders?.TryGetValue("WORD_ORIGINAL_INPUT", out original);
+            learning.Begin(original ?? word, word, () =>
+            {
+                currentReactions = new List<DialogueReactionData>();
+                if (chatUI == null || !chatUI.isActiveAndEnabled) return;
+                if (learning.CompletedTeaching)
+                {
+                    EnsureTimedEventPresentation();
+                    RunSystemTimedEventAsync(SystemTimedEventCatalog.Resolve(UnknownWordTeachEventActionId), reaction).Forget();
+                }
+                else chatUI.RestoreNormalConversationInputMode();
+            });
         }
 
         private async UniTaskVoid RunFoodHungryCompletionAsync(DialogueReactionData responseEntry)
         {
-            try
+            var timedEvent = SystemTimedEventCatalog.Resolve(FoodHungryInputMatcher.CompleteActionId);
+            int minutes = timedEvent != null && timedEvent.TimeMinutes > 0 ? timedEvent.TimeMinutes : FoodHungryEventMinutesFallback;
+            await RequestTimeAdvanceAsync(new TimeAdvanceRequest(minutes, TimeAdvanceReason.Food), async result =>
             {
-                EnsureTimedEventPresentation();
-                SystemTimedEventCatalog.ResolvedTimedEvent timedEvent =
-                    SystemTimedEventCatalog.Resolve(FoodHungryInputMatcher.CompleteActionId);
-
-                await fadeController.FadeOutAsync();
-                int timeMinutes = timedEvent != null && timedEvent.TimeMinutes > 0
-                    ? timedEvent.TimeMinutes
-                    : FoodHungryEventMinutesFallback;
-                TimeAdvanceResult timeResult = timeManager.AdvanceTime(timeMinutes);
                 await UniTask.Delay(TimeSpan.FromSeconds(0.6f), DelayType.UnscaledDeltaTime);
-
-                string resultText = FormatTimedEventText(
-                    timedEvent != null ? timedEvent.Text : string.Empty,
-                    responseEntry);
-                if (string.IsNullOrWhiteSpace(resultText))
-                {
-                    resultText = "少し時間が過ぎた。";
-                }
-
-                DialogueLogManager.Instance?.AddLog(new DialogueLogEntry
-                {
-                    Speaker = DialogueLogManager.SpeakerSystem,
-                    Text = resultText,
-                    Source = DialogueLogManager.SourceAction
-                });
-
-                float displaySeconds = timedEvent != null && timedEvent.DisplaySeconds > 0f
-                    ? timedEvent.DisplaySeconds
-                    : DefaultTimedEventDisplaySecondsFallback;
-                await resultTextUi.ShowResultAsync(resultText, displaySeconds);
-                await fadeController.FadeInAsync();
-
-                if (TryStartPostActionPattern(responseEntry))
-                {
-                    return;
-                }
-
-                if (timeManager.TryGetTransitionGreeting(timeResult, out string greeting))
-                {
-                    await PlayIsolatedGreetingAsync(greeting);
-                    return;
-                }
-
-                ReturnToInputState();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogException(ex);
-                ReturnToInputState();
-            }
+                RecordTimedEventDiary(timedEvent, result.PreviousDay, result.PreviousPeriod, responseEntry);
+                string text = FormatTimedEventText(timedEvent != null ? timedEvent.Text : string.Empty, responseEntry);
+                if (string.IsNullOrWhiteSpace(text)) text = "少し時間が過ぎた。";
+                DialogueLogManager.Instance?.AddLog(new DialogueLogEntry { Speaker = DialogueLogManager.SpeakerSystem,
+                    Text = text, Source = DialogueLogManager.SourceAction });
+                await resultTextUi.ShowResultAsync(text, timedEvent != null && timedEvent.DisplaySeconds > 0f
+                    ? timedEvent.DisplaySeconds : DefaultTimedEventDisplaySecondsFallback);
+            }, () => TryStartPostActionPattern(responseEntry));
         }
 
         private UniTask WaitForChatAdvanceAsync()
@@ -1730,6 +1832,13 @@ namespace Nekolpos.System
             return completionSource.Task;
         }
 
+        private void RecordTimedEventDiary(SystemTimedEventCatalog.ResolvedTimedEvent timedEvent, int day, DayPeriod period, DialogueReactionData responseEntry)
+        {
+            if (timedEvent == null || independentDiaryRecordedReactions.Contains(responseEntry)) return;
+            DiaryJournalStore.RecordVariants(timedEvent.DiaryId, day, period, timedEvent.IsSpecialDiary,
+                timedEvent.DiaryVariants, timedEvent.DiarySelectionMode, timedEvent.Locale, value => FormatTimedEventText(value, responseEntry));
+        }
+
         private string FormatTimedEventText(string template, DialogueReactionData responseEntry)
         {
             return FormatRuntimeText(template, responseEntry);
@@ -1737,63 +1846,48 @@ namespace Nekolpos.System
 
         public string FormatRuntimeText(string template, DialogueReactionData responseEntry = null)
         {
-            if (string.IsNullOrEmpty(template))
-            {
-                return string.Empty;
-            }
+            return ResolveRuntimeText(template, this, responseEntry);
+        }
 
-            string formatted = template;
-            if (responseEntry != null && responseEntry.RuntimePlaceholders != null)
+        public static string ResolveRuntimeText(string template, DialogueManager formatter = null, DialogueReactionData responseEntry = null)
+        {
+            if (string.IsNullOrEmpty(template)) return string.Empty;
+            formatter = formatter != null ? formatter : FindFirstObjectByType<DialogueManager>(FindObjectsInactive.Include);
+            ChatUIController ui = formatter != null && formatter.chatUI != null ? formatter.chatUI :
+                FindFirstObjectByType<ChatUIController>(FindObjectsInactive.Include);
+            CatDataSO data = formatter != null ? formatter.catData : null;
+            ConversationGameStateManager stateManager = FindFirstObjectByType<ConversationGameStateManager>(FindObjectsInactive.Include);
+            return ConversationVariableResolver.ReplaceRuntimePlaceholders(template, key =>
             {
-                foreach (KeyValuePair<string, string> pair in responseEntry.RuntimePlaceholders)
+                string canonical = ConversationVariableResolver.CanonicalizeRuntimeKey(key);
+                if (Nekolpos.Dialogue.UnknownWord.WordVariables.IsVariable(key))
+                    return Nekolpos.Dialogue.UnknownWord.WordVariables.Resolve(key, stateManager != null ? stateManager.State : null);
+                if (responseEntry?.RuntimePlaceholders != null)
+                    foreach (var pair in responseEntry.RuntimePlaceholders)
+                        if (ConversationVariableResolver.CanonicalizeRuntimeKey(pair.Key) == canonical)
+                            return pair.Value ?? string.Empty;
+                if (data != null)
                 {
-                    if (string.IsNullOrWhiteSpace(pair.Key))
+                    switch (canonical)
                     {
-                        continue;
+                        case "CAT_NAME": return (data.catName ?? string.Empty).Trim();
+                        case "CAT_PRONOUN": return (data.catPronoun ?? string.Empty).Trim();
+                        case "PLAYER_CALLING": return (data.playerCalling ?? string.Empty).Trim();
+                        case "PLAYER_NAME": return (data.playerName ?? string.Empty).Trim();
+                        case "CAT_GENDER": return (data.catGender ?? string.Empty).Trim();
+                        case "PARENT": return (data.parentCall ?? string.Empty).Trim();
                     }
-
-                    formatted = formatted.Replace("{{" + pair.Key + "}}", pair.Value ?? string.Empty);
-                    formatted = formatted.Replace("{" + pair.Key + "}", pair.Value ?? string.Empty);
                 }
-            }
-
-            if (catData != null)
-            {
-                formatted = ReplaceRuntimePlaceholder(formatted, "CAT_NAME", catData.catName);
-                formatted = ReplaceRuntimePlaceholder(formatted, "CAT_PRONOUN", catData.catPronoun);
-                formatted = ReplaceRuntimePlaceholder(formatted, "PLAYER_CALLING", catData.playerCalling);
-                formatted = ReplaceRuntimePlaceholder(formatted, "PLAYER_NAME", catData.playerName);
-            }
-            else
-            {
-                formatted = ReplaceRuntimePlaceholderFromRenameSystem(formatted, "CAT_NAME");
-                formatted = ReplaceRuntimePlaceholderFromRenameSystem(formatted, "CAT_PRONOUN");
-                formatted = ReplaceRuntimePlaceholderFromRenameSystem(formatted, "PLAYER_CALLING");
-                formatted = ReplaceRuntimePlaceholderFromRenameSystem(formatted, "PLAYER_NAME");
-            }
-
-            return formatted;
-        }
-
-        private static string ReplaceRuntimePlaceholderFromRenameSystem(string text, string key)
-        {
-            return RenameSystem.TryResolvePlaceholder(key, out string value)
-                ? ReplaceRuntimePlaceholder(text, key, value)
-                : text;
-        }
-
-        private static string ReplaceRuntimePlaceholder(string text, string key, string value)
-        {
-            if (string.IsNullOrEmpty(text) || string.IsNullOrWhiteSpace(key))
-            {
-                return text;
-            }
-
-            string replacement = value != null ? value.Trim() : string.Empty;
-            return text
-                .Replace("{{" + key + "}}", replacement)
-                .Replace("{{ " + key + " }}", replacement)
-                .Replace("{" + key + "}", replacement);
+                if (RenameSystem.TryResolvePlaceholder(canonical, out string value)) return value;
+                if (ChatUIController.TryResolveWorldVariable("{{" + canonical + "}}", out value)) return value;
+                if (stateManager != null && stateManager.State != null)
+                    foreach (var pair in stateManager.State.Values)
+                        if (ConversationVariableResolver.CanonicalizeRuntimeKey(pair.Key) == canonical)
+                            return ConversationVariableResolver.Resolve("{{" + pair.Key + "}}", stateManager.State);
+                if (ui != null && ui.TryResolveVariableValue("{{" + canonical + "}}", out value)) return value;
+                // 未定義の変数に架空の値を与えず、編集時に追跡できる形で残す。
+                return null;
+            });
         }
 
         private void EnsureTimedEventPresentation()
@@ -1837,7 +1931,7 @@ namespace Nekolpos.System
 
                 bool hasPostActionPattern = HasPostActionPattern(responseEntry);
                 ActionFlowResult result = await actionManager.RunActionFlowAsync(
-                    new ActionRequest(actionId, lastNekomataLine, hasPostActionPattern));
+                    new ActionRequest(actionId, lastNekomataLine, hasPostActionPattern), () => TryStartPostActionPattern(responseEntry));
 
                 if (result == ActionFlowResult.Skipped)
                 {
@@ -1845,19 +1939,7 @@ namespace Nekolpos.System
                     return;
                 }
 
-                if (TryStartPostActionPattern(responseEntry))
-                {
-                    return;
-                }
-
-                if (hasPostActionPattern &&
-                    actionManager.TryGetLastTimeResult(out TimeAdvanceResult timeResult) &&
-                    await TryPlayTimeTransitionGreetingAsync(timeResult))
-                {
-                    return;
-                }
-
-                ReturnToInputState();
+                // Executed actions complete through RequestTimeAdvanceAsync in ActionManager.
             }
             catch (Exception ex)
             {
@@ -1980,21 +2062,7 @@ namespace Nekolpos.System
             return manager != null ? manager.State : null;
         }
 
-        private async UniTask<bool> TryPlayTimeTransitionGreetingAsync(TimeAdvanceResult timeResult)
-        {
-            if (timeManager == null)
-            {
-                timeManager = GetComponent<TimeManager>() ?? FindFirstObjectByType<TimeManager>();
-            }
 
-            if (timeManager == null || !timeManager.TryGetTransitionGreeting(timeResult, out string greeting))
-            {
-                return false;
-            }
-
-            await PlayIsolatedGreetingAsync(greeting);
-            return true;
-        }
 
         private string ResolveActionTriggerId(DialogueReactionData responseEntry)
         {
@@ -2227,6 +2295,9 @@ namespace Nekolpos.System
         /// </summary>
         private void ReturnToInputState()
         {
+            if (timeFlow.IsRunning) { isProcessingDialog = false; return; }
+            if (timeManager != null && timeManager.CurrentPeriod == DayPeriod.Night && nightSleepCancellation == null)
+            { isProcessingDialog = false; return; }
             if (!isRepeatPlayback &&
                 DialogueEngine.Instance != null &&
                 DialogueEngine.Instance.TryHandleTeachingReactionCompleted(currentReactions, out List<DialogueReactionData> teachingFollowUp) &&
@@ -2238,6 +2309,7 @@ namespace Nekolpos.System
             }
 
             ApplyPendingEmotionChange();
+            string conversationResultKey = CompleteNormalConversation();
             CancelPendingUiTransitions();
             callStack.Clear();
             isProcessingDialog = false;
@@ -2246,6 +2318,21 @@ namespace Nekolpos.System
             currentPatternTracksHistory = false;
             isRepeatPlayback = false;
             activeInputLogContext = null;
+            if (conversationResultKey != null)
+            {
+                SystemTimedEventCatalog.ResolvedTimedEvent result = SystemTimedEventCatalog.Resolve(conversationResultKey);
+                if (result == null)
+                {
+                    Debug.LogWarning($"[DialogueManager] 会話結果 '{conversationResultKey}' が見つかりません。", this);
+                    ResetNormalConversationInterval();
+                }
+                else
+                {
+                    conversationResultCancellation = global::System.Threading.CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
+                    RunSystemTimedEventAsync(result, null, advanceAfterResult: true, cancellationToken: conversationResultCancellation.Token).Forget();
+                    return;
+                }
+            }
             if (DialogueEngine.Instance != null && DialogueEngine.Instance.IsTeachingModeActive)
             {
                 chatUI.EnterTeachingInputMode();
@@ -2253,6 +2340,56 @@ namespace Nekolpos.System
             else
             {
                 chatUI.RestoreNormalConversationInputMode();
+                DebugConsoleTrace.ReturnedToInput();
+            }
+        }
+
+        private static bool IsNormalConversation(List<DialogueReactionData> reactions)
+        {
+            if (reactions == null || reactions.Count == 0) return false;
+            foreach (DialogueReactionData reaction in reactions)
+            {
+                if (reaction == null || reaction.LabelHash == 0 ||
+                    string.Equals(reaction.IntentID, "GREETING", StringComparison.OrdinalIgnoreCase) ||
+                    (!string.IsNullOrWhiteSpace(reaction.TeachingCategory) &&
+                     !string.Equals(reaction.TeachingCategory, "None", StringComparison.OrdinalIgnoreCase)) ||
+                    !string.IsNullOrWhiteSpace(reaction.BranchResolver) ||
+                    !string.IsNullOrWhiteSpace(reaction.ActionId) ||
+                    !string.IsNullOrWhiteSpace(reaction.TimedEventKey) ||
+                    !string.IsNullOrWhiteSpace(reaction.NextAction) ||
+                    reaction.SpeechControl == SpeechControlType.Call || reaction.SpeechControl == SpeechControlType.Return ||
+                    (reaction.Animation ?? string.Empty).IndexOf("timeline", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return false;
+                string response = NormalizeResponseType(reaction.ResponseType);
+                if (response != "Normal" && response != "Reaction") return false;
+            }
+            return true;
+        }
+
+        private string CompleteNormalConversation()
+        {
+            if (!pendingNormalConversation) return null;
+            pendingNormalConversation = false;
+            if (++completedNormalConversations < NormalConversationInterval) return null;
+            EnsureRuntimeDependencies();
+            StatusType? selected = statusManager != null
+                ? statusManager.GetHighestPriorityStatus(conversationChangedStatuses)
+                : null;
+            DebugConsoleTrace.ConversationResult(selected.HasValue ? (int)selected.Value : -1);
+            return ConversationResultPrefix + (selected.HasValue ? selected.Value.ToString().ToUpperInvariant() : "NORMAL");
+        }
+
+        private void ResetNormalConversationInterval()
+        {
+            pendingNormalConversation = false;
+            completedNormalConversations = 0;
+            conversationChangedStatuses.Clear();
+            var cancellation = conversationResultCancellation;
+            conversationResultCancellation = null;
+            if (cancellation != null)
+            {
+                cancellation.Cancel();
+                cancellation.Dispose();
             }
         }
 
@@ -2285,7 +2422,9 @@ namespace Nekolpos.System
                 return;
             }
 
-            statusManager.ApplyDelta(statusType, amount, "Dialogue", sourceId);
+            StatusChangeResult change = statusManager.ApplyDelta(statusType, amount, "Dialogue", sourceId);
+            if (pendingNormalConversation && change.Delta != 0)
+                conversationChangedStatuses.Add(statusType);
         }
 
         private static bool TryResolveStatusType(string emotionType, out StatusType statusType)
@@ -2580,12 +2719,26 @@ namespace Nekolpos.System
             return true;
         }
 
-        private void StartPatternPlayback(List<DialogueReactionData> reactions, bool isRepeat, bool clearCallStack = true)
+        private void ApplySubmittedCommand(CommandToneInput submission)
         {
+            if (submission == null) return;
+            EnsureRuntimeDependencies();
+            if (submission.TryApply(statusManager) && pendingNormalConversation)
+                conversationChangedStatuses.Add(StatusType.Obedience);
+        }
+
+        private void StartPatternPlayback(List<DialogueReactionData> reactions, bool isRepeat, bool clearCallStack = true, bool countAsNormalConversation = false, CommandToneInput submittedCommand = null)
+        {
+            if (clearCallStack) Nekolpos.Dialogue.UnknownWord.WordVariables.BeginConversation();
             if (chatUI == null || reactions == null || reactions.Count == 0)
             {
                 return;
             }
+
+            if (!countAsNormalConversation && !isRepeat && conversationResultCancellation == null)
+                ResetNormalConversationInterval();
+            pendingNormalConversation = countAsNormalConversation && !isRepeat;
+            ApplySubmittedCommand(submittedCommand);
 
             CancelPendingUiTransitions();
             chatUI.EnterDialogueMode();
@@ -2608,7 +2761,23 @@ namespace Nekolpos.System
                 : string.Empty;
             currentPatternTracksHistory = !isRepeat && ShouldTrackPatternHistory(reactions);
 
+            if (clearCallStack) independentDiaryRecordedReactions.Clear();
+            if (!isRepeat) RecordIndependentDiary(reactions);
+
             PlayCurrentLine();
+        }
+
+        private void RecordIndependentDiary(List<DialogueReactionData> reactions)
+        {
+            timeManager ??= GetComponent<TimeManager>() ?? FindFirstObjectByType<TimeManager>();
+            if (timeManager == null || reactions == null || reactions.Count == 0) return;
+            DialogueReactionData first = reactions[0];
+            DialogueEngine engine = DialogueEngine.Instance;
+            string locale = GetComponent<ConversationDataManager>()?.Locale ?? "ja";
+            int recorded = DialogueDiaryCatalog.Record(first, timeManager.CurrentDay, timeManager.CurrentPeriod,
+                condition => engine != null && engine.EvaluateDiaryCondition(condition),
+                text => FormatRuntimeText(text, first), locale);
+            if (recorded > 0) foreach (var reaction in reactions) independentDiaryRecordedReactions.Add(reaction);
         }
 
         private bool ShouldTrackPatternHistory(List<DialogueReactionData> reactions)
@@ -2666,6 +2835,11 @@ namespace Nekolpos.System
 
         private bool TryExecuteSpecialAction(string actionId)
         {
+            if (TryStartWalkModeAction(actionId))
+            {
+                return true;
+            }
+
             if (TryExecuteConversationTimelineAction(actionId))
             {
                 return true;
@@ -2690,6 +2864,47 @@ namespace Nekolpos.System
             return true;
         }
 
+        /// <summary>
+        /// 通常会話以外のゲームプレイから、既存の時間経過イベント表示へ安全に遷移する。
+        /// 時間進行・フェード・通常会話入力への復帰はこの既存フローだけが所有する。
+        /// </summary>
+        public bool TryRunSystemTimedEvent(string actionId, Action onBecameOpaque = null)
+        {
+            if (string.IsNullOrWhiteSpace(actionId))
+            {
+                return false;
+            }
+
+            SystemTimedEventCatalog.ResolvedTimedEvent timedEvent = SystemTimedEventCatalog.Resolve(actionId.Trim());
+            if (timedEvent == null)
+            {
+                return false;
+            }
+
+            FinishDialogue();
+            RunSystemTimedEventAsync(timedEvent, null, onBecameOpaque).Forget();
+            return true;
+        }
+
+        private bool TryStartWalkModeAction(string actionId)
+        {
+            if (!string.Equals(actionId?.Trim(), "walk", global::System.StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            PlayerWalkModeController walkModeController = FindFirstObjectByType<PlayerWalkModeController>(FindObjectsInactive.Include);
+            if (walkModeController == null || !walkModeController.TryEnterWalkMode())
+            {
+                Debug.LogWarning("[DialogueManager] 散歩モードを開始できません。PlayerWalkModeControllerのInspector参照を確認してください。", this);
+                ReturnToInputState();
+                return true;
+            }
+
+            FinishDialogue();
+            return true;
+        }
+
         private bool TryExecuteConversationTimelineAction(string actionId)
         {
             const string prefix = "play_conversation_timeline:";
@@ -2700,10 +2915,10 @@ namespace Nekolpos.System
             }
 
             string timelineId = actionId.Trim().Substring(prefix.Length).Trim();
-            OpenBetaTitleBootstrap bootstrap = FindFirstObjectByType<OpenBetaTitleBootstrap>(FindObjectsInactive.Include);
+            NekolposGameBootstrap bootstrap = FindFirstObjectByType<NekolposGameBootstrap>(FindObjectsInactive.Include);
             if (bootstrap == null)
             {
-                Debug.LogWarning($"[DialogueManager] 会話Timeline '{timelineId}' を再生できません。OpenBetaTitleBootstrapが見つかりません。", this);
+                Debug.LogWarning($"[DialogueManager] 会話Timeline '{timelineId}' を再生できません。NekolposGameBootstrapが見つかりません。", this);
                 ReturnToInputState();
                 return true;
             }
@@ -2739,7 +2954,7 @@ namespace Nekolpos.System
                 return true;
             }
 
-            OpenBetaTitleBootstrap bootstrap = FindFirstObjectByType<OpenBetaTitleBootstrap>(FindObjectsInactive.Include);
+            NekolposGameBootstrap bootstrap = FindFirstObjectByType<NekolposGameBootstrap>(FindObjectsInactive.Include);
             if (bootstrap != null)
             {
                 bootstrap.SetHomeLocation(location);
@@ -2823,6 +3038,7 @@ namespace Nekolpos.System
                 WaitTime = source.WaitTime,
                 HideUI = source.HideUI,
                 Animation = source.Animation,
+                ReactionIcon = source.ReactionIcon,
                 EmotionChangeType = source.EmotionChangeType,
                 EmotionChangeValue = source.EmotionChangeValue,
                 BranchResolver = source.BranchResolver,

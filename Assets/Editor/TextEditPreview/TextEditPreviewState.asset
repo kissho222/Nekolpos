@@ -12,21 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bcbb65476759e9345b581ff939f4f831, type: 3}
   m_Name: TextEditPreviewState
   m_EditorClassIdentifier: Assembly-CSharp::Nekolpos.System.TextEditPreviewState
-  SourceCsvPath: C:/Users/shoho/Nekolpos/TalkSource/TalkCSV/DialoguePreview_Integrated.csv
-  RegexId: phone
-  Pattern: 2
+  SourceCsvPath: TalkSource/TalkCSV/PsychologyReactionDialogue.csv
+  RegexId: PRD_COMPOSITE_DAILY_COMPOSITE_AFFECTION_CONCERN_004
+  Pattern: 1
   SequenceIndex: 1
   SequenceCount: 1
-  Order: 2
-  ResponseType: Action
+  Order: 4
+  ResponseType: Reaction
   ActionId: 
-  Condition: 
+  Condition: PsychologyState == "AFFECTION_CONCERN"
   StateSummary: "\u611B\u60C5:Low / \u30C9S:Low / \u5FC3\u914D:Low / \u6575\u5BFE:Low
-    / \u5F93\u9806:Low / \u672C\u80FD:Low / \u6642\u9593:\u663C / flow:System Action
-    / \u6709\u52B9 / \u6761\u4EF6\u4E00\u81F4"
+    / \u5F93\u9806:Low / \u672C\u80FD:Low / \u6642\u9593:\u663C / flow:CSV Reactive
+    / \u7121\u52B9 / order 4: \u672A\u5BFE\u5FDC\u306E\u6761\u4EF6\u30AD\u30FC: PsychologyState"
   SpeakerName: "\u732B\u53C8"
-  Message: 
+  Message: "\u65E5\u8A18\u66F8\u304F\u306E\uFF1F\u3046\u30FC\u3093\u3001\u65E5\u8A18\u306F\u6D41\u77F3\u306B\u4EE3\u308F\u308A\u306B\u3084\u3063\u3066\u3042\u3052\u3089\u308C\u306A\u3044\u306A\u3041\u2026\u2026\u3002\u3058\u3083\u3042\u5FDC\u63F4\u3057\u3066\u3042\u3052\u308B\uFF01"
   MessageChinese: 
   MessageEnglish: 
-  Warnings: '[CALL ONLY]'
-  Revision: 5404
+  Warnings: 
+  Revision: 16183

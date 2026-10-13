@@ -1,4 +1,4 @@
-﻿Surface,Reading,Enabled,NeedsReview,Category,SourceFiles,Note
+Surface,Reading,Enabled,NeedsReview,Category,SourceFiles,Note
 対馬山猫,つしまやまねこ,true,false,FELIDAE,DialoguePreview_Integrated.csv,Existing regex uses hiragana reading.
 ツシマヤマネコ,つしまやまねこ,true,false,FELIDAE,DialoguePreview_Integrated.csv,Katakana variant for dedicated term.
 山猫,やまねこ,true,false,FELIDAE,DialoguePreview_Integrated.csv,Common felidae word.
@@ -176,7 +176,7 @@
 住心地,すみごこち,true,false,COMMON,unknown,unknown
 触ら,さわら,true,false,COMMON,unknown,unknown
 触り,さわり,true,false,COMMON,unknown,unknown
-触る,さわる,true,false,COMMON,unknown,unknown
+触る,さわる,TRUE,FALSE,COMMON,unknown,unknown
 名乗,なの,true,false,COMMON,unknown,unknown
 飼わ,かわ,true,false,COMMON,unknown,unknown
 退職,たいしょく,true,false,COMMON,unknown,unknown
@@ -242,8 +242,8 @@
 飲む,のむ,true,false,COMMON,unknown,
 飲め,のめ,true,false,COMMON,unknown,
 飲も,のも,true,false,COMMON,unknown,
-踏ん,ふん,true,false,COMMON,unknown,
-踏,ふ,true,false,COMMON,unknown,
+踏ん,ふん,TRUE,FALSE,COMMON,unknown,
+踏,ふ,TRUE,FALSE,COMMON,unknown,
 現場,げんば,true,false,COMMON,unknown,
 先生,せんせい,true,false,COMMON,unknown,
 長靴,ながぐつ,true,false,COMMON,unknown,
@@ -357,7 +357,7 @@
 知れ,しれ,true,false,COMMON,unknown,
 知ろ,しろ,true,false,COMMON,unknown,
 踏ま,ふま,true,false,COMMON,unknown,
-踏み,ふみ,true,false,COMMON,unknown,
+踏み,ふみ,TRUE,FALSE,COMMON,unknown,
 踏む,ふむ,true,false,COMMON,unknown,
 踏め,ふめ,true,false,COMMON,unknown,
 踏も,ふも,true,false,COMMON,unknown,
@@ -485,3 +485,14 @@
 黒ネコ,くろねこ,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
 44匹,44ひき,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
 猫師匠,ねこししょう,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,今回追加Patternの漢字読み
+作業,さぎょう,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,
+机,つくえ,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,
+台,だい,true,false,ADDED_DIALOGUE,DialoguePreview_Integrated.csv; teacchseries_dialogue_source_2201.csv,
+隠れ,かくれ,FALSE,TRUE,,,
+使,つか,FALSE,FALSE,,,
+使う,つかう,TRUE,FALSE,,,
+使い,つかい,FALSE,TRUE,,,
+使わ,つかわ,FALSE,TRUE,,,
+命令,めいれい,true,false,DIALOGUE,DialoguePreview.csv,Command request regex reading.
+聞,き,true,false,DIALOGUE,DialoguePreview.csv,Command request regex reading.
+従,したが,true,false,DIALOGUE,DialoguePreview.csv,Command request regex reading.

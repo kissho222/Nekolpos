@@ -10,10 +10,8 @@ namespace Nekolpos.EditorTools
     // restores that pose instead of the pose inherited from the OP model.
     public static class NormalCatEditorPoseMenu
     {
-        private const string Menu = "Tools/Nekolpos/Normal Cat/";
         private const string Idle = "CatSimple_Lie_belly_loop_1";
 
-        [MenuItem(Menu + "Verify Selection Stability")]
         public static void VerifySelectionStability()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
@@ -43,7 +41,6 @@ namespace Nekolpos.EditorTools
             };
         }
 
-        [MenuItem(Menu + "Restore Saved Idle Pose")]
         public static void Restore()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)

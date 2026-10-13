@@ -20,8 +20,8 @@ MonoBehaviour:
   playerCalling: "\u3054\u4E3B\u4EBA"
   favoriteFoodName: "\u30DE\u30B0\u30ED\u306E\u523A\u8EAB"
   affectionLevel: 50
-  sadisticLevel: 50
-  concernLevel: 50
-  hostilityLevel: 50
-  obedienceLevel: 50
-  instinctLevel: 50
+  sadisticLevel: 30
+  concernLevel: 30
+  hostilityLevel: 0
+  obedienceLevel: 30
+  instinctLevel: 0

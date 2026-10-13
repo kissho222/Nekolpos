@@ -1,4 +1,4 @@
-id,input,regex_jp,regex_zh,regex_en,output_ja,output_zh,output_en,alt,regex_id,pattern,order,response_type,action_id,condition,SpeechControl,emotion_change_type,emotion_change_value,WaitTime,HideUI,Animation,Priority,call_only,choice_yes_pattern,choice_no_pattern,EntryID,SeriesGroupID,TeachingCategory,DisplayName
+﻿id,input,regex_jp,regex_zh,regex_en,output_ja,output_zh,output_en,alt,regex_id,pattern,order,response_type,action_id,condition,SpeechControl,emotion_change_type,emotion_change_value,WaitTime,HideUI,Animation,Priority,call_only,choice_yes_pattern,choice_no_pattern,EntryID,SeriesGroupID,TeachingCategory,DisplayName
 00010,猫の手も借りたい,(ねこのてもかりたい),,,猫の手も借りたいってどういう意味？,,,,,1,1,normal,,,Random,,0,0,false,,10,false,,,,,,
 00010,猫の手も借りたい,(ねこのてもかりたい),,,すごく忙しくて、猫にも手伝ってほしいって意味？,,,,,1,2,normal,,,Random,,0,0,false,,10,false,,,,,,
 00010,猫の手も借りたい,(ねこのてもかりたい),,,{{CAT_PRONOUN}}は面倒ごとは嫌いだし、貸すにも前足しかないし、そもそも猫に手伝えることなんてなさそうだけど。,,,,,1,3,normal,,,Random,,0,0,false,,10,false,,,,,,
@@ -128,11 +128,11 @@ id,input,regex_jp,regex_zh,regex_en,output_ja,output_zh,output_en,alt,regex_id,p
 00312,鰹節を猫に預ける,(かつおぶしをねこにあずける),,,危険な相手に大切なものの管理を任せること？,,,,,1,2,normal,,,Random,,0,0,false,,10,false,,,,,,
 00312,鰹節を猫に預ける,(かつおぶしをねこにあずける),,,危険っていうか、鰹節をくれてありがとうって感じかな。,,,,,1,3,normal,,,Random,,0,0,false,,10,false,,,,,,
 00320,鳴く猫は鼠を捕らぬ,(なくねこはねずみをとら(ず|ぬ)),,,鳴く猫は鼠を捕らぬってどういう意味？まさか、そのままの意味じゃないよね。,,,,,1,1,normal,,,Random,,0,0,false,,10,false,,,,,,
-00320,鳴く猫は鼠を捕らぬ,(なくねこはねずみをとらぬ),,,口数の多い者は実行力に欠ける？そのままじゃん！,,,,,1,2,normal,,,Random,,0,0,false,,10,false,,,,,,
-00320,鳴く猫は鼠を捕らぬ,(なくねこはねずみをとらぬ),,,……確かにネズミを捕ったことはないけどさ。,,,,,1,3,normal,,,Random,,0,0,false,,10,false,,,,,,
+00320,鳴く猫は鼠を捕らぬ,(なくねこはねずみをとら(ず|ぬ)),,,口数の多い者は実行力に欠ける？そのままじゃん！,,,,,1,2,normal,,,Random,,0,0,false,,10,false,,,,,,
+00320,鳴く猫は鼠を捕らぬ,(なくねこはねずみをとら(ず|ぬ)),,,……確かにネズミを捕ったことはないけどさ。,,,,,1,3,normal,,,Random,,0,0,false,,10,false,,,,,,
 00330,鼠を捕る猫は爪を隠す,(ねずみ(を)?とるねこはつめをかくす),,,鼠を捕る猫は爪を隠すってどういう意味？,,,,,1,1,normal,,,Random,,0,0,false,,10,false,,,,,,
-00330,鼠を捕る猫は爪を隠す,(ねずみをとるねこはつめをかくす),,,有能な者は、能力を見せびらかさないって意味なんだ。でも猫って、大きくなったらみんな爪をしまえるようになるよ？,,,,,1,2,normal,,,Random,,0,0,false,,10,false,,,,,,
-00330,鼠を捕る猫は爪を隠す,(ねずみをとるねこはつめをかくす),,,つまり、猫はみんな有能ってこと？,,,,,1,3,normal,,,Random,,0,0,false,,10,false,,,,,,
+00330,鼠を捕る猫は爪を隠す,(ねずみ(を)?とるねこはつめをかくす),,,有能な者は、能力を見せびらかさないって意味なんだ。でも猫って、大きくなったらみんな爪をしまえるようになるよ？,,,,,1,2,normal,,,Random,,0,0,false,,10,false,,,,,,
+00330,鼠を捕る猫は爪を隠す,(ねずみ(を)?とるねこはつめをかくす),,,つまり、猫はみんな有能ってこと？,,,,,1,3,normal,,,Random,,0,0,false,,10,false,,,,,,
 00340,猫と庄屋に取らぬはない,(ねことしょうやにとらぬはない),,,猫と庄屋に取らぬはないってどういう意味？,,,,,1,1,normal,,,Random,,0,0,false,,10,false,,,,,,
 00340,猫と庄屋に取らぬはない,(ねことしょうやにとらぬはない),,,庄屋っていう代表者は、袖の下っていう悪いお金を取るし、猫は魚を食卓から取っちゃうから？,,,,,1,2,normal,,,Random,,0,0,false,,10,false,,,,,,
 00340,猫と庄屋に取らぬはない,(ねことしょうやにとらぬはない),,,失礼な！必要だから取ってるんだよ！十分にご飯があればそんなことしないもんね。,,,,,1,3,normal,,,Random,,0,0,false,,10,false,,,,,,

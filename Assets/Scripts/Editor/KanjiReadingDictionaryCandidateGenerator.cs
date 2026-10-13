@@ -82,7 +82,6 @@ namespace Nekolpos.EditorTools
             ["遊ぶ"] = new("あそぶ", false, true, "COMMON")
         };
 
-        [MenuItem("Tools/Nekolpos/Generate Kanji Reading Dictionary Candidates")]
         public static void Generate()
         {
             Directory.CreateDirectory(Path.GetDirectoryName(CandidateDictionaryPath));

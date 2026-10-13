@@ -12,10 +12,10 @@ using UnityEngine;
 
 namespace Nekolpos.EditorTools
 {
-    public class DialoguePreviewWindow : EditorWindow
+    public partial class DialoguePreviewWindow : EditorWindow
     {
-        private const string WindowTitle = "Dialogue Preview";
-        private const float FooterHeight = 108f;
+        private const string WindowTitle = "会話制作";
+        private const float FooterHeight = 60f;
         private const string SessionStateEditorPrefsKey = "Nekolpos.DialoguePreviewWindow.SessionState";
         private const int ConditionDropdownCount = 4;
 
@@ -39,6 +39,8 @@ namespace Nekolpos.EditorTools
         [SerializeField] private string lastBackupPath = string.Empty;
         [SerializeField] private bool hasPendingChanges;
         [SerializeField] private bool showDetails;
+        [SerializeField] private bool deleteLinkedIdsWithLastLine = true;
+        [SerializeField] private List<string> pendingDeletedDialogueIds = new List<string>();
         [SerializeField] private Vector2 scrollPosition;
         [SerializeField] private string jumpIdValue = "00010";
         [SerializeField] private string jumpPatternStatus = string.Empty;
@@ -53,8 +55,6 @@ namespace Nekolpos.EditorTools
         private GUIStyle compactInfoStyle;
         private bool isPersistingSessionState;
 
-        private static readonly string[] SharedConditionOptions = BuildSharedConditionOptions();
-        private static readonly string[] ConditionDropdownOptions = BuildConditionDropdownOptions();
         private static readonly string[] ConditionDropdownLabels = { "condition_A", "condition_B", "condition_C", "condition_D" };
         private static readonly int[] PriorityOptionValues = { 0, 10, 20, 40, 60, 80, 100 };
         private static readonly string[] PriorityOptionLabels =
@@ -90,6 +90,9 @@ namespace Nekolpos.EditorTools
         private static readonly string[] DeathPresentationModeLabels = { "なし", "Motion/Animation", "Timeline" };
         private static readonly string[] EmotionChangeTypeOptions = { string.Empty, "affection", "sadistic", "concern", "hostility", "obedience", "instinct" };
         private static readonly string[] EmotionChangeTypeLabels = { "なし", "愛情", "ドS", "心配", "敵対", "従順", "本能" };
+        private static readonly string[] SharedConditionOptions = BuildSharedConditionOptions();
+        private static readonly string[] ConditionDropdownOptions = BuildConditionDropdownOptions();
+
         private static readonly int[] EmotionChangeValueOptions = { 0, -1, -2, -3, 1, 2, 3 };
         private static readonly string[] EmotionChangeValueLabels = { "なし", "-1 (-10)", "-2 (-20)", "-3 (-30)", "+1 (+10)", "+2 (+20)", "+3 (+30)" };
         private const string ChoiceQuestionJaKey = "question_ja";
@@ -122,17 +125,24 @@ namespace Nekolpos.EditorTools
             public string SourcePath;
             public string SavePath;
             public string RegexId;
+            public string DialogueId;
             public string Pattern;
             public int PatternIndex;
             public int SequenceIndex;
             public int EntryOrder;
             public int SelectedTab;
+            public string RelatedTab;
+            public int RelatedLayoutVersion;
+            public bool TimeDiary, Topics, Readings;
+            public bool Details, Behaviour, Branches, Development, ConditionExpression, Teaching;
+            public string RegexInput;
         }
 
         private sealed class ParsedConditionDropdownState
         {
             public readonly string[] SelectedOptions = new string[ConditionDropdownCount];
             public readonly bool[] IsNegatedOptions = new bool[ConditionDropdownCount];
+            public readonly string[] OriginalClauses = new string[ConditionDropdownCount];
             public readonly List<string> PreservedClauses = new List<string>();
             public bool HasOpaqueCondition;
         }
@@ -173,8 +183,10 @@ namespace Nekolpos.EditorTools
         private void OnEnable()
         {
             titleContent = new GUIContent(WindowTitle);
+            showOtherLanguages = EditorPrefs.GetBool(LanguagesKey, false);
             TextEditSceneUtility.EnsurePreviewStateAsset();
             RestoreSessionState();
+            RestoreRelatedDrafts();
             RebuildPatternCache();
             ApplySessionSelection();
             PushCurrentPreviewToTextEditScene(true);
@@ -182,48 +194,52 @@ namespace Nekolpos.EditorTools
 
         private void OnDisable()
         {
+            CaptureRelatedDrafts();
             TryPersistSessionState();
         }
 
         private void OnGUI()
         {
-            EnsureStyles();
-            HandleKeyboardNavigation();
-            SyncStateFromCurrentSelectionIfNeeded(false);
-
-            using (new EditorGUILayout.VerticalScope())
+            BeginInputFocusFrame();
+            EnsureStyles(); HandleKeyboardNavigation(); SyncStateFromCurrentSelectionIfNeeded(false);
+            DrawManuscriptToolbar();
+            selectedTab = GUILayout.Toolbar(selectedTab, new[] { "会話", "入力照合" });
+            UpdateRegexAuthoringSnapshot();
+            if (selectedTab == 0 && patternGroups.Count > 0)
             {
-                using (var scrollScope = new EditorGUILayout.ScrollViewScope(scrollPosition, GUILayout.ExpandHeight(true)))
+                var group = GetCurrentGroup();
+                DrawSequenceSelector(group);
+                using (new EditorGUILayout.HorizontalScope(GUILayout.ExpandHeight(true)))
                 {
-                    scrollPosition = scrollScope.scrollPosition;
-                    DrawTopSection();
-                    EditorGUILayout.Space(6f);
-                    int nextSelectedTab = GUILayout.Toolbar(selectedTab, new[] { "Dialogue", "Regex" });
-                    if (nextSelectedTab != selectedTab)
+                    using (new EditorGUILayout.VerticalScope(GUILayout.Width(Mathf.Max(450, position.width * 0.55f))))
+                    using (var area = new EditorGUILayout.ScrollViewScope(scrollPosition))
                     {
-                        selectedTab = nextSelectedTab;
+                        scrollPosition = area.scrollPosition;
+                        DrawMinimalEditor(group);
+                        DrawAuthorDiagnostics();
+                        DrawDetailsFoldout(group, DialogueStateSimulator.Evaluate(group, state));
+                        if (Event.current.type == EventType.Repaint) primaryContentBottom = GUILayoutUtility.GetLastRect().yMax;
                     }
-
-                    EditorGUILayout.Space(8f);
-
-                    if (patternGroups.Count == 0)
+                    using (new EditorGUILayout.VerticalScope(GUILayout.ExpandWidth(true)))
                     {
-                        EditorGUILayout.HelpBox("会話CSVをロードすると制作ツールが有効になります。", MessageType.Info);
-                    }
-                    else if (selectedTab == 0)
-                    {
-                        DrawDialogueTab();
-                    }
-                    else
-                    {
-                        DrawRegexTab();
+                        DrawRelatedSections(group);
                     }
                 }
-
-                DrawFooter();
             }
-
+            else
+            {
+                using (var area = new EditorGUILayout.ScrollViewScope(scrollPosition, GUILayout.ExpandHeight(true)))
+                {
+                    scrollPosition = area.scrollPosition;
+                    if (patternGroups.Count > 0) { DrawAuthorDiagnostics(); DrawRegexTab(); }
+                    else EditorGUILayout.LabelField("原稿を選択してください。");
+                }
+            }
+            DrawFooter();
+            if (Event.current.type == EventType.Repaint) footerRect = GUILayoutUtility.GetLastRect();
+            PersistAuthoringViewIfChanged();
             PushCurrentPreviewToTextEditScene(false);
+            EndInputFocusFrame();
         }
 
         private void DrawTopSection()
@@ -249,7 +265,7 @@ namespace Nekolpos.EditorTools
                 EditorGUI.LabelField(labelRect, "CSV");
                 using (new EditorGUI.DisabledScope(true))
                 {
-                    EditorGUI.TextField(pathRect, string.IsNullOrEmpty(dataSet.SourcePath) ? "未選択" : dataSet.SourcePath);
+                    EditorGUI.TextField(FocusInput(pathRect), string.IsNullOrEmpty(dataSet.SourcePath) ? "未選択" : dataSet.SourcePath);
                 }
 
                 if (GUI.Button(resourcesRect, "Resources"))
@@ -289,7 +305,7 @@ namespace Nekolpos.EditorTools
                 EditorGUI.LabelField(saveLabelRect, "保存先");
                 using (new EditorGUI.DisabledScope(true))
                 {
-                    EditorGUI.TextField(savePathRect, string.IsNullOrEmpty(dataSet.SavePath) ? "未選択" : dataSet.SavePath);
+                    EditorGUI.TextField(FocusInput(savePathRect), string.IsNullOrEmpty(dataSet.SavePath) ? "未選択" : dataSet.SavePath);
                 }
 
                 if (GUI.Button(saveButtonRect, "設定"))
@@ -378,6 +394,7 @@ namespace Nekolpos.EditorTools
             DrawSequenceSelector(group);
             DrawMinimalEditor(group);
             DrawDetailsFoldout(group, groupState);
+            DrawRelatedData(group);
         }
 
         private void DrawPatternHeader(DialoguePatternGroup group, DialogueStateSimulator.EvaluationResult groupState)
@@ -396,64 +413,140 @@ namespace Nekolpos.EditorTools
 
         private void DrawSequenceSelector(DialoguePatternGroup group)
         {
-            if (group == null || group.Entries == null || group.Entries.Count == 0)
+            if (group == null || group.Entries.Count == 0) return;
+            using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
             {
-                return;
+                EditorGUILayout.LabelField($"会話 {currentPatternIndex + 1}/{patternGroups.Count}　Pattern {group.Pattern}", GUILayout.Width(240));
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("新項目追加", EditorStyles.toolbarButton, GUILayout.Width(82))) AddNewItem(group);
+                if (GUILayout.Button("新パターン追加", EditorStyles.toolbarButton, GUILayout.Width(104))) AddNewPattern(group);
+                if (GUILayout.Button("行追加", EditorStyles.toolbarButton, GUILayout.Width(62))) AddLineToCurrentPattern(group);
+                if (group.Entries.Count == 1)
+                    deleteLinkedIdsWithLastLine = GUILayout.Toggle(deleteLinkedIdsWithLastLine, "連携IDも削除", EditorStyles.toolbarButton, GUILayout.Width(104));
+                if (GUILayout.Button("行削除", EditorStyles.toolbarButton, GUILayout.Width(62))) DeleteCurrentLine(group);
+                GUILayout.Label(hasPendingChanges ? "未保存" : "保存済み", GUILayout.Width(64));
             }
-
-            EditorGUILayout.Space(6f);
-            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            using (var scroll = new EditorGUILayout.ScrollViewScope(sequenceSelectorScroll, GUILayout.Height(36)))
             {
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    EditorGUILayout.LabelField("Line", EditorStyles.boldLabel);
-                    if (GUILayout.Button("Line追加", GUILayout.Width(92f), GUILayout.Height(22f)))
-                    {
-                        AddLineToCurrentPattern(group);
-                    }
-
-                    using (new EditorGUI.DisabledScope(group.Entries.Count <= 1))
-                    {
-                        if (GUILayout.Button("Line削除", GUILayout.Width(92f), GUILayout.Height(22f)))
-                        {
-                            DeleteCurrentLine(group);
-                        }
-                    }
-                }
-
+                sequenceSelectorScroll = scroll.scrollPosition;
                 using (new EditorGUILayout.HorizontalScope())
                 {
                     for (int i = 0; i < group.Entries.Count; i++)
                     {
-                        bool isCurrentLine = i == currentSequenceIndex;
-                        GUIStyle style = isCurrentLine ? EditorStyles.miniButtonMid : EditorStyles.miniButton;
-                        string label = BuildLineDisplayLabel(group.Entries[i]);
-                        Color previousBackgroundColor = GUI.backgroundColor;
-                        Color previousContentColor = GUI.contentColor;
-                        if (isCurrentLine)
-                        {
-                            GUI.backgroundColor = new Color(0.33f, 0.58f, 0.94f);
-                            GUI.contentColor = Color.white;
-                        }
-
-                        if (GUILayout.Button(label, style, GUILayout.Height(24f)))
+                        var label = new GUIContent((i + 1).ToString(), BuildLineDisplayLabel(group.Entries[i]));
+                        if (GUILayout.Toggle(i == currentSequenceIndex, label, EditorStyles.toolbarButton, GUILayout.MinWidth(32), GUILayout.ExpandWidth(true)) && i != currentSequenceIndex)
                         {
                             ClearActiveTextFieldFocus();
                             currentSequenceIndex = i;
                             SyncStateFromCurrentSelectionIfNeeded(true);
-                            Repaint();
                         }
-
-                        GUI.backgroundColor = previousBackgroundColor;
-                        GUI.contentColor = previousContentColor;
                     }
                 }
-
-                DialogueEntry currentEntry = GetCurrentEntry(group);
-                EditorGUILayout.LabelField(BuildEntryPreviewText(currentEntry), compactInfoStyle);
             }
+        }
 
-            EditorGUILayout.Space(6f);
+        private Vector2 sequenceSelectorScroll;
+
+        private void AddNewItem(DialoguePatternGroup group)
+        {
+            DialogueEntry source = GetCurrentEntry(group);
+            if (source == null || dataSet?.Entries == null) return;
+            string currentId = source.InternalId?.Trim() ?? string.Empty;
+            if (!long.TryParse(currentId, global::System.Globalization.NumberStyles.None, global::System.Globalization.CultureInfo.InvariantCulture, out long candidate))
+            {
+                ShowNotification(new GUIContent("新項目を追加できません：現在のIDを数値にしてください。"));
+                return;
+            }
+            var usedIds = new HashSet<long>();
+            foreach (DialogueEntry entry in dataSet.Entries)
+                if (long.TryParse(entry.InternalId?.Trim(), out long numericId)) usedIds.Add(numericId);
+            do
+            {
+                if (candidate > long.MaxValue - 10)
+                {
+                    ShowNotification(new GUIContent("新項目を追加できません：IDが数値の上限に達しています。"));
+                    return;
+                }
+                candidate += 10;
+            } while (usedIds.Contains(candidate));
+
+            var newEntry = new DialogueEntry
+            {
+                InternalId = candidate.ToString("D" + currentId.Length, global::System.Globalization.CultureInfo.InvariantCulture),
+                RegexId = GetNewItemRegexPrefix(),
+                RegexPattern = string.Empty,
+                RegexPatternChinese = string.Empty,
+                RegexPatternEnglish = string.Empty,
+                Pattern = "1",
+                Order = 1,
+                SourceLineNumber = GetNextSourceLineNumber(),
+                Text = string.Empty,
+                TextChinese = string.Empty,
+                TextEnglish = string.Empty,
+                ResponseType = "Normal",
+                SpeechControl = "Random",
+                Priority = 10
+            };
+            dataSet.Entries.Add(newEntry);
+            ClearActiveTextFieldFocus();
+            hasPendingChanges = true;
+            sequenceSelectorScroll = Vector2.zero;
+            RebuildPatternCache(newEntry);
+            Repaint();
+        }
+
+        private string GetNewItemRegexPrefix()
+        {
+            string configuredPrefix = DialogueAuthoringProfile.Resolve(dataSet.SourcePath)?.NewItemRegexPrefix;
+            if (!string.IsNullOrEmpty(configuredPrefix)) return configuredPrefix;
+            var regexIds = dataSet.Entries.Select(entry => entry.RegexId?.Trim())
+                .Where(id => !string.IsNullOrEmpty(id)).ToArray();
+            if (regexIds.Length == 0) return string.Empty;
+            int separator = regexIds[0].IndexOf('_');
+            if (separator < 0) return string.Empty;
+            string prefix = regexIds[0].Substring(0, separator + 1);
+            return regexIds.All(id => id.StartsWith(prefix, StringComparison.Ordinal)) ? prefix : string.Empty;
+        }
+
+        private void AddNewPattern(DialoguePatternGroup group)
+        {
+            DialogueEntry source = GetRepresentativeEntry(group);
+            if (source == null || dataSet?.Entries == null) return;
+
+            var usedPatterns = new HashSet<string>(dataSet.Entries
+                .Where(entry => string.Equals(entry.InternalId?.Trim(), source.InternalId?.Trim(), StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(entry.RegexId?.Trim(), source.RegexId?.Trim(), StringComparison.OrdinalIgnoreCase))
+                .Select(entry => ParsePatternNumber(entry.Pattern).ToString()));
+            int pattern = 1;
+            while (usedPatterns.Contains(pattern.ToString())) pattern++;
+
+            var newEntry = new DialogueEntry
+            {
+                InternalId = source.InternalId,
+                RegexId = source.RegexId,
+                RegexPattern = source.RegexPattern,
+                RegexPatternChinese = source.RegexPatternChinese,
+                RegexPatternEnglish = source.RegexPatternEnglish,
+                Pattern = pattern.ToString(),
+                Order = 1,
+                SourceLineNumber = GetNextSourceLineNumber(),
+                Text = string.Empty,
+                TextChinese = string.Empty,
+                TextEnglish = string.Empty,
+                ResponseType = "Normal",
+                SpeechControl = source.SpeechControl,
+                Priority = source.Priority,
+                Condition = source.Condition
+            };
+            // 入力の照合情報だけを引き継ぎ、本文・分岐・演出を新パターンへ混入させない。
+            newEntry.PreserveRegexSourceValues(source.GetPreservedRegexSource(), source.GetPreservedRegexChineseSource(), source.GetPreservedRegexEnglishSource());
+            newEntry.SetAdditionalValue("input", source.GetAdditionalValue("input"));
+            dataSet.Entries.Add(newEntry);
+            ClearActiveTextFieldFocus();
+            hasPendingChanges = true;
+            sequenceSelectorScroll = Vector2.zero;
+            RebuildPatternCache(newEntry);
+            Repaint();
         }
 
         private void DrawMinimalEditor(DialoguePatternGroup group)
@@ -488,54 +581,53 @@ namespace Nekolpos.EditorTools
 
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                EditorGUILayout.LabelField("最小編集", EditorStyles.boldLabel);
-
-                pattern = EditorGUILayout.IntField("pattern", ParsePatternNumber(currentEntry.Pattern));
-                priority = DrawPriorityPopup("priority", representative.Priority);
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    callOnly = EditorGUILayout.ToggleLeft("Call専用", representative.CallOnly, GUILayout.Width(120f));
-                    sequenceProgressHold = EditorGUILayout.ToggleLeft("進行保持", representative.SequenceProgressHold, GUILayout.Width(120f));
-                    GUILayout.Space(12f);
-                    EditorGUILayout.LabelField("random_repeat_limit(-1=既定)", GUILayout.Width(160f));
-                    randomRepeatLimit = Mathf.Max(-1, EditorGUILayout.IntField(representative.RandomRepeatLimit, GUILayout.Width(44f)));
-                    GUILayout.Space(12f);
-                    EditorGUILayout.LabelField("target_pattern(Callの一時遷移およびAction/Event後の会話)", GUILayout.Width(360f));
-                    targetPattern = EditorGUILayout.TextField(currentEntry.TargetPattern ?? string.Empty, GUILayout.Width(32f));
-                    GUILayout.FlexibleSpace();
-                }
-                speechControl = DrawSpeechControlPopup("Speech Control", currentEntry.SpeechControl);
+                EditorGUILayout.LabelField("会話本文", EditorStyles.boldLabel);
+                DrawPsychologyTimingSelector(group);
+                pattern = EditorGUILayout.IntField(FocusInput("Pattern"), ParsePatternNumber(currentEntry.Pattern));
                 responseTypeIndex = GetResponseTypeOptionIndex(currentEntry.ResponseType);
-                nextResponseTypeIndex = EditorGUILayout.Popup("response_type", responseTypeIndex, ResponseTypeOptionLabels);
-
-                if (string.Equals(ResponseTypeOptionValues[nextResponseTypeIndex], "Choice", StringComparison.Ordinal))
+                nextResponseTypeIndex = EditorGUILayout.Popup(FocusInput("応答"), responseTypeIndex, ResponseTypeOptionLabels);
+                nextEmotionChangeType = representative.EmotionChangeType;
+                nextEmotionChangeValue = representative.EmotionChangeValue;
+                condition = representative.Condition ?? string.Empty;
+                if (CurrentProfile?.Condition != false)
+                    condition = DrawConditionDropdownEditors(condition, nextEmotionChangeType, nextEmotionChangeValue, out nextEmotionChangeType, out nextEmotionChangeValue);
+                EditorGUILayout.LabelField("日本語");
+                var dialogueTextHeight = EditorStyles.textArea.lineHeight * 2f + EditorStyles.textArea.padding.vertical;
+                text = EditorGUILayout.TextArea(FocusInput(currentEntry.Text ?? string.Empty), GUILayout.Height(dialogueTextHeight));
+                textEnglish = currentEntry.TextEnglish ?? string.Empty;
+                textChinese = currentEntry.TextChinese ?? string.Empty;
+                if (showOtherLanguages)
                 {
-                    choiceSettingsChanged = DrawChoiceSettings(currentEntry);
+                    EditorGUILayout.LabelField("英語"); textEnglish = EditorGUILayout.TextArea(FocusInput(textEnglish), GUILayout.Height(dialogueTextHeight));
+                    EditorGUILayout.LabelField("中国語"); textChinese = EditorGUILayout.TextArea(FocusInput(textChinese), GUILayout.Height(dialogueTextHeight));
                 }
-
-                animation = currentEntry.Animation ?? string.Empty;
-                actionId = currentEntry.ActionId ?? string.Empty;
-                timedEventKey = currentEntry.TimedEventKey ?? string.Empty;
-                DrawActionIdAndDeathFlowRow(
-                    ref nextResponseTypeIndex,
-                    ref actionId,
-                    ref targetPattern,
-                    ref animation);
-                timedEventKey = EditorGUILayout.TextField("timed_event_key", timedEventKey);
-                EditorGUILayout.HelpBox(
-                    BuildResponseRoutingGuidance(currentEntry, ResponseTypeOptionValues[nextResponseTypeIndex], actionId, out MessageType guidanceType),
-                    guidanceType);
-                condition = DrawConditionDropdownEditors(
-                    representative.Condition ?? string.Empty,
-                    representative.EmotionChangeType,
-                    representative.EmotionChangeValue,
-                    out nextEmotionChangeType,
-                    out nextEmotionChangeValue);
-                order = EditorGUILayout.IntField("order", currentEntry.Order);
-
-                textChinese = EditorGUILayout.TextField("text (简中)", currentEntry.TextChinese ?? string.Empty);
-                textEnglish = EditorGUILayout.TextField("text (EN)", currentEntry.TextEnglish ?? string.Empty);
-                text = EditorGUILayout.TextField("text (JP)", currentEntry.Text ?? string.Empty);
+                priority = representative.Priority; callOnly = representative.CallOnly;
+                sequenceProgressHold = representative.SequenceProgressHold; randomRepeatLimit = representative.RandomRepeatLimit;
+                targetPattern = currentEntry.TargetPattern ?? string.Empty; speechControl = currentEntry.SpeechControl;
+                animation = currentEntry.Animation ?? string.Empty; actionId = currentEntry.ActionId ?? string.Empty;
+                timedEventKey = currentEntry.TimedEventKey ?? string.Empty; order = currentEntry.Order;
+                if (ResponseTypeOptionValues[nextResponseTypeIndex] == "Choice")
+                {
+                    if (NormalizeResponseType(currentEntry.ResponseType) != "Choice") showBranches = true;
+                    showBranches = EditorGUILayout.Foldout(showBranches, "分岐・選択肢", true);
+                    if (Event.current.type == EventType.Repaint) branchesRect = GUILayoutUtility.GetLastRect();
+                    if (showBranches) choiceSettingsChanged = DrawChoiceSettings(currentEntry);
+                }
+                showBehaviour = EditorGUILayout.Foldout(showBehaviour, "再生・遷移設定", true);
+                if (Event.current.type == EventType.Repaint) behaviourRect = GUILayoutUtility.GetLastRect();
+                if (showBehaviour)
+                {
+                    priority = DrawPriorityPopup("優先度", priority);
+                    callOnly = EditorGUILayout.Toggle(FocusInput("Call専用"), callOnly);
+                    sequenceProgressHold = EditorGUILayout.Toggle(FocusInput("進行保持"), sequenceProgressHold);
+                    randomRepeatLimit = EditorGUILayout.IntField(FocusInput("Random継続回数"), randomRepeatLimit);
+                    speechControl = DrawSpeechControlPopup("再生方式", speechControl);
+                    targetPattern = EditorGUILayout.TextField(FocusInput("遷移先Pattern"), targetPattern);
+                    DrawActionIdAndDeathFlowRow(ref nextResponseTypeIndex, ref actionId, ref targetPattern, ref animation);
+                    timedEventKey = EditorGUILayout.TextField(FocusInput("専用時間経過キー"), timedEventKey);
+                    order = EditorGUILayout.IntField(FocusInput("行順"), order);
+                    DrawCompactNotice(BuildResponseRoutingGuidance(currentEntry, ResponseTypeOptionValues[nextResponseTypeIndex], actionId, out MessageType guidanceType), guidanceType);
+                }
             }
 
             string normalizedPattern = pattern.ToString();
@@ -689,7 +781,7 @@ namespace Nekolpos.EditorTools
             return changed;
         }
 
-        private static void DrawActionIdAndDeathFlowRow(
+        private void DrawActionIdAndDeathFlowRow(
             ref int responseTypeIndex,
             ref string actionId,
             ref string targetPattern,
@@ -717,10 +809,10 @@ namespace Nekolpos.EditorTools
             Rect postRect = new Rect(animationRect.xMax + spacing, row.y, postWidth, row.height);
 
             EditorGUI.LabelField(labelRect, "action_id");
-            actionId = EditorGUI.TextField(actionRect, actionId ?? string.Empty);
+            actionId = EditorGUI.TextField(FocusInput(actionRect), actionId ?? string.Empty);
 
             bool wasDeath = TryExtractDeathReason(actionId, out string reason);
-            bool death = EditorGUI.ToggleLeft(deathRect, "死亡", wasDeath);
+            bool death = EditorGUI.ToggleLeft(FocusInput(deathRect), "死亡", wasDeath);
             if (!death)
             {
                 if (wasDeath)
@@ -737,12 +829,12 @@ namespace Nekolpos.EditorTools
             }
 
             responseTypeIndex = Mathf.Max(0, Array.IndexOf(ResponseTypeOptionValues, "Event"));
-            reason = EditorGUI.TextField(reasonRect, reason);
+            reason = EditorGUI.TextField(FocusInput(reasonRect), reason);
             actionId = "death:" + NormalizeDeathReasonInput(reason);
 
             string presentationMode = ResolveDeathPresentationMode(animation);
             int modeIndex = Mathf.Max(0, Array.IndexOf(DeathPresentationModeValues, presentationMode));
-            modeIndex = EditorGUI.Popup(modeRect, modeIndex, DeathPresentationModeLabels);
+            modeIndex = EditorGUI.Popup(FocusInput(modeRect), modeIndex, DeathPresentationModeLabels);
             string nextMode = DeathPresentationModeValues[Mathf.Clamp(modeIndex, 0, DeathPresentationModeValues.Length - 1)];
 
             string presentationValue = StripDeathPresentationPrefix(animation);
@@ -752,11 +844,11 @@ namespace Nekolpos.EditorTools
             }
             else
             {
-                presentationValue = EditorGUI.TextField(animationRect, presentationValue ?? string.Empty);
+                presentationValue = EditorGUI.TextField(FocusInput(animationRect), presentationValue ?? string.Empty);
                 animation = nextMode + ":" + (presentationValue ?? string.Empty).Trim();
             }
 
-            targetPattern = EditorGUI.TextField(postRect, targetPattern ?? string.Empty);
+            targetPattern = EditorGUI.TextField(FocusInput(postRect), targetPattern ?? string.Empty);
         }
 
         private static bool TryExtractDeathReason(string actionId, out string reason)
@@ -873,17 +965,17 @@ namespace Nekolpos.EditorTools
 
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                waitTime = EditorGUILayout.FloatField("WaitTime", currentEntry.WaitTime);
-                hideUi = EditorGUILayout.Toggle("HideUI", currentEntry.HideUI);
-                animation = EditorGUILayout.TextField("Animation", currentEntry.Animation ?? string.Empty);
-                regexId = EditorGUILayout.TextField("regex_id", currentEntry.RegexId ?? string.Empty);
-                regexChinese = EditorGUILayout.TextField("regex (简中)", currentEntry.RegexPatternChinese ?? string.Empty);
-                regexEnglish = EditorGUILayout.TextField("regex (EN)", currentEntry.RegexPatternEnglish ?? string.Empty);
-                regex = EditorGUILayout.TextField("regex (JP)", currentEntry.RegexPattern ?? string.Empty);
-                internalId = EditorGUILayout.TextField("id", currentEntry.InternalId ?? string.Empty);
-                repeatCount = EditorGUILayout.IntField("RepeatCount", currentEntry.RepeatCount);
-                intent = EditorGUILayout.TextField("intent", currentEntry.Intent ?? string.Empty);
-                reactionType = EditorGUILayout.TextField("reaction_type", currentEntry.ReactionType ?? string.Empty);
+                waitTime = EditorGUILayout.FloatField(FocusInput("WaitTime"), currentEntry.WaitTime);
+                hideUi = EditorGUILayout.Toggle(FocusInput("HideUI"), currentEntry.HideUI);
+                animation = EditorGUILayout.TextField(FocusInput("Animation"), currentEntry.Animation ?? string.Empty);
+                regexId = EditorGUILayout.TextField(FocusInput("regex_id"), currentEntry.RegexId ?? string.Empty);
+                regexChinese = showOtherLanguages ? EditorGUILayout.TextField(FocusInput("照合式（中国語）"), currentEntry.RegexPatternChinese ?? string.Empty) : currentEntry.RegexPatternChinese;
+                regexEnglish = showOtherLanguages ? EditorGUILayout.TextField(FocusInput("照合式（英語）"), currentEntry.RegexPatternEnglish ?? string.Empty) : currentEntry.RegexPatternEnglish;
+                regex = EditorGUILayout.TextField(FocusInput("regex (JP)"), currentEntry.RegexPattern ?? string.Empty);
+                internalId = EditorGUILayout.TextField(FocusInput("id"), currentEntry.InternalId ?? string.Empty);
+                repeatCount = EditorGUILayout.IntField(FocusInput(new GUIContent("RepeatCount", "Speech Control=RepeatEventの発火回数。同じ話題の連続入力を1回目から数えます。Randomの抽選待ち回数ではありません。")), currentEntry.RepeatCount);
+                intent = EditorGUILayout.TextField(FocusInput("intent"), currentEntry.Intent ?? string.Empty);
+                reactionType = EditorGUILayout.TextField(FocusInput("reaction_type"), currentEntry.ReactionType ?? string.Empty);
 
                 bool changedRegexGroup =
                     !string.Equals(regexId, currentEntry.RegexId, StringComparison.Ordinal) ||
@@ -892,6 +984,9 @@ namespace Nekolpos.EditorTools
                     !string.Equals(regexEnglish, currentEntry.RegexPatternEnglish, StringComparison.Ordinal);
 
                 bool changedInternalId = !string.Equals(internalId, currentEntry.InternalId, StringComparison.Ordinal);
+                bool changedRegexPatterns = !string.Equals(regex, currentEntry.RegexPattern, StringComparison.Ordinal)
+                    || !string.Equals(regexChinese, currentEntry.RegexPatternChinese, StringComparison.Ordinal)
+                    || !string.Equals(regexEnglish, currentEntry.RegexPatternEnglish, StringComparison.Ordinal);
 
                 if (!Mathf.Approximately(waitTime, currentEntry.WaitTime) ||
                     hideUi != currentEntry.HideUI ||
@@ -905,6 +1000,7 @@ namespace Nekolpos.EditorTools
                     currentEntry.WaitTime = Mathf.Max(0f, waitTime);
                     currentEntry.HideUI = hideUi;
                     currentEntry.Animation = animation;
+                    if (changedRegexPatterns) ApplySharedRegexPatterns(currentEntry, regex, regexChinese, regexEnglish);
                     currentEntry.InternalId = internalId;
                     currentEntry.RepeatCount = repeatCount;
                     currentEntry.Intent = intent;
@@ -912,12 +1008,10 @@ namespace Nekolpos.EditorTools
 
                     if (changedRegexGroup)
                     {
+                        regexAuthoringValidationDirty = true;
                         for (int i = 0; i < group.Entries.Count; i++)
                         {
                             group.Entries[i].RegexId = regexId;
-                            group.Entries[i].RegexPattern = regex;
-                            group.Entries[i].RegexPatternChinese = regexChinese;
-                            group.Entries[i].RegexPatternEnglish = regexEnglish;
                         }
 
                         ResetTransientPatternGroupKeys();
@@ -936,17 +1030,33 @@ namespace Nekolpos.EditorTools
             EditorGUILayout.Space(6f);
         }
 
+        private void ApplySharedRegexPatterns(DialogueEntry source, string japanese, string chinese, string english)
+        {
+            if (source == null || dataSet?.Entries == null) return;
+            string id = source.InternalId?.Trim();
+            foreach (var entry in dataSet.Entries)
+            {
+                if (entry == null || (!ReferenceEquals(entry, source) &&
+                    (string.IsNullOrEmpty(id) || !string.Equals(entry.InternalId?.Trim(), id, StringComparison.Ordinal)))) continue;
+                entry.RegexPattern = japanese;
+                entry.RegexPatternChinese = chinese;
+                entry.RegexPatternEnglish = english;
+            }
+            regexAuthoringValidationDirty = true;
+            hasPendingChanges = true;
+        }
+
         private void DrawRegexTab()
         {
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 EditorGUILayout.LabelField("Regex Test", EditorStyles.boldLabel);
                 GUI.SetNextControlName(RegexInputJaControlName);
-                regexInput = EditorGUILayout.TextField("入力 JP", regexInput ?? string.Empty);
-                GUI.SetNextControlName(RegexInputCnControlName);
-                regexInputChinese = EditorGUILayout.TextField("入力 简中", regexInputChinese ?? string.Empty);
+                regexInput = EditorGUILayout.TextField(FocusInput("入力 JP", RegexInputJaControlName), regexInput ?? string.Empty);
+                if (showOtherLanguages) { GUI.SetNextControlName(RegexInputCnControlName);
+                regexInputChinese = EditorGUILayout.TextField(FocusInput("入力 简中", RegexInputCnControlName), regexInputChinese ?? string.Empty);
                 GUI.SetNextControlName(RegexInputEnControlName);
-                regexInputEnglish = EditorGUILayout.TextField("入力 EN", regexInputEnglish ?? string.Empty);
+                regexInputEnglish = EditorGUILayout.TextField(FocusInput("入力 EN", RegexInputEnControlName), regexInputEnglish ?? string.Empty); }
                 using (new EditorGUILayout.HorizontalScope())
                 {
                     if (GUILayout.Button("regexテスト", GUILayout.Height(24f)))
@@ -957,6 +1067,7 @@ namespace Nekolpos.EditorTools
                     if (GUILayout.Button("結果クリア", GUILayout.Height(24f)))
                     {
                         regexStatus = "未実行";
+                        regexTestWarnings.Clear();
                         matchedRegexIds.Clear();
                         matchedPatternIndices.Clear();
                         currentRegexMatchResults.Clear();
@@ -966,6 +1077,7 @@ namespace Nekolpos.EditorTools
                 }
 
                 EditorGUILayout.HelpBox(regexStatus ?? string.Empty, MessageType.Info);
+                foreach (string warning in regexTestWarnings.Distinct()) EditorGUILayout.HelpBox(warning, MessageType.Warning);
                 DrawUnknownWordPreview();
             }
             EditorGUILayout.Space(6f);
@@ -1038,13 +1150,9 @@ namespace Nekolpos.EditorTools
                 }
 
                 DrawPatternJumpControls();
-                DrawFooterDetails();
-                DrawNavigationShortcutHints();
 
-                if (!string.IsNullOrEmpty(lastBackupPath))
-                {
-                    EditorGUILayout.LabelField($"Backup: {lastBackupPath}", compactInfoStyle);
-                }
+
+
             }
         }
 
@@ -1056,7 +1164,7 @@ namespace Nekolpos.EditorTools
                 EditorGUILayout.LabelField("ID", GUILayout.Width(72f));
                 using (new EditorGUI.DisabledScope(patternGroups.Count == 0))
                 {
-                    jumpIdValue = EditorGUILayout.DelayedTextField(jumpIdValue ?? string.Empty, GUILayout.Width(96f));
+                    jumpIdValue = EditorGUILayout.DelayedTextField(FocusInput(jumpIdValue ?? string.Empty), GUILayout.Width(96f));
 
                     if (GUILayout.Button("ジャンプ", GUILayout.Width(76f), GUILayout.Height(22f)))
                     {
@@ -1147,7 +1255,7 @@ namespace Nekolpos.EditorTools
 
         private void DeleteCurrentLine(DialoguePatternGroup group)
         {
-            if (group == null || group.Entries == null || group.Entries.Count <= 1 || dataSet == null || dataSet.Entries == null)
+            if (group == null || group.Entries == null || group.Entries.Count == 0 || dataSet == null || dataSet.Entries == null)
             {
                 return;
             }
@@ -1159,10 +1267,22 @@ namespace Nekolpos.EditorTools
                 return;
             }
 
+            bool deletesPattern = group.Entries.Count == 1;
+            bool deletesId = deletesPattern && dataSet.Entries.Count(entry =>
+                string.Equals(entry.InternalId?.Trim(), entryToRemove.InternalId?.Trim(), StringComparison.OrdinalIgnoreCase)) == 1;
+            string warning = deletesId
+                ? $"ID {entryToRemove.InternalId} の最後の1行です。削除すると、このID自体が会話CSVから消えます。"
+                : deletesPattern
+                    ? $"Pattern {group.Pattern} の最後の1行です。削除すると、このPattern自体が消えます。"
+                    : $"Line {removeIndex + 1} を削除します。";
+            if (deletesPattern)
+                warning += deleteLinkedIdsWithLastLine
+                    ? "\n\nチェック済みのため、TalkTopic・独立日記リンク・共有されていない日記候補・Editor識別IDも保存時に削除します。"
+                    : "\n\n連携IDは残します。削除した会話を指す関連データも残るため、必要なら後で整理してください。";
             bool confirmed = EditorUtility.DisplayDialog(
-                "Line削除",
-                $"Line {removeIndex + 1} を削除しますか？",
-                "はい",
+                "会話行の削除警告",
+                warning + "\n\nこの操作を続けますか？",
+                "削除する",
                 "キャンセル");
             if (!confirmed)
             {
@@ -1171,7 +1291,16 @@ namespace Nekolpos.EditorTools
 
             DialogueEntry focusEntry = removeIndex > 0
                 ? group.Entries[removeIndex - 1]
-                : (group.Entries.Count > 1 ? group.Entries[1] : null);
+                : (group.Entries.Count > 1 ? group.Entries[1] : FindAdjacentEntry(entryToRemove));
+
+            if (deletesPattern && deleteLinkedIdsWithLastLine)
+            {
+                RemoveLinkedRecordsForDeletedDialogue(entryToRemove, dataSet.Entries.IndexOf(entryToRemove));
+                pendingDeletedDialogueIds ??= new List<string>();
+                if (!string.IsNullOrWhiteSpace(entryToRemove.EditorDialogueId) &&
+                    !pendingDeletedDialogueIds.Contains(entryToRemove.EditorDialogueId))
+                    pendingDeletedDialogueIds.Add(entryToRemove.EditorDialogueId);
+            }
 
             dataSet.Entries.Remove(entryToRemove);
             group.Entries.RemoveAt(removeIndex);
@@ -1179,6 +1308,13 @@ namespace Nekolpos.EditorTools
             hasPendingChanges = true;
             RebuildPatternCache(focusEntry);
             Repaint();
+        }
+
+        private DialogueEntry FindAdjacentEntry(DialogueEntry entry)
+        {
+            int index = dataSet.Entries.IndexOf(entry);
+            if (index > 0) return dataSet.Entries[index - 1];
+            return index >= 0 && index + 1 < dataSet.Entries.Count ? dataSet.Entries[index + 1] : null;
         }
 
         private void DrawStateLevelToolbar(Rect rect, string label, ref StateLevel level)
@@ -1196,111 +1332,49 @@ namespace Nekolpos.EditorTools
             }
         }
 
-        private string DrawConditionDropdownEditors(
-            string currentCondition,
-            string currentEmotionChangeType,
-            int currentEmotionChangeValue,
-            out string nextEmotionChangeType,
-            out int nextEmotionChangeValue)
+        private string DrawConditionDropdownEditors(string currentCondition, string currentEmotionChangeType, int currentEmotionChangeValue,
+            out string nextEmotionChangeType, out int nextEmotionChangeValue)
         {
-            ParsedConditionDropdownState parsed = ParseConditionDropdownState(currentCondition);
-            string[] nextSelections = new string[ConditionDropdownCount];
+            var parsed = ParseConditionDropdownState(currentCondition);
+            var selections = (string[])parsed.SelectedOptions.Clone();
+            var negated = (bool[])parsed.IsNegatedOptions.Clone();
             bool changed = false;
-            string normalizedEmotionChangeType = NormalizeEmotionChangeType(currentEmotionChangeType);
-            int emotionChangeTypeIndex = Mathf.Max(0, Array.IndexOf(EmotionChangeTypeOptions, normalizedEmotionChangeType));
-            int normalizedEmotionChangeValue = string.IsNullOrEmpty(normalizedEmotionChangeType)
-                ? 0
-                : NormalizeEmotionChangeValue(currentEmotionChangeValue);
-            int emotionChangeValueIndex = string.IsNullOrEmpty(normalizedEmotionChangeType)
-                ? 0
-                : GetEmotionChangeValuePopupIndex(currentEmotionChangeValue);
-            using (new EditorGUILayout.HorizontalScope())
+            for (int i = 0; i < ConditionDropdownCount; i++)
             {
-                EditorGUILayout.LabelField("condition", GUILayout.Width(74f));
-                for (int i = 0; i < ConditionDropdownCount; i++)
+                using (new EditorGUILayout.HorizontalScope())
                 {
-                    if (i > 0)
+                    GUILayout.Label("条件" + (char)('A' + i), GUILayout.Width(45));
+                    string category = GetAuthoringConditionCategory(selections[i]);
+                    int categoryIndex = Array.IndexOf(AuthoringCategoryKeys, category);
+                    int nextCategory = EditorGUILayout.Popup(FocusInput(Mathf.Max(0, categoryIndex)), AuthoringCategoryLabels, GUILayout.Width(145));
+                    if (nextCategory != categoryIndex) { selections[i] = AuthoringCategoryKeys[nextCategory] == "I" ? NewPsychologyNumericConditions()[0] : ConditionValuesForCategory(AuthoringCategoryKeys[nextCategory]).FirstOrDefault(); negated[i] = false; changed = true; }
+                    if (AuthoringCategoryKeys[nextCategory] == "I")
                     {
-                        GUILayout.Space(74f);
+                        changed |= DrawPsychologyConditionSelection(i, ref selections[i], ref negated[i]);
+                        continue;
                     }
-
-                    bool hasSelection = !string.IsNullOrEmpty(parsed.SelectedOptions[i]);
-                    using (new EditorGUI.DisabledScope(!hasSelection))
-                    {
-                        bool nextNegated = EditorGUILayout.ToggleLeft(
-                            new GUIContent($"{(char)('A' + i)} 不成立", "有効にすると、このConditionが不成立の場合にのみ一致します。"),
-                            hasSelection && parsed.IsNegatedOptions[i],
-                            GUILayout.Width(150f));
-                        if (hasSelection && nextNegated != parsed.IsNegatedOptions[i])
-                        {
-                            parsed.IsNegatedOptions[i] = nextNegated;
-                            changed = true;
-                        }
-                    }
-                }
-
-                GUILayout.FlexibleSpace();
-            }
-
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                for (int i = 0; i < ConditionDropdownCount; i++)
-                {
-                    int currentIndex = ConditionOptionToPopupIndex(parsed.SelectedOptions[i]);
-                    EditorGUILayout.LabelField(ConditionDropdownLabels[i], GUILayout.Width(74f));
-                    int nextIndex = EditorGUILayout.Popup(currentIndex, ConditionDropdownOptions, GUILayout.Width(150f));
-                    nextSelections[i] = PopupIndexToConditionOption(nextIndex);
-                    if (nextIndex != currentIndex)
-                    {
-                        changed = true;
-                    }
-                }
-
-                GUILayout.Space(8f);
-                EditorGUILayout.LabelField("会話後", GUILayout.Width(38f));
-                int nextEmotionChangeTypeIndex = EditorGUILayout.Popup(emotionChangeTypeIndex, EmotionChangeTypeLabels, GUILayout.Width(76f));
-                nextEmotionChangeType = EmotionChangeTypeOptions[nextEmotionChangeTypeIndex];
-                int nextEmotionChangeValueRawIndex = EditorGUILayout.Popup(
-                    string.IsNullOrEmpty(nextEmotionChangeType) ? 0 : emotionChangeValueIndex,
-                    EmotionChangeValueLabels,
-                    GUILayout.Width(88f));
-                nextEmotionChangeValue = string.IsNullOrEmpty(nextEmotionChangeType)
-                    ? 0
-                    : EmotionChangeValueOptions[Mathf.Clamp(nextEmotionChangeValueRawIndex, 0, EmotionChangeValueOptions.Length - 1)];
-                if (nextEmotionChangeTypeIndex != emotionChangeTypeIndex ||
-                    nextEmotionChangeValue != normalizedEmotionChangeValue)
-                {
-                    changed = true;
+                    string[] values = ConditionValuesForCategory(AuthoringCategoryKeys[nextCategory]);
+                    string[] labels = new[] { "なし" }.Concat(values.SelectMany(value => new[] { ConditionValueLabel(value, false), ConditionValueLabel(value, true) })).ToArray();
+                    int valueIndex = Array.IndexOf(values, selections[i]);
+                    int index = valueIndex < 0 ? 0 : 1 + valueIndex * 2 + (negated[i] ? 1 : 0);
+                    int next = EditorGUILayout.Popup(FocusInput(index), labels);
+                    if (next != index) { selections[i] = next == 0 ? null : values[(next - 1) / 2]; negated[i] = next > 0 && (next - 1) % 2 == 1; changed = true; }
                 }
             }
-
-            if (parsed.HasOpaqueCondition)
+            string result = changed ? BuildConditionFromSelections(selections, negated, parsed) : currentCondition ?? "";
+            DrawCompactNotice(parsed.HasOpaqueCondition ? "複雑なOR条件を保持中。二段選択を変更すると置き換えます。" : "同じ分類の短縮条件はOR、異なる分類はAND。表示外の条件は保持します。", parsed.HasOpaqueCondition ? MessageType.Warning : MessageType.Info);
+            showConditionExpression = EditorGUILayout.Foldout(showConditionExpression, "条件式・会話後の心理変化", true);
+            nextEmotionChangeType = currentEmotionChangeType; nextEmotionChangeValue = currentEmotionChangeValue;
+            if (showConditionExpression)
             {
-                EditorGUILayout.HelpBox(
-                    "OR 条件などドロップダウン非対応の condition です。ドロップダウンを変更すると選択内容で上書きします。",
-                    MessageType.Warning);
+                result = EditorGUILayout.TextField(FocusInput("条件式"), result);
+                int metric = Mathf.Max(0, Array.IndexOf(EmotionChangeTypeOptions, NormalizeEmotionChangeType(currentEmotionChangeType)));
+                metric = EditorGUILayout.Popup(FocusInput("会話後の心理値"), metric, EmotionChangeTypeLabels);
+                nextEmotionChangeType = EmotionChangeTypeOptions[metric];
+                int value = EditorGUILayout.Popup(FocusInput("変化量"), GetEmotionChangeValuePopupIndex(currentEmotionChangeValue), EmotionChangeValueLabels);
+                nextEmotionChangeValue = metric == 0 ? 0 : EmotionChangeValueOptions[value];
             }
-            else if (parsed.PreservedClauses.Count > 0)
-            {
-                EditorGUILayout.LabelField(
-                    $"保持中: {string.Join(" / ", parsed.PreservedClauses)}",
-                    compactInfoStyle);
-            }
-
-            string resolvedCondition = currentCondition ?? string.Empty;
-            if (changed)
-            {
-                resolvedCondition = BuildConditionFromSelections(nextSelections, parsed.IsNegatedOptions, parsed);
-            }
-
-            EditorGUILayout.LabelField(
-                $"condition preview: {(string.IsNullOrEmpty(resolvedCondition) ? "なし" : resolvedCondition)}",
-                compactInfoStyle);
-            EditorGUILayout.LabelField(
-                "同じ記号の条件は OR、別の記号同士は AND で扱います。",
-                compactInfoStyle);
-
-            return resolvedCondition;
+            return result;
         }
 
         private static ParsedConditionDropdownState ParseConditionDropdownState(string condition)
@@ -1314,12 +1388,13 @@ namespace Nekolpos.EditorTools
             string normalized = condition
                 .Replace(" AND ", " && ")
                 .Replace(" and ", " && ")
-                .Replace("AND", "&&")
                 .Replace("かつ", "&&")
                 .Replace(" または ", " || ")
                 .Replace(" OR ", " || ")
                 .Replace(" or ", " || ")
-                .Replace("OR", "||");
+                ;
+            normalized = Regex.Replace(normalized, @"\bAND\b", "&&", RegexOptions.IgnoreCase);
+            normalized = Regex.Replace(normalized, @"\bOR\b", "||", RegexOptions.IgnoreCase);
 
             if (normalized.Contains("||"))
             {
@@ -1345,6 +1420,7 @@ namespace Nekolpos.EditorTools
                     {
                         parsed.SelectedOptions[selectionIndex] = option;
                         parsed.IsNegatedOptions[selectionIndex] = isNegated || isLocationNegated;
+                        parsed.OriginalClauses[selectionIndex] = clause;
                         selectionIndex++;
                     }
                     else
@@ -1371,6 +1447,13 @@ namespace Nekolpos.EditorTools
                 return false;
             }
 
+            Match inverse = Regex.Match(normalized, @"^(affection|sadistic|concern|hostility|obedience|instinct)\s*<\s*(60|70|100)$", RegexOptions.IgnoreCase);
+            if (inverse.Success) { option = inverse.Groups[1].Value.ToLowerInvariant() + " >= " + inverse.Groups[2].Value; isLocationNegated = true; return true; }
+            normalized = Regex.Replace(normalized, @"\s*(>=|==|!=)\s*", " $1 ");
+            Match unequal = Regex.Match(normalized, @"^(affection|sadistic|concern|hostility|obedience|instinct) != 100$", RegexOptions.IgnoreCase);
+            if (unequal.Success) { option = unequal.Groups[1].Value.ToLowerInvariant() + " == 100"; isLocationNegated = true; return true; }
+            if (normalized.StartsWith("PsychologyState != ", StringComparison.OrdinalIgnoreCase))
+            { normalized = "PsychologyState == " + normalized.Substring("PsychologyState != ".Length); isLocationNegated = true; }
             Match locationMatch = LocationConditionOptionRegex.Match(normalized);
             if (locationMatch.Success)
             {
@@ -1416,7 +1499,9 @@ namespace Nekolpos.EditorTools
                     }
 
                     bool isNegated = negatedSelections != null && i < negatedSelections.Count && negatedSelections[i];
-                    string clause = BuildConditionClause(selection, isNegated);
+                    string clause = parsed != null && i < parsed.SelectedOptions.Length &&
+                        selection == parsed.SelectedOptions[i] && isNegated == parsed.IsNegatedOptions[i] && !string.IsNullOrEmpty(parsed.OriginalClauses[i])
+                        ? parsed.OriginalClauses[i] : BuildConditionClause(selection, isNegated);
                     clauses.Add(clause);
                     selectedClauses.Add(clause);
                 }
@@ -1441,6 +1526,7 @@ namespace Nekolpos.EditorTools
 
         private static string BuildConditionClause(string option, bool isNegated)
         {
+            if (isNegated && GetAuthoringConditionCategory(option) == "I") return option.Contains("==") ? option.Replace("==", "!=") : option.Replace(">=", "<");
             if (option != null && option.StartsWith("H: ", StringComparison.Ordinal))
             {
                 return $"H: {(isNegated ? "!" : string.Empty)}{option.Substring(3)}";
@@ -1489,7 +1575,6 @@ namespace Nekolpos.EditorTools
             string normalized = (condition ?? string.Empty)
                 .Replace(" AND ", " && ")
                 .Replace(" and ", " && ")
-                .Replace("AND", "&&")
                 .Replace("かつ", "&&");
             string[] splitClauses = normalized.Split(new[] { "&&" }, StringSplitOptions.None);
             for (int i = 0; i < splitClauses.Length; i++)
@@ -1551,7 +1636,7 @@ namespace Nekolpos.EditorTools
         private int DrawPriorityPopup(string label, int currentValue)
         {
             int currentIndex = GetPriorityOptionIndex(currentValue);
-            int nextIndex = EditorGUILayout.Popup(label, currentIndex, PriorityOptionLabels);
+            int nextIndex = EditorGUILayout.Popup(FocusInput(label), currentIndex, PriorityOptionLabels);
             return PriorityOptionValues[Mathf.Clamp(nextIndex, 0, PriorityOptionValues.Length - 1)];
         }
 
@@ -1582,7 +1667,7 @@ namespace Nekolpos.EditorTools
         {
             string normalized = NormalizeSpeechControl(currentValue);
             int currentIndex = GetSpeechControlOptionIndex(normalized);
-            int nextIndex = EditorGUILayout.Popup(label, currentIndex, SpeechControlOptionLabels);
+            int nextIndex = EditorGUILayout.Popup(FocusInput(label), currentIndex, SpeechControlOptionLabels);
             return SpeechControlOptionValues[Mathf.Clamp(nextIndex, 0, SpeechControlOptionValues.Length - 1)];
         }
 
@@ -1999,8 +2084,8 @@ namespace Nekolpos.EditorTools
             using (new EditorGUILayout.HorizontalScope())
             {
                 string nextJapanese = DrawChoiceLanguageField("JP", currentJapanese, 1.4f);
-                string nextEnglish = DrawChoiceLanguageField("EN", currentEnglish, 1f);
-                string nextChinese = DrawChoiceLanguageField("CN", currentChinese, 1f);
+                string nextEnglish = showOtherLanguages ? DrawChoiceLanguageField("EN", currentEnglish, 1f) : currentEnglish;
+                string nextChinese = showOtherLanguages ? DrawChoiceLanguageField("CN", currentChinese, 1f) : currentChinese;
 
                 bool changed =
                     !string.Equals(nextJapanese, currentJapanese, StringComparison.Ordinal) ||
@@ -2052,13 +2137,13 @@ namespace Nekolpos.EditorTools
             using (new EditorGUILayout.VerticalScope(GUILayout.ExpandWidth(true)))
             {
                 EditorGUILayout.LabelField(label, EditorStyles.miniLabel, GUILayout.Width(24f));
-                return EditorGUILayout.TextField(value ?? string.Empty, GUILayout.MinWidth(120f * widthWeight));
+                return EditorGUILayout.TextField(FocusInput(value ?? string.Empty), GUILayout.MinWidth(120f * widthWeight));
             }
         }
 
         private string DrawChoicePatternField(string label, string currentValue)
         {
-            string nextValue = EditorGUILayout.TextField(label, currentValue ?? string.Empty);
+            string nextValue = EditorGUILayout.TextField(FocusInput(label), currentValue ?? string.Empty);
             return string.IsNullOrWhiteSpace(nextValue)
                 ? string.Empty
                 : new string(nextValue.Where(char.IsDigit).ToArray());
@@ -2347,6 +2432,14 @@ namespace Nekolpos.EditorTools
                 options.Add($"H: {locationIds[i]}");
             }
 
+            foreach (string metric in EmotionChangeTypeOptions.Where(value => !string.IsNullOrEmpty(value)))
+            { options.Add(metric + " >= 60"); options.Add(metric + " >= 100"); }
+            foreach (string metric in EmotionChangeTypeOptions.Where(value => !string.IsNullOrEmpty(value))) options.Add(metric + " == 100");
+            options.Add("instinct >= 70");
+            string[] psychologyStates = { "NORMAL", "HOSTILITY", "SADISTIC", "CONCERN", "AFFECTION", "OBEDIENCE", "INSTINCT", "MATING", "AFFECTION_OBEDIENCE", "INSTINCT_OBEDIENCE", "HOSTILITY_SADISTIC", "CONCERN_HOSTILITY", "AFFECTION_HOSTILITY", "HOSTILITY_INSTINCT", "AFFECTION_CONCERN", "AFFECTION_SADISTIC", "AFFECTION_INSTINCT", "CONCERN_SADISTIC", "CONCERN_OBEDIENCE", "CONCERN_INSTINCT", "INSTINCT_SADISTIC", "HOSTILITY_OBEDIENCE", "OBEDIENCE_SADISTIC" };
+            foreach (string psychologyState in psychologyStates) options.Add("PsychologyState == \"" + psychologyState + "\"");
+            foreach (string condition in NewPsychologyNumericConditions().Concat(NewPsychologyStateConditions()))
+                if (!options.Contains(condition)) options.Add(condition);
             return options.ToArray();
         }
 
@@ -2794,12 +2887,13 @@ namespace Nekolpos.EditorTools
             string normalized = (condition ?? string.Empty)
                 .Replace(" AND ", " && ")
                 .Replace(" and ", " && ")
-                .Replace("AND", "&&")
                 .Replace("かつ", "&&")
                 .Replace(" または ", " || ")
                 .Replace(" OR ", " || ")
                 .Replace(" or ", " || ")
-                .Replace("OR", "||");
+                ;
+            normalized = Regex.Replace(normalized, @"\bAND\b", "&&", RegexOptions.IgnoreCase);
+            normalized = Regex.Replace(normalized, @"\bOR\b", "||", RegexOptions.IgnoreCase);
 
             string firstGroup = normalized.Split(new[] { "||" }, StringSplitOptions.None)[0];
             string[] clauses = firstGroup.Split(new[] { "&&" }, StringSplitOptions.None);
@@ -3039,7 +3133,12 @@ namespace Nekolpos.EditorTools
 
             try
             {
+                TryPersistSessionState();
                 ApplyLoadedDataSet(DialogueDataLoader.LoadFromPath(path));
+                authorDiagnostics = null;
+                showDetails = showBehaviour = showBranches = showDevelopment = showConditionExpression = showTeaching = false;
+                showTimeDiary = showTopics = showReadings = false;
+                scrollPosition = relatedScroll = Vector2.zero;
                 RebuildPatternCache();
                 ApplySessionSelection();
                 TryPersistSessionState();
@@ -3075,16 +3174,21 @@ namespace Nekolpos.EditorTools
 
             try
             {
+                TryPersistSessionState();
                 DialogueEntry focusEntry = GetCurrentEntry(GetCurrentGroup());
                 lastBackupPath = DialogueDataLoader.SaveToPath(dataSet, targetPath);
+                DialogueAuthoringIdentity.Save(dataSet);
                 dataSet.SourcePath = targetPath.Replace("\\", "/");
                 dataSet.SourceLabel = Path.GetFileName(targetPath);
                 dataSet.SavePath = targetPath.Replace("\\", "/");
                 dataSet.SaveLabel = Path.GetFileName(targetPath);
                 dataSet.IsDerivedFromGroupedSource = false;
                 dataSet.CompanionSourcePath = string.Empty;
+                bool compiledTalkData = false;
+                SaveRelatedDrafts(() => compiledTalkData = CompileTalkDataIfSourceCsv(targetPath));
+                DialogueAuthoringIdentity.Delete(pendingDeletedDialogueIds);
+                pendingDeletedDialogueIds?.Clear();
                 hasPendingChanges = false;
-                bool compiledTalkData = CompileTalkDataIfSourceCsv(targetPath);
 
                 if ((dataSet.SavePath ?? string.Empty).StartsWith("Assets/", StringComparison.OrdinalIgnoreCase))
                 {
@@ -3093,6 +3197,7 @@ namespace Nekolpos.EditorTools
 
                 ResetTransientPatternGroupKeys();
                 RebuildPatternCache(focusEntry);
+                TryPersistSessionState();
                 ShowNotification(new GUIContent(compiledTalkData ? "CSV saved / TalkData updated" : "CSV saved"));
             }
             catch (Exception exception)
@@ -3112,7 +3217,7 @@ namespace Nekolpos.EditorTools
                 return false;
             }
 
-            CSVCryptoCompiler.CompileCSVToBytes();
+            CSVCryptoCompiler.CompileForBuildOrThrow();
 
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string outputPath = Path.Combine(
@@ -3125,146 +3230,42 @@ namespace Nekolpos.EditorTools
                    File.GetLastWriteTimeUtc(outputPath) >= File.GetLastWriteTimeUtc(sourcePath);
         }
 
+        private readonly List<string> regexTestWarnings = new List<string>();
+
         private void RunRegexTest()
         {
             matchedRegexIds.Clear();
             matchedPatternIndices.Clear();
             currentRegexMatchResults.Clear();
             otherCsvRegexMatchSections.Clear();
+            regexTestWarnings.Clear();
             ResetUnknownWordPreview();
-
-            if (dataSet == null || dataSet.Entries == null || dataSet.Entries.Count == 0)
+            if (dataSet?.Entries == null || dataSet.Entries.Count == 0)
             {
                 regexStatus = "CSV未ロード";
                 return;
             }
-
-            bool hasJapaneseInput = !string.IsNullOrWhiteSpace(regexInput);
-            bool hasChineseInput = !string.IsNullOrWhiteSpace(regexInputChinese);
-            bool hasEnglishInput = !string.IsNullOrWhiteSpace(regexInputEnglish);
-            if (!hasJapaneseInput && !hasChineseInput && !hasEnglishInput)
+            if (string.IsNullOrWhiteSpace(regexInput) && string.IsNullOrWhiteSpace(regexInputChinese) && string.IsNullOrWhiteSpace(regexInputEnglish))
             {
                 regexStatus = "入力文字列が空です";
                 return;
             }
-
-            HashSet<string> regexIdSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            HashSet<int> patternIndexSet = new HashSet<int>();
-            bool hasAnyRegex = false;
-            int japaneseMatches = 0;
-            int chineseMatches = 0;
-            int englishMatches = 0;
-
-            for (int i = 0; i < dataSet.Entries.Count; i++)
-            {
-                DialogueEntry entry = dataSet.Entries[i];
-                bool matched = false;
-
-                matched |= TestRegex(entry.RegexPattern, GetNormalizedJapaneseRegexInput(), "JP", ref hasAnyRegex, ref japaneseMatches, ref regexStatus, out string japaneseError);
-                if (!string.IsNullOrEmpty(japaneseError))
-                {
-                    return;
-                }
-
-                matched |= TestRegex(entry.RegexPatternChinese, regexInputChinese, "简中", ref hasAnyRegex, ref chineseMatches, ref regexStatus, out string chineseError);
-                if (!string.IsNullOrEmpty(chineseError))
-                {
-                    return;
-                }
-
-                matched |= TestRegex(entry.RegexPatternEnglish, regexInputEnglish, "EN", ref hasAnyRegex, ref englishMatches, ref regexStatus, out string englishError);
-                if (!string.IsNullOrEmpty(englishError))
-                {
-                    return;
-                }
-
-                if (!matched)
-                {
-                    continue;
-                }
-
-                string regexId = string.IsNullOrWhiteSpace(entry.RegexId) ? "(empty)" : entry.RegexId;
-                regexIdSet.Add(regexId);
-            }
-
-            for (int patternIndex = 0; patternIndex < patternGroups.Count; patternIndex++)
-            {
-                DialoguePatternGroup group = patternGroups[patternIndex];
-                DialogueEntry representative = GetRepresentativeEntry(group);
-                if (representative != null && representative.CallOnly)
-                {
-                    continue;
-                }
-
-                string regexId = string.IsNullOrWhiteSpace(group.RegexId) ? "(empty)" : group.RegexId;
-                if (regexIdSet.Contains(regexId))
-                {
-                    patternIndexSet.Add(patternIndex);
-                }
-            }
-
-            List<string> sortedRegexIds = new List<string>(regexIdSet);
-            sortedRegexIds.Sort(CompareRegexIdOrder);
-            matchedRegexIds.AddRange(sortedRegexIds);
-            matchedPatternIndices.AddRange(patternIndexSet);
-            matchedPatternIndices.Sort();
-
-            if (matchedRegexIds.Count == 0)
-            {
-                regexStatus = hasAnyRegex ? "一致なし" : "regex列が見つかりません";
-            }
-            else
-            {
-                regexStatus =
-                    $"一致 regex_id: {string.Join(", ", matchedRegexIds)} / Pattern {matchedPatternIndices.Count}件" +
-                    $" / JP:{japaneseMatches} 简中:{chineseMatches} EN:{englishMatches}";
-            }
-
-            string currentDatasetError = null;
-            CollectCurrentRegexMatchResults(out currentDatasetError);
-            if (!string.IsNullOrEmpty(currentDatasetError))
-            {
-                regexStatus = currentDatasetError;
-                currentRegexMatchResults.Clear();
-                otherCsvRegexMatchSections.Clear();
-                return;
-            }
-
+            CollectCurrentRegexMatchResults(out string error);
             CollectOtherCsvRegexMatchResults();
             MarkTopRegexMatchItems();
-
-            matchedRegexIds.Clear();
-            matchedPatternIndices.Clear();
-
-            HashSet<string> visibleRegexIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < currentRegexMatchResults.Count; i++)
+            foreach (var item in currentRegexMatchResults)
             {
-                RegexMatchDisplayItem item = currentRegexMatchResults[i];
-                visibleRegexIds.Add(string.IsNullOrWhiteSpace(item.RegexId) ? "(empty)" : item.RegexId);
-                if (item.PatternIndex >= 0)
-                {
-                    matchedPatternIndices.Add(item.PatternIndex);
-                }
+                if (!matchedRegexIds.Contains(item.RegexId)) matchedRegexIds.Add(item.RegexId);
+                if (item.PatternIndex >= 0) matchedPatternIndices.Add(item.PatternIndex);
             }
-
-            matchedPatternIndices.Sort();
-            matchedRegexIds.AddRange(visibleRegexIds);
             matchedRegexIds.Sort(CompareRegexIdOrder);
-
-            if (currentRegexMatchResults.Count > 0)
-            {
-                int otherCsvMatchCount = 0;
-                for (int i = 0; i < otherCsvRegexMatchSections.Count; i++)
-                {
-                    otherCsvMatchCount += otherCsvRegexMatchSections[i].Items.Count;
-                }
-
-                regexStatus += $" / 他CSV:{otherCsvMatchCount}件";
+            matchedPatternIndices.Sort();
+            int otherCount = otherCsvRegexMatchSections.Sum(section => section.Items.Count);
+            regexStatus = $"一致 Pattern:{currentRegexMatchResults.Count}件 / 他CSV:{otherCount}件";
+            if (regexTestWarnings.Count > 0) regexStatus += $" / 不正な照合式:{regexTestWarnings.Count}件";
+            if (currentRegexMatchResults.Count > 0 || otherCount > 0)
                 unknownWordStatus = "通常Regex一致のため未実行";
-                return;
-            }
-
-            RunUnknownWordPreview();
+            else RunUnknownWordPreview();
         }
 
         private void DrawUnknownWordPreview()
@@ -3329,46 +3330,6 @@ namespace Nekolpos.EditorTools
             unknownWordMatchedKnownWords.Clear();
         }
 
-        private bool TestRegex(
-            string pattern,
-            string input,
-            string languageLabel,
-            ref bool hasAnyRegex,
-            ref int matchCount,
-            ref string status,
-            out string error)
-        {
-            error = null;
-            if (string.IsNullOrWhiteSpace(input))
-            {
-                return false;
-            }
-
-            if (string.IsNullOrWhiteSpace(pattern))
-            {
-                return false;
-            }
-
-            hasAnyRegex = true;
-
-            try
-            {
-                if (!Regex.IsMatch(input, pattern))
-                {
-                    return false;
-                }
-
-                matchCount++;
-                return true;
-            }
-            catch (ArgumentException exception)
-            {
-                status = $"regexエラー ({languageLabel}): {pattern} / {exception.Message}";
-                error = status;
-                return false;
-            }
-        }
-
         private void DrawCurrentRegexMatchResults()
         {
             for (int regexIndex = 0; regexIndex < matchedRegexIds.Count; regexIndex++)
@@ -3420,7 +3381,6 @@ namespace Nekolpos.EditorTools
                         if (!string.IsNullOrEmpty(section.ErrorMessage))
                         {
                             EditorGUILayout.HelpBox(section.ErrorMessage, MessageType.Warning);
-                            continue;
                         }
 
                         List<string> regexIds = section.Items
@@ -3492,14 +3452,10 @@ namespace Nekolpos.EditorTools
                         out RegexMatchDisplayItem item,
                         out error))
                 {
-                    if (!string.IsNullOrEmpty(error))
-                    {
-                        return;
-                    }
-
+                    if (!string.IsNullOrEmpty(error)) regexTestWarnings.Add($"{group.RegexId} / Pattern {group.Pattern}: {error}");
                     continue;
                 }
-
+                if (!string.IsNullOrEmpty(error)) regexTestWarnings.Add($"{group.RegexId} / Pattern {group.Pattern}: {error}");
                 currentRegexMatchResults.Add(item);
             }
 
@@ -3564,14 +3520,14 @@ namespace Nekolpos.EditorTools
                         {
                             if (!string.IsNullOrEmpty(error))
                             {
-                                section.ErrorMessage = error;
-                                section.Items.Clear();
-                                break;
+                                section.ErrorMessage = string.IsNullOrEmpty(section.ErrorMessage) ? error : section.ErrorMessage + "\n" + error;
                             }
 
                             continue;
                         }
 
+                        if (!string.IsNullOrEmpty(error))
+                            section.ErrorMessage = string.IsNullOrEmpty(section.ErrorMessage) ? error : section.ErrorMessage + "\n" + error;
                         section.Items.Add(item);
                     }
                 }
@@ -3622,13 +3578,11 @@ namespace Nekolpos.EditorTools
             for (int i = 0; i < entries.Count; i++)
             {
                 DialogueEntry entry = entries[i];
-                if (!TryEvaluateEntryRegexMatch(entry, out int matchLength, out string regexSummary, out error))
+                bool matched = TryEvaluateEntryRegexMatch(entry, out int matchLength, out string regexSummary, out string entryError);
+                if (!string.IsNullOrEmpty(entryError) && (error == null || error.IndexOf(entryError, StringComparison.Ordinal) < 0))
+                    error = string.IsNullOrEmpty(error) ? entryError : error + "\n" + entryError;
+                if (!matched)
                 {
-                    if (!string.IsNullOrEmpty(error))
-                    {
-                        return false;
-                    }
-
                     continue;
                 }
 
@@ -3684,8 +3638,7 @@ namespace Nekolpos.EditorTools
             }
             else if (!string.IsNullOrEmpty(japaneseError))
             {
-                error = japaneseError;
-                return false;
+                error = string.IsNullOrEmpty(error) ? japaneseError : error + "\n" + japaneseError;
             }
 
             if (TryMatchRegexPattern(entry.RegexPatternChinese, regexInputChinese, "简中", out int chineseMatchLength, out string chineseError))
@@ -3695,8 +3648,7 @@ namespace Nekolpos.EditorTools
             }
             else if (!string.IsNullOrEmpty(chineseError))
             {
-                error = chineseError;
-                return false;
+                error = string.IsNullOrEmpty(error) ? chineseError : error + "\n" + chineseError;
             }
 
             if (TryMatchRegexPattern(entry.RegexPatternEnglish, regexInputEnglish, "EN", out int englishMatchLength, out string englishError))
@@ -3706,8 +3658,7 @@ namespace Nekolpos.EditorTools
             }
             else if (!string.IsNullOrEmpty(englishError))
             {
-                error = englishError;
-                return false;
+                error = string.IsNullOrEmpty(error) ? englishError : error + "\n" + englishError;
             }
 
             if (bestMatchLength < 0)
@@ -3736,7 +3687,8 @@ namespace Nekolpos.EditorTools
 
             try
             {
-                MatchCollection matches = Regex.Matches(input, pattern);
+                string runtimePattern = languageLabel == "JP" ? JapaneseTextNormalizer.NormalizeToken(pattern) : pattern;
+                MatchCollection matches = Regex.Matches(input, runtimePattern, RegexOptions.None, TimeSpan.FromMilliseconds(250));
                 for (int i = 0; i < matches.Count; i++)
                 {
                     Match match = matches[i];
@@ -3752,6 +3704,11 @@ namespace Nekolpos.EditorTools
                 }
 
                 return longestMatchLength >= 0;
+            }
+            catch (RegexMatchTimeoutException exception)
+            {
+                error = $"regexタイムアウト ({languageLabel}): {pattern} / {exception.Message}";
+                return false;
             }
             catch (ArgumentException exception)
             {
@@ -4686,6 +4643,7 @@ namespace Nekolpos.EditorTools
 
         private void RebuildPatternCache(DialogueEntry focusEntry)
         {
+            regexAuthoringValidationDirty = true;
             patternGroups.Clear();
 
             if (dataSet == null || dataSet.Entries == null)
@@ -4853,6 +4811,7 @@ namespace Nekolpos.EditorTools
                 WaitTime = source.WaitTime,
                 HideUI = source.HideUI,
                 Animation = source.Animation,
+                ReactionIcon = source.ReactionIcon,
                 Priority = source.Priority,
                 Intent = source.Intent,
                 ReactionType = source.ReactionType,
@@ -5050,10 +5009,17 @@ namespace Nekolpos.EditorTools
         private void ApplyLoadedDataSet(DialogueDataLoader.DataSet loadedDataSet)
         {
             dataSet = loadedDataSet ?? new DialogueDataLoader.DataSet();
-            dataSet.SavePath = string.IsNullOrWhiteSpace(dataSet.SavePath) ? string.Empty : dataSet.SavePath;
-            dataSet.SaveLabel = string.IsNullOrWhiteSpace(dataSet.SaveLabel) ? string.Empty : dataSet.SaveLabel;
+            DialogueAuthoringIdentity.Bind(dataSet);
+            if (string.IsNullOrWhiteSpace(dataSet.SavePath) && !dataSet.IsDerivedFromGroupedSource)
+                dataSet.SavePath = dataSet.SourcePath ?? string.Empty;
+            dataSet.SaveLabel = string.IsNullOrWhiteSpace(dataSet.SaveLabel) ? Path.GetFileName(dataSet.SavePath) : dataSet.SaveLabel;
             ResetTransientPatternGroupKeys();
             regexStatus = "未実行";
+            regexAuthoringValidationDirty = true;
+            regexTestWarnings.Clear();
+            currentRegexMatchResults.Clear();
+            otherCsvRegexMatchSections.Clear();
+            ResetUnknownWordPreview();
             matchedRegexIds.Clear();
             matchedPatternIndices.Clear();
             cachedPreviewStatesBySelectionKey.Clear();
@@ -5070,14 +5036,16 @@ namespace Nekolpos.EditorTools
             }
 
             selectedTab = Mathf.Clamp(sessionState.SelectedTab, 0, 1);
-            if (dataSet != null &&
-                dataSet.Entries != null &&
-                dataSet.Entries.Count > 0)
+            if (dataSet != null && dataSet.Entries != null && dataSet.Entries.Count > 0)
             {
+                if (Path.GetFileName(dataSet.SourcePath) == "DialoguePreview_Integrated.csv" && !hasPendingChanges)
+                    ApplyLoadedDataSet(DialogueDataLoader.LoadFromPath("TalkSource/TalkCSV/DialoguePreview.csv"));
                 return;
             }
 
             string restorePath = sessionState.SavePath;
+            if (Path.GetFileName(restorePath) == "DialoguePreview_Integrated.csv" || Path.GetFileName(sessionState.SourcePath) == "DialoguePreview_Integrated.csv")
+            { restorePath = "TalkSource/TalkCSV/DialoguePreview.csv"; sessionState.SourcePath = sessionState.SavePath = restorePath; }
             if (string.IsNullOrWhiteSpace(restorePath))
             {
                 restorePath = sessionState.SourcePath;
@@ -5111,18 +5079,20 @@ namespace Nekolpos.EditorTools
 
         private void ApplySessionSelection()
         {
-            DialoguePreviewSessionState sessionState = ReadSessionState();
+            DialoguePreviewSessionState sessionState = ReadManuscriptState() ?? ReadSessionState();
             if (sessionState == null || patternGroups.Count == 0 || dataSet == null)
             {
                 return;
             }
 
             selectedTab = Mathf.Clamp(sessionState.SelectedTab, 0, 1);
-            if (!string.Equals(dataSet.SourcePath ?? string.Empty, sessionState.SourcePath ?? string.Empty, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(DialogueAuthoringIdentity.NormalizeSource(dataSet.SourcePath), DialogueAuthoringIdentity.NormalizeSource(sessionState.SourcePath), StringComparison.OrdinalIgnoreCase) &&
+                !(CurrentProfile?.Id == "normal-dialogue" && Path.GetFileName(sessionState.SourcePath) == "DialoguePreview_Integrated.csv"))
             {
                 return;
             }
 
+            RestoreAuthoringView(sessionState);
             int restoredPatternIndex = FindPatternIndex(sessionState);
             if (restoredPatternIndex < 0)
             {
@@ -5159,6 +5129,7 @@ namespace Nekolpos.EditorTools
         {
             string json = JsonUtility.ToJson(BuildSessionState());
             EditorPrefs.SetString(SessionStateEditorPrefsKey, json);
+            if (!string.IsNullOrWhiteSpace(dataSet.SourcePath)) EditorPrefs.SetString(ManuscriptStateKey(dataSet.SourcePath), json);
         }
 
         private DialoguePreviewSessionState BuildSessionState()
@@ -5183,11 +5154,14 @@ namespace Nekolpos.EditorTools
                 SourcePath = dataSet != null ? dataSet.SourcePath ?? string.Empty : string.Empty,
                 SavePath = dataSet != null ? dataSet.SavePath ?? string.Empty : string.Empty,
                 RegexId = group != null ? group.RegexId ?? string.Empty : string.Empty,
+                DialogueId = entry != null ? entry.EditorDialogueId ?? string.Empty : string.Empty,
                 Pattern = group != null ? group.Pattern ?? string.Empty : string.Empty,
                 PatternIndex = currentPatternIndex,
                 SequenceIndex = currentSequenceIndex,
                 EntryOrder = entry != null ? entry.Order : 0,
-                SelectedTab = selectedTab
+                SelectedTab = selectedTab, RelatedTab = activeRelatedTab, Details = showDetails, Behaviour = showBehaviour,
+                RelatedLayoutVersion = 1, TimeDiary = showTimeDiary, Topics = showTopics, Readings = showReadings,
+                Branches = showBranches, Development = showDevelopment, ConditionExpression = showConditionExpression, Teaching = showTeaching, RegexInput = regexInput
             };
         }
 
@@ -5211,6 +5185,11 @@ namespace Nekolpos.EditorTools
 
         private int FindPatternIndex(DialoguePreviewSessionState sessionState)
         {
+            if (!string.IsNullOrEmpty(sessionState.DialogueId))
+            {
+                int stableIndex = patternGroups.FindIndex(group => group.Entries.Any(entry => entry.EditorDialogueId == sessionState.DialogueId));
+                if (stableIndex >= 0) return stableIndex;
+            }
             for (int i = 0; i < patternGroups.Count; i++)
             {
                 DialoguePatternGroup group = patternGroups[i];

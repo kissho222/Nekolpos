@@ -14,14 +14,21 @@ namespace Nekolpos.EditorTools
 {
     public static class OpenBetaTitleSceneBuilder
     {
-        private const string TitleScenePath = "Assets/Scenes/TitleScene.unity";
+        private const string TitleScenePath = "Assets/Scenes/MainScene.unity";
         private const string OpenBetaYarnProjectGuid = "de6c9c325317d0a4898dff8bf9306d27";
         private const string PreferredTmpFontGuid = "20f1fc86d77d8e644a9eb04477e8615e";
 
         public static void BuildTitleSceneUi()
         {
             Debug.Log("[OpenBetaTitleSceneBuilder] BuildTitleSceneUi started.");
-            var scene = EditorSceneManager.OpenScene(TitleScenePath, OpenSceneMode.Single);
+            var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            if (scene.path == TitleScenePath && FindExistingCanvas() != null)
+            {
+                Debug.Log("[OpenBetaTitleSceneBuilder] Existing UI is preserved. Use FixedUiMigration to add missing controls.");
+                return;
+            }
+            if (scene.path != TitleScenePath) scene = EditorSceneManager.OpenScene(TitleScenePath, OpenSceneMode.Single);
+            if (FindExistingCanvas() != null) return;
             BuildInOpenScene();
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -31,9 +38,7 @@ namespace Nekolpos.EditorTools
         public static void BuildInOpenScene()
         {
             Debug.Log("[OpenBetaTitleSceneBuilder] BuildInOpenScene started.");
-            EnsureEventSystem();
-
-            GameObject canvasObject = GameObject.Find("OpenBetaCanvas");
+            GameObject canvasObject = FindExistingCanvas();
             if (canvasObject != null)
             {
                 Debug.LogError(
@@ -42,6 +47,7 @@ namespace Nekolpos.EditorTools
                 return;
             }
 
+            EnsureEventSystem();
             canvasObject = new GameObject("OpenBetaCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             canvasObject.transform.localScale = Vector3.one;
 
@@ -72,7 +78,7 @@ namespace Nekolpos.EditorTools
             DialogueLogManager dialogueLogManager = GetOrAdd<DialogueLogManager>(systems);
             YarnProject yarnProject = LoadOpenBetaYarnProject();
             YarnManager yarnManager = BuildYarnSystem(yarnProject);
-            OpenBetaTitleBootstrap bootstrap = GetOrAdd<OpenBetaTitleBootstrap>(systems);
+            NekolposGameBootstrap bootstrap = GetOrAdd<NekolposGameBootstrap>(systems);
             CatPresentationModeController catPresentationMode = FindExistingCatPresentationModeController()
                 ?? GetOrAdd<CatPresentationModeController>(systems);
             PlayableDirector director = Object.FindFirstObjectByType<PlayableDirector>();
@@ -102,6 +108,14 @@ namespace Nekolpos.EditorTools
             callCatPanel.gameObject.SetActive(false);
             ApplyPreferredFont(canvasObject.transform);
             Debug.Log("[OpenBetaTitleSceneBuilder] BuildInOpenScene finished.");
+        }
+
+        private static GameObject FindExistingCanvas()
+        {
+            foreach (Canvas canvas in Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (canvas.name == "OpenBetaCanvas" && canvas.gameObject.scene == UnityEngine.SceneManagement.SceneManager.GetActiveScene())
+                    return canvas.gameObject;
+            return null;
         }
 
         private static CatPresentationModeController FindExistingCatPresentationModeController()

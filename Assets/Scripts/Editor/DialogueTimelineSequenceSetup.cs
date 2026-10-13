@@ -9,7 +9,7 @@ namespace Nekolpos.EditorTools
 {
     public static class DialogueTimelineSequenceSetup
     {
-        [MenuItem("Tools/Nekolpos/Timeline Sequences/Configure Maw")]
+
         public static void ConfigureMaw()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new global::System.InvalidOperationException("Configure outside Play mode.");

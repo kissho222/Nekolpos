@@ -1,0 +1,35 @@
+# 固定UIの編集と開発ルール（Issue #40）
+
+固定UIはRuntimeで新規生成せず、SceneまたはPrefabを見た目の正本とする。Runtimeコードは状態制御・イベント接続・値反映に限定する。実行時に個数が変動する要素のみRuntime生成を許可し、その場合も要素PrefabのInstantiateを優先する。
+
+## 現行構成
+
+Build対象はMainSceneで、旧TitleScene/GameSceneは使用しない。OpenBetaCanvas以下にタイトルのIntro/About/Worldview/TrainingData/Credit/CharacterSetup/CallCatとPause Menuが存在する。Start/About/Steam/Quit/Back等の既存UIを維持し、設定入口、OPスキップ、開発用DebugButtonとPauseの設定・スタック脱出・閉じる、CharacterSetupの不足する戻るButton・名前入力警告Text（警告機能が有効な場合）をEditor上に追加する。両設定入口はSceneに配置した同じAssets/Prefab/SettingsPanel.prefabインスタンスをSerializeFieldで参照する。
+
+タイトル・Pauseの固定UIはPlay前からHierarchyで選択してRectTransform、LayoutElement、LayoutGroup、フォントを調整する。OPスキップは保存の有無、スタック脱出は散歩状態、DebugはBuild種別で表示のみを切り替える。Pauseの開閉アニメーションに伴うScale、Button状態、Slider/Toggle値、Dropdownの動的項目はRuntimeが制御するが、Position/Size/Anchor/Padding/Spacingは設定し直さない。
+
+## Editorツール
+
+FixedUiMigration.cs（Editor専用）のNekolpos > UI > Migrate Missing Fixed UIはMainSceneの不足固定UIと参照を追加する。既存要素やPrefabがあればその見た目を再生成しない。初回Prefab作成に限り従来のSettingsPanel組み立て処理をEditorで使用する。既存UIThemeApplierの自動適用は移行時に無効化し、CharacterSetupは既存外観を保持する。必要なテーマ変更は明示的なEditorツールで行う。移行ツールは自動保存しない。
+
+OpenBetaTitleSceneBuilderは新規Sceneの初期生成だけに使用する。既存OpenBetaCanvasは非Activeでも検出し、再構築しない。現在のMainSceneを不用意に開き直さず、未保存のInspector編集を保持する。OpenBetaUiFactoryはEditor初期生成等に使い、固定UIのRuntime生成には使わない。
+
+## 今回の範囲外
+
+Issue #45で時間経過・行動結果表示は固定UIへ移行済み。`ActionResultPanel.prefab`をMainSceneに配置し、既存`ResultTextUI`へ接続する。文字量に応じたサイズ調整はPrefabのLayoutGroup、画面幅への収容はTMP Auto Sizeで行う。詳細は`docs/TimedEventResultUI.md`を参照。
+
+Issue #49で散歩専用の吹き出し・選択肢も固定Viewへ移行済み。`WalkDialogueView.prefab`をMainSceneへ配置し、Playerの既存WalkDialogueControllerへ参照接続する。キーボードの選択・決定には既存EventSystemを使用する。詳細は`docs/WalkDialogue.md`を参照。
+
+全ゲームUIの一括Prefab化は行わない。通常会話選択肢、ログの可変行、TMP_Dropdownが生成する候補行、入力用のキャレット等は動的UIとして維持する。共通ControlGuideHUD、Tabletの補助UI、デバッグ画面等の既存Runtime生成は今回のTitle/Settings/Pause移行の対象外とし、今後の固定UI追加は本ルールに従う。CharacterSetupの旧InputFieldとTMPミラー/キャレットの互換処理は変更しない。
+
+## 確認
+
+保存したMainSceneを開くだけで固定UIと参照が存在すること、繰り返し移行しても要素数/編集値が維持されること、タイトル進行・設定保存・Pause維持・戻る・散歩スタック脱出を回帰確認する。Build/実機で未確認の範囲はHANDOFFとIssue報告へ記録する。
+
+## 2026-10-04の検証
+
+正規Unity Test Runnerで関連70ケースを検証。初回は69成功・BGM切替の実時間期限1件失敗、単独再実行で同件成功。外観参照の復元と自動テーマ停止後、共通設定/Pause/編集値保持の2ケースも再成功。移行前の未保存MainSceneは別コピーに退避し、既存画像/文字色18参照を復元した。再移行でSelectable数117→117、Inspector位置を変更しても保持されることを確認。最終確認結果・不足警告追加後の再検証はHANDOFF/Issueを正とする。
+
+MainScene Playでタイトル設定、Start→CharacterSetup→Back、About/Worldview/TrainingData/Credit→Back、既存CallCatPrompt表示を確認。外部リンクの実ブラウザー遷移とQuitの実Player終了は未操作。WebGLは261 Runtimeソースの条件コンパイル（実WebGLModule追加）でError0/Warning0。Windows Release Playerは実ビルド成功。WebGL実Player Build/ブラウザーとWindows Playerの人による最終見た目・解像度変更は未検証。
+
+最終追加分の正規Runner XMLは2026-10-04 12:51:27Z〜12:51:30Z、22/22成功・Skip0。最終Windows Release再Buildは19.42秒・1963.45MB・Error0/Warning0（12:53:49Z完了）。最終Play停止、Console Error0、MainScene保存済み。

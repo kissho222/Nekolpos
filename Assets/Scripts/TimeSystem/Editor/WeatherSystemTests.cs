@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using Backgammon.Conversation;
 using NUnit.Framework;
@@ -9,6 +9,60 @@ namespace Nekolpos.TimeSystem.Editor
     public sealed class WeatherSystemTests
     {
         private const string GameStartDateTicksPrefsKey = "Nekolpos.Time.GameStartDateTicks";
+
+        private bool hadSavedDay;
+        private int savedDay;
+
+        [SetUp]
+        public void IsolateSavedDay()
+        {
+            hadSavedDay = PlayerPrefs.HasKey(TimeManager.CurrentDayPrefsKey);
+            savedDay = PlayerPrefs.GetInt(TimeManager.CurrentDayPrefsKey, 0);
+            PlayerPrefs.DeleteKey(TimeManager.CurrentDayPrefsKey);
+        }
+
+        [TearDown]
+        public void RestoreSavedDay()
+        {
+            if (hadSavedDay) PlayerPrefs.SetInt(TimeManager.CurrentDayPrefsKey, savedDay);
+            else PlayerPrefs.DeleteKey(TimeManager.CurrentDayPrefsKey);
+            PlayerPrefs.Save();
+        }
+
+        [TestCase(0)]
+        [TestCase(-1)]
+        [TestCase(int.MaxValue)]
+        public void InvalidSavedDay_FallsBackToDayOne(int day)
+        {
+            PlayerPrefs.SetInt(TimeManager.CurrentDayPrefsKey, day);
+            Assert.That(TimeManager.HasSavedProgress, Is.False);
+            Assert.That(TimeManager.LoadCurrentDay(), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void NextMorning_PersistsDayAndRecreatedManagerStartsAtMorning()
+        {
+            GameObject first = new GameObject("SavedDayTest");
+            GameObject second = null;
+            try
+            {
+                TimeManager manager = first.AddComponent<TimeManager>();
+                Assert.That(manager.CurrentDay, Is.EqualTo(1));
+                manager.SetCurrentTime(4, DayPeriod.Night);
+                manager.AdvanceToNextMorning();
+                Assert.That(TimeManager.LoadCurrentDay(), Is.EqualTo(5));
+                second = new GameObject("RestoredDayTest");
+                TimeManager restored = second.AddComponent<TimeManager>();
+                Assert.That(restored.CurrentDay, Is.EqualTo(5));
+                Assert.That(restored.CurrentPeriod, Is.EqualTo(DayPeriod.Morning));
+                Assert.That(restored.GetCalendarDate(restored.CurrentDay), Is.EqualTo(manager.GetCalendarDate(5)));
+            }
+            finally
+            {
+                if (second != null) UnityEngine.Object.DestroyImmediate(second);
+                UnityEngine.Object.DestroyImmediate(first);
+            }
+        }
 
         [Test]
         public void GenerateRandomWeather_MatchesWeightedBoundaries()

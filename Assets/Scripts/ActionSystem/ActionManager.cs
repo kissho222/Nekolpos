@@ -88,7 +88,7 @@ namespace Nekolpos.ActionSystem
             EnsureInitialized();
         }
 
-        public async UniTask<ActionFlowResult> RunActionFlowAsync(ActionRequest request)
+        public async UniTask<ActionFlowResult> RunActionFlowAsync(ActionRequest request, Func<bool> followUp = null)
         {
             EnsureInitialized();
             chatUI?.HideChoices();
@@ -128,7 +128,7 @@ namespace Nekolpos.ActionSystem
                     choice.ActionData,
                     request.TriggerId,
                     request.SourceDialogue,
-                    request.SuppressTimeTransitionGreeting);
+                    request.SuppressTimeTransitionGreeting, followUp);
                 return ActionFlowResult.Executed;
             }
             finally
@@ -205,61 +205,29 @@ namespace Nekolpos.ActionSystem
             choiceUI.Initialize(runtimeCanvas, runtimeFont);
         }
 
-        private async UniTask PlayTimeTransitionGreetingAsync(TimeAdvanceResult timeResult)
-        {
-            if (dialogueManager == null || timeManager == null)
-            {
-                return;
-            }
 
-            if (!timeManager.TryGetTransitionGreeting(timeResult, out string greeting))
-            {
-                return;
-            }
-
-            await dialogueManager.PlayIsolatedGreetingAsync(greeting);
-        }
 
         private async UniTask ExecuteActionDataAsync(
-            ActionData actionData,
-            string triggerId,
-            string sourceDialogue,
-            bool suppressTimeTransitionGreeting)
+            ActionData actionData, string triggerId, string sourceDialogue,
+            bool suppressTimeTransitionGreeting, Func<bool> followUp = null)
         {
+            if (dialogueManager == null) throw new InvalidOperationException("TimeFlow requires DialogueManager.");
             bool interactionPurrEnabled = IsTouchInteractionAction(actionData, triggerId);
             hasLastTimeResult = false;
-            chatUI?.SetUiSuppressed(true);
-            chatUI?.ClearDialogueDisplay();
-            chatUI?.HideChoices();
             try
             {
-                SetPurrInteractionActive(interactionPurrEnabled);
-                await fadeController.FadeOutAsync();
-
-                ActionExecutionResult result = await actionExecutor.ExecuteAsync(
-                    actionData,
-                    new ActionExecutionContext(triggerId, sourceDialogue));
-                lastTimeResult = result.TimeResult;
-                hasLastTimeResult = true;
-
-                fadeController.BringToFront();
-                resultTextUI.BringToFront();
-                string resultMessage = dialogueManager != null
-                    ? dialogueManager.FormatRuntimeText(result.Message)
-                    : result.Message;
-                await resultTextUI.ShowResultAsync(resultMessage, resultDisplaySeconds);
-                await fadeController.FadeInAsync();
-                chatUI?.SetUiSuppressed(false);
-                if (!suppressTimeTransitionGreeting)
-                {
-                    await PlayTimeTransitionGreetingAsync(result.TimeResult);
-                }
+                await dialogueManager.RequestTimeAdvanceAsync(
+                    new TimeAdvanceRequest(Mathf.Max(0, actionData.TimeCost), TimeAdvanceReason.Action), async timeResult =>
+                    {
+                        SetPurrInteractionActive(interactionPurrEnabled);
+                        ActionExecutionResult result = await actionExecutor.ExecuteAsync(
+                            actionData, new ActionExecutionContext(triggerId, sourceDialogue));
+                        lastTimeResult = timeResult; hasLastTimeResult = true;
+                        string text = dialogueManager.FormatRuntimeText(result.Message);
+                        await resultTextUI.ShowResultAsync(text, resultDisplaySeconds);
+                    }, followUp);
             }
-            finally
-            {
-                SetPurrInteractionActive(false);
-                chatUI?.SetUiSuppressed(false);
-            }
+            finally { SetPurrInteractionActive(false); }
         }
 
         private static bool IsTouchInteractionAction(ActionData actionData, string triggerId)

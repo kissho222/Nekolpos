@@ -10,6 +10,9 @@ public sealed class PlayerAreaTracker : MonoBehaviour
 {
     public const string NoneAreaId = "None";
 
+    private static PlayerAreaTracker activeConditionTracker;
+    private static bool conditionTrackerIsRequired;
+
     [Header("Detection")]
     [Tooltip("CharacterControllerがあれば、その中心をエリア判定に使う。")]
     [SerializeField] private CharacterController characterController;
@@ -26,14 +29,56 @@ public sealed class PlayerAreaTracker : MonoBehaviour
     public IReadOnlyList<PlayerAreaVolume> CurrentCandidateAreas => currentCandidateAreas;
     public bool HasCurrentArea => currentArea != null;
 
+    /// <summary>
+    /// Returns the tracker explicitly supplied by the active gameplay bootstrap.
+    /// Legacy scenes without a tracker can use their documented condition fallback.
+    /// </summary>
+    public static bool TryGetConditionAreaId(out string areaId)
+    {
+        if (activeConditionTracker != null)
+        {
+            areaId = activeConditionTracker.CurrentAreaId;
+            return true;
+        }
+
+        areaId = NoneAreaId;
+        return conditionTrackerIsRequired;
+    }
+
+    public static void SetConditionTracker(PlayerAreaTracker tracker)
+    {
+        tracker?.RegisterAsConditionTracker();
+    }
+
+    public static void ConfigureConditionTracker(PlayerAreaTracker tracker)
+    {
+        conditionTrackerIsRequired = true;
+        SetConditionTracker(tracker);
+    }
+
+    public static void ClearConditionTrackerConfiguration()
+    {
+        conditionTrackerIsRequired = false;
+    }
+
     private void Awake()
     {
         EnsureCharacterController();
+        RegisterAsConditionTracker();
     }
 
     private void OnEnable()
     {
+        RegisterAsConditionTracker();
         RefreshAreaNow();
+    }
+
+    private void OnDestroy()
+    {
+        if (activeConditionTracker == this)
+        {
+            activeConditionTracker = previousConditionTracker;
+        }
     }
 
     private void LateUpdate()
@@ -112,6 +157,19 @@ public sealed class PlayerAreaTracker : MonoBehaviour
         {
             characterController = GetComponent<CharacterController>();
         }
+    }
+
+    private PlayerAreaTracker previousConditionTracker;
+
+    private void RegisterAsConditionTracker()
+    {
+        if (activeConditionTracker == this)
+        {
+            return;
+        }
+
+        previousConditionTracker = activeConditionTracker;
+        activeConditionTracker = this;
     }
 
     private void SetCurrentArea(PlayerAreaVolume nextArea)

@@ -1,12 +1,98 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace Nekolpos.EditorTools
 {
     internal static class TalkTopicMasterCsvUtility
     {
+        public const string SourcePath = "TalkSource/Dialogue/TalkTopicMaster.csv";
+        public const string RuntimePath = "Assets/Resources/Dialogue/TalkTopicMaster.csv";
+
+        public static void Synchronize(string sourcePath, string runtimePath)
+        {
+            ReadDocument(sourcePath); // Reject malformed source before publishing it.
+            byte[] bytes = File.ReadAllBytes(sourcePath);
+            AtomicWrite(runtimePath, bytes);
+        }
+
+        public static void AtomicWrite(string path, byte[] bytes)
+        {
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            path = Path.GetFullPath(path);
+            if (File.Exists(path) && RetryFileAccess(() => File.ReadAllBytes(path)).SequenceEqual(bytes)) return;
+            if (File.Exists(path) && (File.GetAttributes(path) & FileAttributes.ReadOnly) != 0)
+                throw new UnauthorizedAccessException("保存先が読み取り専用です: " + path);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                File.WriteAllBytes(temporary, bytes);
+                RetryFileAccess(() =>
+                {
+                    // Mono File.Replace can fail while merging/removing the old Windows file.
+                    // Rename in the same directory; never delete the original before publishing.
+                    if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                    {
+                        if (!MoveFileEx(temporary, path, 0x1 | 0x8))
+                        {
+                            var error = new Win32Exception(Marshal.GetLastWin32Error());
+                            throw new IOException("ファイルを保存できません: " + path + "\n他のアプリで開いている場合は閉じて再試行してください。\nWindows error " + error.NativeErrorCode + ": " + error.Message, error);
+                        }
+                    }
+                    else if (File.Exists(path)) File.Replace(temporary, path, null, true);
+                    else File.Move(temporary, path);
+                    return true;
+                });
+            }
+            finally { if (File.Exists(temporary)) File.Delete(temporary); }
+        }
+
+        [DllImport("kernel32.dll", EntryPoint = "MoveFileExW", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool MoveFileEx(string existingPath, string newPath, uint flags);
+
+        private static T RetryFileAccess<T>(Func<T> operation)
+        {
+            for (int attempt = 0; ; attempt++)
+            {
+                try { return operation(); }
+                catch (IOException exception) when (attempt < 4 && IsTransientFileAccess(exception))
+                {
+                    Thread.Sleep(25 << attempt); // Bound UI blocking to 375ms per operation.
+                }
+            }
+        }
+        private static bool IsTransientFileAccess(IOException exception)
+        {
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT) return false;
+            int code = exception.InnerException is Win32Exception native ? native.NativeErrorCode : exception.HResult & 0xffff;
+            return code == 5 || code == 32 || code == 33;
+        }
+
+        public static void SaveAndSynchronize(string sourcePath, string runtimePath, Action saveSource)
+        {
+            byte[] previous = File.Exists(sourcePath) ? File.ReadAllBytes(sourcePath) : null;
+            try { saveSource(); Synchronize(sourcePath, runtimePath); }
+            catch
+            {
+                if (previous != null) AtomicWrite(sourcePath, previous);
+                else if (File.Exists(sourcePath)) File.Delete(sourcePath);
+                throw;
+            }
+        }
+
+        [UnityEditor.MenuItem("Nekolpos/TalkTopic正本をRuntimeへ同期")]
+        public static void SynchronizeProjectMaster()
+        {
+            Synchronize(SourcePath, RuntimePath);
+            UnityEditor.AssetDatabase.Refresh();
+        }
         public const string TalkID = "TalkID";
         public const string TalkTitle = "TalkTitle";
         public const string Source = "Source";
@@ -45,6 +131,11 @@ namespace Nekolpos.EditorTools
         public static CsvDocument ReadDocument(string path)
         {
             string raw = File.Exists(path) ? File.ReadAllText(path, Encoding.UTF8) : string.Empty;
+            return ReadDocumentText(raw);
+        }
+
+        public static CsvDocument ReadDocumentText(string raw)
+        {
             List<CsvRecord> records = Parse(raw);
             CsvDocument document = new CsvDocument();
             if (records.Count == 0)
@@ -119,7 +210,8 @@ namespace Nekolpos.EditorTools
                 builder.AppendLine();
             }
 
-            File.WriteAllText(path, builder.ToString(), new UTF8Encoding(true));
+            byte[] body = new UTF8Encoding(false).GetBytes(builder.ToString());
+            AtomicWrite(path, body);
         }
 
         public static string ReadValue(Dictionary<string, string> row, params string[] names)
@@ -267,6 +359,18 @@ namespace Nekolpos.EditorTools
 
                 builder.Append(Escape(values[i]));
             }
+        }
+
+        public static string SerializeDocument(CsvDocument document)
+        {
+            var builder = new StringBuilder(); AppendRow(builder, document.Headers); builder.AppendLine();
+            foreach (var row in document.Rows)
+            {
+                var values = new List<string>();
+                foreach (string header in document.Headers) values.Add(ReadValue(row, header));
+                AppendRow(builder, values); builder.AppendLine();
+            }
+            return builder.ToString();
         }
 
         private static string Escape(string value)

@@ -25,7 +25,7 @@ namespace Nekolpos.UI
         private void OnValidate()
         {
 #if UNITY_EDITOR
-            if (!Application.isPlaying)
+            if (applyOnAwake && !Application.isPlaying)
             {
                 UnityEditor.EditorApplication.delayCall -= ApplyAfterValidate;
                 UnityEditor.EditorApplication.delayCall += ApplyAfterValidate;
@@ -37,7 +37,7 @@ namespace Nekolpos.UI
         private void ApplyAfterValidate()
         {
             UnityEditor.EditorApplication.delayCall -= ApplyAfterValidate;
-            if (this == null || Application.isPlaying)
+            if (this == null || !applyOnAwake || Application.isPlaying)
             {
                 return;
             }

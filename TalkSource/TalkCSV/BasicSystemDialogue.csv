@@ -1,8 +1,9 @@
 key,pattern,order,condition,priority,ja,en,zh,response_type,action_id,choice_yes_pattern,choice_no_pattern,question_ja,question_en,question_cn,choice_yes_ja,choice_yes_en,choice_yes_cn,choice_no_ja,choice_no_en,choice_no_cn,notes,
 greeting_morning,greeting_morning,1,Morning,10,おはよう！朝だね。今日はなにしようか。,Good morning! It's morning. What should we do today?,早上好！已经早晨了。今天做什么呢？,Reaction,,,,,,,,,,,,,通常の朝挨拶,
 greeting_day,greeting_day,1,Day,10,昼だね。お腹空いてない？,It's daytime. Aren't you hungry?,中午了。你肚子饿吗？,Reaction,,,,,,,,,,,,,昼の挨拶,
-greeting_night,greeting_night,1,Night,10,夜だね。寝る前に何かする？,,,Reaction,,,,,,,,,,,,,夜の挨拶,
+greeting_night,greeting_night,1,Night,10,夜だね。寝る前に日記書くよね？,,,Reaction,,,,,,,,,,,,,夜の挨拶,
 greeting_evening,greeting_evening,1,Evening,10,夕方だね。やり忘れたことはない？,It's evening. Did you forget to do anything?,傍晚了。有没有什么忘记做的？,Reaction,,,,,,,,,,,,,夕の挨拶,
+greeting_after_diary,greeting_evening,1,Night,10,日記書き終わった？じゃあ今日も寝ようか。おやすみ。,,,Reaction,,,,,,,,,,,,,夕の挨拶,
 greeting_revived_morning,greeting_revived_morning,1,Morning,100,……おはよう。どんな気分？無事に生き返れたみたいだね。,I thought you had died...,我还以为你已经死掉了……,Reaction,,,,,,,,,,,,,死亡フラグ後の朝挨拶,
 unknown_word_prompt,unknown_word_prompt,1,,10,{unknown_word}ってなに？もしかして、言葉を教えてくれるの？,What's {unknown_word}? Could you tell me what it means?,{unknown_word}是什么？你能告诉我这是什么意思吗？,Choice,,unknown_word_teach_yes,unknown_word_teach_no,,,,言葉を教える,"Yes, I'll explain.",嗯，我来解释,やめておく,"No, that's not it.",不是哦,未知語の聞き返しテンプレート,
 unknown_word_teach_yes,unknown_word_teach_yes,1,,10,やったー！じゃあ、{unknown_word}ってどういう意味？,Okay. Then what does {unknown_word} mean?,明白了。那么，{unknown_word}是什么意思？,Event,unknown_word_teach_event,,,,,,,,,,,,未知語を教えてもらうイベント分岐,
@@ -119,3 +120,7 @@ TEACH_RESET_BUTTON,TEACH_RESET_BUTTON,1,,100,教えた内容を初期化,,,React
 TEACH_RESET_CONFIRM,TEACH_RESET_CONFIRM,1,,100,これまで教えた猫作品や言葉の記録を初期化しますか？,,,Choice,TeachingMode:ResetExecute,,,,,,,初期化する,,,やめる,,,OBT初期化確認
 TEACH_RESET_DONE,TEACH_RESET_DONE,1,,100,教えた内容を初期化しました。,,,Reaction,,,,,,,,,,,,,OBT初期化完了,
 TEACH_RESET_CANCEL,TEACH_RESET_CANCEL,1,,100,初期化をやめました。,,,Reaction,,,,,,,,,,,,,OBT初期化キャンセル,
+greeting_morning,learned_greeting_morning,1,HasValue:random_greeting_morning && Morning,20,{{random_greeting_morning}}！,,,Reaction,,,,,,,,,,,,,学習済み使用条件に合う挨拶。場面未定義では場面指定語を除外。,
+greeting_day,learned_greeting_day,1,HasValue:random_greeting_day && Day,20,{{random_greeting_day}}！,,,Reaction,,,,,,,,,,,,,学習済み使用条件に合う挨拶。場面未定義では場面指定語を除外。,
+greeting_evening,learned_greeting_evening,1,HasValue:random_greeting_evening && Evening,20,{{random_greeting_evening}}！,,,Reaction,,,,,,,,,,,,,学習済み使用条件に合う挨拶。場面未定義では場面指定語を除外。,
+greeting_night,learned_greeting_night,1,HasValue:random_greeting_night && Night,20,{{random_greeting_night}}！,,,Reaction,,,,,,,,,,,,,学習済み使用条件に合う挨拶。場面未定義では場面指定語を除外。,

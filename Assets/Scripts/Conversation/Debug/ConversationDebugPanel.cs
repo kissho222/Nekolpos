@@ -16,6 +16,17 @@ namespace Backgammon.Conversation
 {
     public sealed class ConversationDebugPanel : MonoBehaviour
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private Nekolpos.System.DebugConsoleInput.Lease consoleInputLease;
+        public bool CanOpenExistingWindow => debugRoot != null && gameStateManager != null;
+        public bool TryOpenFromConsole()
+        {
+            if (!CanOpenExistingWindow || !CanEditFromDebug()) return false;
+            debugRoot.SetActive(true); isDebugWindowVisible = true; SyncDebugWindowState();
+            consoleInputLease = Nekolpos.System.DebugConsoleInput.Acquire(debugRoot.transform);
+            return consoleInputLease != null;
+        }
+        private void OnDisable() { consoleInputLease?.Dispose(); consoleInputLease = null; }
         private const string DebugLogPrefix = "[ConversationDebugPanel]";
 
         [Header("System References")]
@@ -108,6 +119,7 @@ namespace Backgammon.Conversation
 
         private void OnDestroy()
         {
+            consoleInputLease?.Dispose(); consoleInputLease = null;
             if (personalityView != null)
             {
                 personalityView.PersonalityValueChanged -= HandlePersonalityValueChanged;
@@ -119,6 +131,11 @@ namespace Backgammon.Conversation
 
         private void Update()
         {
+            if (consoleInputLease != null)
+            {
+                consoleInputLease.Refresh();
+                if (Input.GetKeyDown(KeyCode.F1) && string.IsNullOrEmpty(Input.compositionString)) { ToggleDebugWindow(); return; }
+            }
             SyncRootCanvasSize();
             EnsureInteractiveButtonLayout();
             HandleFallbackButtonInput();
@@ -136,6 +153,7 @@ namespace Backgammon.Conversation
 
         public void ApplyEffectJson()
         {
+            if (!CanEditFromDebug()) return;
             Debug.Log($"{DebugLogPrefix} ApplyEffectJson invoked.", this);
             ResolveSystemReferences();
             if (gameStateManager == null || effectJsonInputField == null)
@@ -158,6 +176,7 @@ namespace Backgammon.Conversation
 
         public void ApplyStateEdit()
         {
+            if (!CanEditFromDebug()) return;
             Debug.Log($"{DebugLogPrefix} ApplyStateEdit invoked.", this);
             ResolveSystemReferences();
             if (gameStateManager == null || stateKeyInputField == null)
@@ -206,6 +225,7 @@ namespace Backgammon.Conversation
 
         public void ApplyFlagToggle()
         {
+            if (!CanEditFromDebug()) return;
             Debug.Log($"{DebugLogPrefix} ApplyFlagToggle invoked.", this);
             ResolveSystemReferences();
             if (gameStateManager == null || stateKeyInputField == null || stateBoolToggle == null)
@@ -242,6 +262,7 @@ namespace Backgammon.Conversation
 
         public void ResetState()
         {
+            if (!CanEditFromDebug()) return;
             Debug.Log($"{DebugLogPrefix} ResetState invoked.", this);
             ResolveSystemReferences();
             if (gameStateManager == null)
@@ -283,6 +304,16 @@ namespace Backgammon.Conversation
             Debug.Log(
                 $"{DebugLogPrefix} CacheDebugComponents: root={debugRoot.name}, raycaster={(debugRaycaster != null ? "found" : "missing")}.",
                 this);
+        }
+
+        private bool CanEditFromDebug()
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (Nekolpos.System.DebugConsoleGuard.CanMutate(out string reason)) return true;
+            SetStatus(reason); return false;
+#else
+            return false;
+#endif
         }
 
         private void ResolveSystemReferences()
@@ -335,7 +366,7 @@ namespace Backgammon.Conversation
 
             if (statusManager == null)
             {
-                statusManager = StatusManager.FindOrCreate(gameObject);
+                statusManager = FindFirstObjectByType<StatusManager>();
 
                 personalityView?.BindStatusManager(statusManager);
                 resolvedAny = true;
@@ -1048,6 +1079,7 @@ namespace Backgammon.Conversation
         private void ToggleDebugWindow()
         {
             isDebugWindowVisible = !isDebugWindowVisible;
+            if (!isDebugWindowVisible) { consoleInputLease?.Dispose(); consoleInputLease = null; }
             SyncDebugWindowState();
             if (isDebugWindowVisible)
             {
@@ -1061,6 +1093,7 @@ namespace Backgammon.Conversation
 
         private async Task RunAsync(bool forcedRoute)
         {
+            if (!CanEditFromDebug()) return;
             Debug.Log($"{DebugLogPrefix} RunAsync start. forcedRoute={forcedRoute}", this);
             ResolveSystemReferences();
             if (gameStateManager == null)
@@ -1181,10 +1214,10 @@ namespace Backgammon.Conversation
                 return dataManager.LoadedCatalog ?? new ConversationRouteCatalog(null);
             }
 
-            var fallbackAsset = Resources.Load<TextAsset>("TalkCSV/DialoguePreview_Integrated");
+            var fallbackAsset = Resources.Load<TextAsset>("TalkCSV/DialoguePreview");
             if (fallbackAsset == null)
             {
-                throw new InvalidOperationException("会話データCSVが見つかりません。Resources/TalkCSV/DialoguePreview_Integrated.csv を確認してください。");
+                throw new InvalidOperationException("会話データCSVが見つかりません。Resources/TalkCSV/DialoguePreview.csv を確認してください。");
             }
 
             var result = ConversationDataLoader.LoadFromCsvTextAsset(fallbackAsset, new ConversationDataLoadOptions
@@ -1489,5 +1522,10 @@ namespace Backgammon.Conversation
         {
             return state != null && state.TryGetInt(key, out var value) ? value : 0;
         }
+#else
+        [SerializeField] private GameObject debugRoot;
+        private void Awake() { if (debugRoot != null) debugRoot.SetActive(false); enabled = false; }
+        public void RefreshStateDisplay() { }
+#endif
     }
 }

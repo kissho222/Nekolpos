@@ -12,5 +12,6 @@ namespace Nekolpos.Dialogue.UnknownWord
         public List<string> RemovedPatterns = new List<string>();
         public List<string> MatchedKnownWords = new List<string>();
         public string NormalizedInput;
+        public string OriginalInput;
     }
 }

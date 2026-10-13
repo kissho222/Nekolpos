@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 namespace Nekolpos.System
@@ -77,6 +77,8 @@ namespace Nekolpos.System
                 Mathf.Max(0.01f, duration),
                 Mathf.Clamp(minimumEndScale, 0.01f, 1f)));
         }
+
+        private void OnDisable() => Stop();
 
         public void Stop()
         {

@@ -11,7 +11,7 @@ using UnityEngine.SceneManagement;
 
 public static class NerukoTailReplacementTestBuilder
 {
-    private const string OriginalScenePath = "Assets/Scenes/TitleScene.unity";
+    private const string OriginalScenePath = "Assets/Scenes/MainScene.unity";
     private const string TestScenePath = "Assets/Scenes/TitleScene_NerukoTailTest.unity";
     private const string SourceFbxPath = "Assets/DL Assets/Red_Deer/Cats/Cat_Simple/Cat/FBX/Assets_Models_CatSimple_NerukoTail_LOD0_OB.fbx";
     private const string MaterialPath = "Assets/DL Assets/Red_Deer/Cats/Cat_Simple/Cat/Materials/CatSim_color_6.mat";

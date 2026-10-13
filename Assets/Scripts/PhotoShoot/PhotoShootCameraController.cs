@@ -11,11 +11,26 @@ namespace Nekolpos.PhotoShoot
 
         [Header("Rotation Settings")]
         public float mouseSensitivity = 2f;
+        [HideInInspector] public bool acceptKeyboardInput = true;
 
         private Vector3 targetPosition;
         private Vector3 velocity = Vector3.zero;
         private float xRotation = 0f;
         private float yRotation = 0f;
+        private Vector3 lastPosition;
+        private Quaternion lastRotation;
+
+        public void SetPose(Vector3 position, Quaternion rotation)
+        {
+            transform.SetPositionAndRotation(position, rotation);
+            targetPosition = position;
+            velocity = Vector3.zero;
+            xRotation = rotation.eulerAngles.x;
+            if (xRotation > 180f) xRotation -= 360f;
+            yRotation = rotation.eulerAngles.y;
+            lastPosition = transform.position;
+            lastRotation = transform.rotation;
+        }
 
         private void Start()
         {
@@ -29,16 +44,17 @@ namespace Nekolpos.PhotoShoot
                 gameObject.tag = "MainCamera";
             }
 
-            targetPosition = transform.position;
-            Vector3 angles = transform.eulerAngles;
-            xRotation = angles.x;
-            yRotation = angles.y;
+            SetPose(transform.position, transform.rotation);
         }
 
         private void Update()
         {
+            if (transform.position != lastPosition || Quaternion.Angle(transform.rotation, lastRotation) > .001f)
+                SetPose(transform.position, transform.rotation);
             HandleRotation();
             HandleMovement();
+            lastPosition = transform.position;
+            lastRotation = transform.rotation;
         }
 
         private void HandleRotation()
@@ -66,13 +82,14 @@ namespace Nekolpos.PhotoShoot
         private void HandleMovement()
         {
             float speed = Input.GetKey(KeyCode.LeftShift) ? fastMoveSpeed : moveSpeed;
+            if (Input.GetKey(KeyCode.LeftAlt)) speed *= .1f;
 
-            float x = Input.GetAxisRaw("Horizontal");
-            float z = Input.GetAxisRaw("Vertical");
+            float x = acceptKeyboardInput ? Input.GetAxisRaw("Horizontal") : 0f;
+            float z = acceptKeyboardInput ? Input.GetAxisRaw("Vertical") : 0f;
             float y = 0f;
 
-            if (Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.Space)) y = 1f;
-            if (Input.GetKey(KeyCode.Q) || Input.GetKey(KeyCode.LeftControl)) y = -1f;
+            if (acceptKeyboardInput && (Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.Space))) y = 1f;
+            if (acceptKeyboardInput && (Input.GetKey(KeyCode.Q) || Input.GetKey(KeyCode.LeftControl))) y = -1f;
 
             Vector3 move = transform.right * x + transform.up * y + transform.forward * z;
             
@@ -87,7 +104,7 @@ namespace Nekolpos.PhotoShoot
         private void OnEnable()
         {
             // Reset target position when enabled so it doesn't fly back to an old target
-            targetPosition = transform.position;
+            SetPose(transform.position, transform.rotation);
         }
     }
 }

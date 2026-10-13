@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using Nekolpos.StatusSystem;
 using UnityEngine;
 using UnityEngine.Animations.Rigging;
@@ -177,6 +177,8 @@ namespace Nekolpos.System
         private float nextSlowBlinkTime;
         private bool hasSmoothedPosition;
         private GameObject debugAimTargetMarker;
+        private PlayerWalkModeController walkModeController;
+        private Transform walkHeadAimTarget;
         private Renderer debugAimTargetRenderer;
         private float nextDebugLogTime;
         private Vector3 lastRawTargetPosition;
@@ -191,6 +193,14 @@ namespace Nekolpos.System
         private float targetExternalWeightScale = 1f;
         private float externalWeightFadeSpeed = 6f;
         private float? temporaryMaxDownPitchDegrees;
+        private bool photoIgnorePitchLimit, photoIgnoreYawLimit;
+
+        public void SetPhotoAngleLimitOverrides(bool ignoreX, bool ignoreY)
+        {
+            bool photo = gameObject.scene.name == "MainPhotoScene";
+            photoIgnorePitchLimit = photo && ignoreX;
+            photoIgnoreYawLimit = photo && ignoreY;
+        }
         private bool rigConfigurationDirty = true;
         private Coroutine delayedRigRefreshCoroutine;
         private int remainingDebugBurstFrames;
@@ -371,6 +381,8 @@ namespace Nekolpos.System
             float t = 1f - Mathf.Exp(-targetSmoothing * Time.deltaTime);
             smoothedLookPosition = Vector3.Lerp(smoothedLookPosition, desiredPosition, t);
             generatedAimTarget.position = smoothedLookPosition;
+            if (walkHeadAimTarget != null && ResolveWalkCameraTarget() != null)
+                walkHeadAimTarget.position = ClampPositionToLookCone(smoothedLookPosition, preserveTargetDistance: true);
 
             UpdateDebugAimTargetMarker(true);
             ApplyConstraintWeights(1f);
@@ -501,6 +513,12 @@ namespace Nekolpos.System
 
         private Transform ResolveActiveTarget()
         {
+            Transform walkTarget = ResolveWalkCameraTarget();
+            if (walkTarget != null)
+            {
+                return walkTarget;
+            }
+
             if (prioritizeCameraTarget && localPlayerLookTarget != null)
             {
                 if (IsCameraLookTargetWithinDistance(localPlayerLookTarget.transform))
@@ -544,7 +562,8 @@ namespace Nekolpos.System
         private Vector3 ResolveDesiredLookPosition(Transform activeTarget)
         {
             Vector3 targetPosition = activeTarget.position;
-            if (mode == NekomataLookMode.Idle && enableIdleRandomLook)
+            bool isWalkTarget = activeTarget == ResolveWalkCameraTarget();
+            if (!isWalkTarget && mode == NekomataLookMode.Idle && enableIdleRandomLook)
             {
                 UpdateIdleRandomLook(activeTarget);
                 targetPosition += randomLookOffset;
@@ -555,7 +574,19 @@ namespace Nekolpos.System
             }
 
             lastRawTargetPosition = targetPosition;
-            return ClampPositionToLookCone(targetPosition);
+            // 小さなPlayerへ向ける目の注視点は首の角度制限でずらさない。
+            // 首だけは別ターゲットで既存の制限を保つ。
+            return isWalkTarget ? targetPosition : ClampPositionToLookCone(targetPosition);
+        }
+
+        private Transform ResolveWalkCameraTarget()
+        {
+            if (!Application.isPlaying) return null;
+            if (walkModeController == null)
+                walkModeController = FindFirstObjectByType<PlayerWalkModeController>();
+            return walkModeController != null && walkModeController.IsWalkMode && walkModeController.WalkCamera != null
+                ? walkModeController.WalkCamera.transform
+                : null;
         }
 
         private void UpdateIdleRandomLook(Transform activeTarget)
@@ -593,7 +624,7 @@ namespace Nekolpos.System
             ScheduleNextIdleRandomLook();
         }
 
-        private Vector3 ClampPositionToLookCone(Vector3 worldTarget)
+        private Vector3 ClampPositionToLookCone(Vector3 worldTarget, bool preserveTargetDistance = false)
         {
             Transform reference = referenceForward != null ? referenceForward : transform;
             Vector3 origin = GetLookOrigin();
@@ -633,12 +664,12 @@ namespace Nekolpos.System
             lastLocalLookDirection = localDirection;
             lastYawBeforeClamp = yaw;
             lastPitchBeforeClamp = pitch;
-            yaw = Mathf.Clamp(yaw, -maxYawDegrees, maxYawDegrees);
+            if (!photoIgnoreYawLimit) yaw = Mathf.Clamp(yaw, -maxYawDegrees, maxYawDegrees);
             float configuredDownPitchLimit = maxDownPitchDegrees > 0f ? maxDownPitchDegrees : maxPitchDegrees;
             float downPitchLimit = temporaryMaxDownPitchDegrees.HasValue
                 ? Mathf.Min(configuredDownPitchLimit, temporaryMaxDownPitchDegrees.Value)
                 : configuredDownPitchLimit;
-            pitch = Mathf.Clamp(pitch, -downPitchLimit, maxPitchDegrees);
+            if (!photoIgnorePitchLimit) pitch = Mathf.Clamp(pitch, -downPitchLimit, maxPitchDegrees);
             lastYawAfterClamp = yaw;
             lastPitchAfterClamp = pitch;
 
@@ -652,7 +683,8 @@ namespace Nekolpos.System
                 right * clampedLocalDirection.x +
                 Vector3.up * clampedLocalDirection.y +
                 forward * clampedLocalDirection.z;
-            float distance = targetDistance;
+            // 散歩では実際の小さなPlayerの目線位置を保つ。会話用の固定距離へ伸ばさない。
+            float distance = preserveTargetDistance ? toTarget.magnitude : targetDistance;
             lastClampedTargetPosition = origin + clampedDirection.normalized * distance;
             return lastClampedTargetPosition;
         }
@@ -705,7 +737,9 @@ namespace Nekolpos.System
             }
 
             float resolvedHeadWeight = Mathf.Max(headWeight, eyeWeight > 0f ? minimumHeadWeightWhenEyeLookActive : 0f);
-            ApplyManualAim(headBone, useEyeAimAxisForHead ? eyeAimAxis : headAimAxis, resolvedHeadWeight * externalWeightScale);
+            Vector3 headPosition = ResolveWalkCameraTarget() != null && walkHeadAimTarget != null
+                ? walkHeadAimTarget.position : generatedAimTarget.position;
+            ApplyManualAim(headBone, headPosition, useEyeAimAxisForHead ? eyeAimAxis : headAimAxis, resolvedHeadWeight * externalWeightScale);
             ApplyManualAim(leftEyeBone, eyeAimAxis, eyeWeight * externalWeightScale);
             ApplyManualAim(rightEyeBone, eyeAimAxis, eyeWeight * externalWeightScale);
         }
@@ -1240,7 +1274,7 @@ namespace Nekolpos.System
             }
 
             bool changed =
-                AssignSingleSource(headAim) |
+                AssignSingleSource(headAim, ResolveHeadAimTarget()) |
                 AssignSingleSource(leftEyeAim) |
                 AssignSingleSource(rightEyeAim);
 
@@ -1363,6 +1397,13 @@ namespace Nekolpos.System
             {
                 if (rigBuilder.layers[i].rig == rig)
                 {
+                    // Hot reload can restore isInitialized while nonserialized constraint/jobs are lost.
+                    // Recreate the cache rather than passing a falsely initialized layer to RigBuilder.Build.
+                    if (rigBuilder.layers[i].isInitialized && rigBuilder.layers[i].constraints == null)
+                    {
+                        rigBuilder.layers[i] = new RigLayer(rig, rigBuilder.layers[i].active);
+                        rigConfigurationDirty = true;
+                    }
                     return;
                 }
             }
@@ -1425,21 +1466,40 @@ namespace Nekolpos.System
             return currentConstraint;
         }
 
-        private bool AssignSingleSource(MultiAimConstraint constraint)
+        private Transform ResolveHeadAimTarget()
+        {
+            Transform walkTarget = ResolveWalkCameraTarget();
+            if (walkTarget == null) return generatedAimTarget;
+            if (walkHeadAimTarget == null)
+            {
+                walkHeadAimTarget = transform.Find("GeneratedNekomataWalkHeadAimTarget");
+                if (walkHeadAimTarget == null)
+                {
+                    var target = new GameObject("GeneratedNekomataWalkHeadAimTarget");
+                    target.transform.SetParent(transform, false);
+                    walkHeadAimTarget = target.transform;
+                }
+            }
+            walkHeadAimTarget.position = ClampPositionToLookCone(walkTarget.position, preserveTargetDistance: true);
+            return walkHeadAimTarget;
+        }
+
+        private bool AssignSingleSource(MultiAimConstraint constraint, Transform sourceTarget = null)
         {
             if (constraint == null)
             {
                 return false;
             }
 
+            sourceTarget = sourceTarget != null ? sourceTarget : generatedAimTarget;
             WeightedTransformArray sourceObjects = constraint.data.sourceObjects;
-            if (sourceObjects.Count == 1 && sourceObjects[0].transform == generatedAimTarget)
+            if (sourceObjects.Count == 1 && sourceObjects[0].transform == sourceTarget)
             {
                 return false;
             }
 
             sourceObjects.Clear();
-            sourceObjects.Add(new WeightedTransform(generatedAimTarget, 1f));
+            sourceObjects.Add(new WeightedTransform(sourceTarget, 1f));
             constraint.data.sourceObjects = sourceObjects;
             return true;
         }

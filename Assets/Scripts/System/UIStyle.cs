@@ -256,6 +256,9 @@ namespace Nekolpos.UI
                     continue;
                 }
 
+                // Dropdown options keep plain rows rather than individual window decorations.
+                if (image.GetComponentInParent<TMP_Dropdown>(true) != null && image.GetComponentInParent<Toggle>(true) != null) continue;
+
                 if (LooksLikePanel(image.gameObject.name))
                 {
                     ApplyPanel(image.gameObject, profile, true);
@@ -372,6 +375,9 @@ namespace Nekolpos.UI
             border.fillCenter = false;
             border.color = profile != null ? profile.borderColor : NormalBorder;
             border.raycastTarget = false;
+            // 輪郭は装飾。LayoutGroupの行や列として寸法・間隔に加算しない。
+            LayoutElement layout = borderObject.GetComponent<LayoutElement>() ?? borderObject.AddComponent<LayoutElement>();
+            layout.ignoreLayout = true;
         }
 
         private static void RemoveBorder(Transform target)
@@ -404,7 +410,7 @@ namespace Nekolpos.UI
 
         private static bool IsInsideAutomaticButtonStyleExclusion(Transform target)
         {
-            Button button = target != null ? target.GetComponentInParent<Button>() : null;
+            Button button = target != null ? target.GetComponentInParent<Button>(includeInactive: true) : null;
             return IsAutomaticButtonStyleExcluded(button);
         }
 

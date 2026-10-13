@@ -67,19 +67,8 @@ namespace Nekolpos.System
             // 今回はテスト体験として、何らかの入力ですぐ昼にするように Execute() で書きます。
         }
 
-        public void Execute()
-        {
-            // スペースキーが押されたら「昼ステート」へ移行！
-            if (Input.GetKeyDown(KeyCode.Space))
-            {
-                gm.ChangeState(new StateDay(gm));
-            }
-            // エンターキーでいきなり死亡テスト
-            if (Input.GetKeyDown(KeyCode.X))
-            {
-                gm.ChangeState(new StateDead(gm));
-            }
-        }
+        public void Execute() { } // Development time advancement uses the debug panel's shared TimeFlow.
+
 
         public void Exit()
         {

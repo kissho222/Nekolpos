@@ -8,9 +8,8 @@ namespace Nekolpos.EditorTools
     {
         private const string OutputPath = "Build_Release_Diag/Nekolpos.exe";
         private const string WebGLOutputPath = "Build/WebGL";
-        private static readonly string[] Scenes = { "Assets/Scenes/TitleScene.unity" };
+        private static readonly string[] Scenes = { "Assets/Scenes/MainScene.unity" };
 
-        [MenuItem("Nekolpos/Build/Windows Release Diagnostic")]
         public static void BuildReleaseDiag()
         {
             BuildPlayerOptions options = new BuildPlayerOptions

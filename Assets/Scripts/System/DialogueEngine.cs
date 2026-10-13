@@ -32,10 +32,23 @@ namespace Nekolpos.System
         /// 複数ページにまたがる会話（Orderで連なっているもの）は、Listとしてまとめて渡される。
         /// </summary>
         public event Action<List<DialogueReactionData>> OnDialogueDetermined;
+        public CommandToneInput ActiveSubmittedCommand { get; private set; }
+
+        public void ProcessSubmittedFreeInput(string input)
+        {
+            DebugConsoleTrace.InputAccepted(input?.Length ?? 0);
+            CommandToneInput previous = ActiveSubmittedCommand;
+            ActiveSubmittedCommand = new CommandToneInput(input);
+            try { ProcessInput(input); }
+            finally { ActiveSubmittedCommand = previous; }
+        }
 
         public static DialogueEngine Instance { get; private set; }
         public DialogueLogEntry LastInputLogContext => lastInputLogContext != null ? lastInputLogContext.Clone() : null;
         public bool IsTeachingModeActive => currentTeachingCategory != TeachingCategory.None;
+        public DialogueRuntimeSourceMode ActiveRuntimeSourceMode { get; private set; } = DialogueRuntimeSourceMode.LegacyCsv;
+        public string LastCompiledBundleError { get; private set; } = string.Empty;
+        public double LastRuntimeLoadMilliseconds { get; private set; }
 
         // =======================================================
         [Header("Legacy Load Settings")]
@@ -51,8 +64,9 @@ namespace Nekolpos.System
         // メモリ上に展開される解析データ
         private List<RegexPatternData> regexPatterns = new List<RegexPatternData>();
         
-        // メモリ上に展開される下品な言葉のリスト
+        // メモリ上に展開される下品語と、それぞれが遷移する会話ラベルの対応表。
         private List<string> vulgarWords = new List<string>();
+        private Dictionary<string, int> vulgarLabelHashesByWord = new Dictionary<string, int>();
         private const int DefaultSequenceResetDays = 3;
         private const int DefaultRandomRepeatLimit = 3;
         private const int CatCharacterPriority = 30;
@@ -113,7 +127,6 @@ namespace Nekolpos.System
         // 特殊なラベルのハッシュ値を事前に計算しておく（下品フィルタ等）
         private int hashKoubi;
         private int hashHiwai;
-        private int hashGehin;
 
         private enum PendingTeachingChoice
         {
@@ -162,7 +175,6 @@ namespace Nekolpos.System
         {
             hashKoubi = GetDeterministicHash(NormalizeLabelForHash("こうび"));
             hashHiwai = GetDeterministicHash(NormalizeLabelForHash("ひわい"));
-            hashGehin = GetDeterministicHash(NormalizeLabelForHash("げひん"));
 
             Debug.Log("[DialogueEngine] ConversationDataManager から会話CSVのロードを開始します...");
 
@@ -261,11 +273,15 @@ namespace Nekolpos.System
         /// </summary>
         public void ProcessInput(string input)
         {
+            // A delayed end-edit/empty submission must not replace the learning flow's prompt.
+            foreach (var learning in FindObjectsByType<WordLearningController>(FindObjectsSortMode.None))
+                if (learning.IsActive) return;
             ProcessInputInternal(input, ignoreTeachingForCurrentEvaluation: false);
         }
 
         private void ProcessInputInternal(string input, bool ignoreTeachingForCurrentEvaluation)
         {
+            WordVariables.BeginConversation();
             PlayerInputContext inputContext = new PlayerInputContext(input);
 
             if (string.IsNullOrWhiteSpace(inputContext.OriginalInput))
@@ -321,6 +337,24 @@ namespace Nekolpos.System
 
             if (matchedPattern == null)
             {
+                LearnedWord learned;
+                try { learned = LearnedWordStore.Shared.Match(inputContext.OriginalInput, out _); }
+                catch (Exception error)
+                {
+                    Debug.LogError("[DialogueEngine] 学習辞書の読み込み失敗により会話を終了しました。" + error);
+                    FindFirstObjectByType<WordLearningController>()?.Cancel();
+                    FindFirstObjectByType<ChatUIController>()?.ClearDialogueDisplay();
+                    ForceShowInputFieldForRecovery();
+                    return;
+                }
+                if (learned != null)
+                {
+                    lastInputLogContext = CreateUnmatchedLogContext(inputContext, matchResult, null);
+                    OnDialogueDetermined?.Invoke(new List<DialogueReactionData> {
+                        unknownWordResponseSystem.CreateReaction(new UnknownWordResult {
+                            HasUnknownWord = true, UnknownWord = learned.display, OriginalInput = inputContext.OriginalInput }) });
+                    return;
+                }
                 Debug.Log("💬 [DialogueEngine] どの正規表現にもマッチしませんでした。「わかんない」等の処理に移行します。");
 
                 UnknownWordAnalysisResult unknownWordAnalysis = TryExtractUnknownWord(inputContext);
@@ -482,7 +516,7 @@ namespace Nekolpos.System
             return true;
         }
 
-        private bool TryCreateDialoguePreviewReaction(
+        public bool TryCreateDialoguePreviewReaction(
             string label,
             string patternId,
             IReadOnlyDictionary<string, string> placeholders,
@@ -519,6 +553,9 @@ namespace Nekolpos.System
             return new DialogueReactionData
             {
                 LabelHash = source.LabelHash,
+                DiarySourceCsv = source.DiarySourceCsv,
+                DiarySourceEntryId = source.DiarySourceEntryId,
+                DiarySourceRegexId = source.DiarySourceRegexId,
                 PatternID = source.PatternID,
                 SpeechControl = source.SpeechControl,
                 Order = source.Order,
@@ -546,6 +583,7 @@ namespace Nekolpos.System
                 WaitTime = source.WaitTime,
                 HideUI = source.HideUI,
                 Animation = source.Animation,
+                ReactionIcon = source.ReactionIcon,
                 EmotionChangeType = source.EmotionChangeType,
                 EmotionChangeValue = source.EmotionChangeValue,
                 BranchResolver = source.BranchResolver,
@@ -1527,6 +1565,7 @@ namespace Nekolpos.System
                 {
                     HasUnknownWord = true,
                     UnknownWord = unknownWord,
+                    OriginalInput = inputContext?.OriginalInput,
                     NormalizedInput = inputContext != null ? inputContext.NormalizedInput : string.Empty
                 };
 
@@ -1822,6 +1861,7 @@ namespace Nekolpos.System
 
             // VulgarLanguage による第一関門フィルタチェック
             string bestVulgarWord = null;
+            int bestVulgarLabelHash = 0;
             foreach (string vulgarWord in vulgarWords)
             {
                 if (normalizedInput.Contains(vulgarWord))
@@ -1829,6 +1869,7 @@ namespace Nekolpos.System
                     if (bestVulgarWord == null || vulgarWord.Length > bestVulgarWord.Length)
                     {
                         bestVulgarWord = vulgarWord;
+                        vulgarLabelHashesByWord.TryGetValue(vulgarWord, out bestVulgarLabelHash);
                     }
                 }
             }
@@ -1888,13 +1929,15 @@ namespace Nekolpos.System
             // 同じ長さなら、実データに紐づく regex 側を優先して誤爆を減らす。
             if (isVulgar && bestVulgarWord.Length > bestMatchLength)
             {
-                RegexPatternData gehinPattern = new RegexPatternData();
-                gehinPattern.SourceRegex = $"VulgarFilter:{bestVulgarWord}";
-                gehinPattern.LabelHash = hashGehin;
-                gehinPattern.Priority = 999;
-                gehinPattern.Sensitivity = "EXPLICIT";
+                RegexPatternData vulgarPattern = new RegexPatternData();
+                vulgarPattern.SourceRegex = $"VulgarFilter:{bestVulgarWord}";
+                // VulgarLanguage CSVの第2列を宛先ラベルとして使う。旧CSV等で列がない場合は
+                // 既定の「ひわい」へ送るため、検知だけして反応不能になる状態を避ける。
+                vulgarPattern.LabelHash = bestVulgarLabelHash != 0 ? bestVulgarLabelHash : hashHiwai;
+                vulgarPattern.Priority = 999;
+                vulgarPattern.Sensitivity = "EXPLICIT";
 
-                bestMatch = gehinPattern;
+                bestMatch = vulgarPattern;
                 bestMatchLength = bestVulgarWord.Length;
                 bestMatchIndex = normalizedInput.IndexOf(bestVulgarWord, StringComparison.Ordinal);
                 bestMatchedText = bestVulgarWord;
@@ -2405,7 +2448,7 @@ namespace Nekolpos.System
                     // Sequenceを最後まで言い切った後は通常末尾に留まる。
                     // ただし末尾が Action/Event/Choice の場合は、再入力で外部フローを連打しないよう
                     // 直前の通常会話グループへ戻す。
-                    DialogueReactionData replaySequence = ResolveSequenceReplayReaction(seqGroups, out int replayIndex);
+                    DialogueReactionData replaySequence = ResolveSequenceReplayReaction(seqGroups, state, out int replayIndex);
                     if (replaySequence != null)
                     {
                         if (replaySequence.SequenceProgressHold)
@@ -2524,12 +2567,28 @@ namespace Nekolpos.System
             return DefaultRandomRepeatLimit;
         }
 
-        private static DialogueReactionData ResolveSequenceReplayReaction(List<DialogueReactionData> seqGroups, out int replayIndex)
+        private static DialogueReactionData ResolveSequenceReplayReaction(
+            List<DialogueReactionData> seqGroups,
+            ConversationState state,
+            out int replayIndex)
         {
             replayIndex = -1;
             if (seqGroups == null || seqGroups.Count == 0)
             {
                 return null;
+            }
+
+            // An explicitly authored hold point is also the loop destination after the
+            // sequence reaches its end. This lets a Choice/Event checkpoint remain the
+            // repeatable entry point instead of falling back to an unrelated earlier line.
+            if (state != null && state.sequenceResetAnchorIndex >= 0 && state.sequenceResetAnchorIndex < seqGroups.Count)
+            {
+                DialogueReactionData anchor = seqGroups[state.sequenceResetAnchorIndex];
+                if (anchor != null && anchor.SequenceProgressHold)
+                {
+                    replayIndex = state.sequenceResetAnchorIndex;
+                    return anchor;
+                }
             }
 
             int lastIndex = seqGroups.Count - 1;
@@ -2634,6 +2693,14 @@ namespace Nekolpos.System
             {
                 List<DialogueReactionData> group = groupsByPattern[orderedPatternIDs[i]];
                 group.Sort((a, b) => a.Order.CompareTo(b.Order));
+            }
+
+            ConversationGameState variableState = GetConversationGameState();
+            for (int i = orderedPatternIDs.Count - 1; i >= 0; i--)
+            {
+                string id = orderedPatternIDs[i];
+                if (groupsByPattern[id].TrueForAll(r => WordVariables.CanResolve(r.TextJP, variableState))) continue;
+                groupsByPattern.Remove(id); orderedPatternIDs.RemoveAt(i);
             }
 
             if (!includeCallOnly)
@@ -2751,9 +2818,13 @@ namespace Nekolpos.System
 
         private void LoadConversationDataFromManager()
         {
+            var loadTimer = global::System.Diagnostics.Stopwatch.StartNew();
+            ActiveRuntimeSourceMode = DialogueRuntimeSourceMode.LegacyCsv;
+            LastCompiledBundleError = string.Empty;
             regexPatterns.Clear();
             reactionDatabase.Clear();
             vulgarWords.Clear();
+            vulgarLabelHashesByWord.Clear();
 
             if (conversationDataManager == null)
             {
@@ -2803,12 +2874,16 @@ namespace Nekolpos.System
             {
                 Debug.LogError("[DialogueEngine] ConversationDataManager に会話CSVソースが設定されていません。");
                 EnsureCoreConversationFallbacks();
+                loadTimer.Stop();
+                LastRuntimeLoadMilliseconds = loadTimer.Elapsed.TotalMilliseconds;
                 return;
             }
 
             Debug.Log($"[DialogueEngine] 会話CSVソース: {string.Join(", ", csvSources.ConvertAll(source => source.Name))}");
 
             int parsedAssetCount = 0;
+            bool compiledRequested = DialogueRuntimeSourceSelection.RequestedMode == DialogueRuntimeSourceMode.CompiledBundle;
+            bool foundCanonicalSource = false;
             for (int i = 0; i < csvSources.Count; i++)
             {
                 ConversationDataManager.CsvSource source = csvSources[i];
@@ -2817,10 +2892,31 @@ namespace Nekolpos.System
                     continue;
                 }
 
+                bool isCanonicalSource = IsCanonicalDialoguePreviewSource(source.Name);
+                foundCanonicalSource |= isCanonicalSource;
+                string compiledError = string.Empty;
+                if (compiledRequested && isCanonicalSource && TryLoadCompiledDialoguePreview(source.Text, source.Name, out compiledError))
+                {
+                    parsedAssetCount++;
+                    continue;
+                }
+
+                if (compiledRequested && isCanonicalSource && !string.IsNullOrWhiteSpace(compiledError))
+                {
+                    LastCompiledBundleError = compiledError;
+                    Debug.LogWarning("[DialogueEngine] Compiled Bundleを使用できないためLegacy CSVへ戻します: " + compiledError);
+                }
+
                 if (TryLoadConversationCsvText(source.Text, source.Name))
                 {
                     parsedAssetCount++;
                 }
+            }
+
+            if (compiledRequested && !foundCanonicalSource)
+            {
+                LastCompiledBundleError = "Canonical DialoguePreview source was not found.";
+                Debug.LogWarning("[DialogueEngine] Compiled Bundleの照合元がないためLegacy CSVモードを継続します。");
             }
 
             if (parsedAssetCount == 0)
@@ -2829,6 +2925,67 @@ namespace Nekolpos.System
             }
 
             EnsureCoreConversationFallbacks();
+            loadTimer.Stop();
+            LastRuntimeLoadMilliseconds = loadTimer.Elapsed.TotalMilliseconds;
+            Debug.Log($"[DialogueEngine] Runtime source={ActiveRuntimeSourceMode}, load={LastRuntimeLoadMilliseconds:F2}ms");
+        }
+
+        private static bool IsCanonicalDialoguePreviewSource(string sourceName)
+        {
+            return string.Equals(global::System.IO.Path.GetFileNameWithoutExtension(sourceName ?? string.Empty), "DialoguePreview", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool TryLoadCompiledDialoguePreview(string legacyCsv, string sourceName, out string error)
+        {
+            error = string.Empty;
+            if (!ConversationDataManager.TryLoadEncryptedCsvResource(DialogueCompiledRuntimeLoader.ResourcePath, out string json, out error))
+                return false;
+
+            if (!DialogueCompiledRuntimeLoader.TryParse(
+                    json,
+                    legacyCsv,
+                    sourceName,
+                    out DialogueCompiledRuntimeBundle metadata,
+                    out List<RegexPatternData> compiledPatterns,
+                    out Dictionary<int, List<DialogueReactionData>> compiledReactions,
+                    out error))
+                return false;
+
+            var knownRegexKeys = new HashSet<string>(StringComparer.Ordinal);
+            for (int i = 0; i < regexPatterns.Count; i++)
+            {
+                RegexPatternData pattern = regexPatterns[i];
+                if (pattern != null) knownRegexKeys.Add($"{pattern.LabelHash}|{pattern.SourceRegex}");
+            }
+
+            for (int i = 0; i < compiledPatterns.Count; i++)
+            {
+                RegexPatternData pattern = compiledPatterns[i];
+                if (!knownRegexKeys.Add($"{pattern.LabelHash}|{pattern.SourceRegex}")) continue;
+                regexPatterns.Add(pattern);
+                if (pattern.TeachingCategory != TeachingCategory.None)
+                {
+                    TeachingDiscoveryStore.RememberEntryKey(pattern.TeachingCategory, pattern.TeachingEntryId);
+                    if (pattern.TeachingCategory == TeachingCategory.CatSeries)
+                        TeachingDiscoveryStore.RememberSeriesKey(pattern.TeachingSeriesGroupId);
+                }
+            }
+
+            foreach (KeyValuePair<int, List<DialogueReactionData>> pair in compiledReactions)
+            {
+                if (!reactionDatabase.TryGetValue(pair.Key, out List<DialogueReactionData> group))
+                {
+                    group = new List<DialogueReactionData>();
+                    reactionDatabase.Add(pair.Key, group);
+                }
+                group.AddRange(pair.Value);
+            }
+
+            ActiveRuntimeSourceMode = DialogueRuntimeSourceMode.CompiledBundle;
+            if (!metadata.publishable)
+                Debug.LogWarning("[DialogueEngine] Phase2公開ゲート未達のCompiled Bundleを開発モードで読み込みました。診断を解消するまでRelease採用しません。");
+            Debug.Log($"[DialogueEngine] {sourceName} Compiled Bundle取込完了: regex {compiledPatterns.Count}件, reaction {metadata.reactions.Count}件");
+            return true;
         }
 
         private void EnsureCoreConversationFallbacks()
@@ -3238,11 +3395,18 @@ namespace Nekolpos.System
 
             string[] headers = ParseCSVLine(lines[0]);
             int idxName = FindColumnIndex(headers, "名前", "name", "word");
+            int idxDestinationLabel = FindColumnIndex(headers, "宛先ラベル", "ラベル", "destinationlabel", "destination_label", "label", "category", "カテゴリ", "分類");
             int firstDataLine = 1;
             if (idxName < 0)
             {
                 idxName = 0;
                 firstDataLine = 0;
+            }
+
+            // ヘッダーのない既存CSVは「単語,宛先ラベル」の2列構成を正とする。
+            if (idxDestinationLabel < 0)
+            {
+                idxDestinationLabel = idxName + 1;
             }
 
             int addedWordCount = 0;
@@ -3264,6 +3428,12 @@ namespace Nekolpos.System
                 if (!string.IsNullOrEmpty(cleanWord) && !vulgarWords.Contains(cleanWord))
                 {
                     vulgarWords.Add(cleanWord);
+                    string destinationLabel = columns.Length > idxDestinationLabel
+                        ? NormalizeLabelForHash(columns[idxDestinationLabel])
+                        : string.Empty;
+                    vulgarLabelHashesByWord[cleanWord] = string.IsNullOrEmpty(destinationLabel)
+                        ? hashHiwai
+                        : GetDeterministicHash(destinationLabel);
                     addedWordCount++;
                 }
             }
@@ -3277,6 +3447,7 @@ namespace Nekolpos.System
             if (lines.Count <= 1) return;
 
             string[] headers = ParseCSVLine(lines[0]);
+            int idxDiarySourceId = FindColumnIndex(headers, "id", "ID");
             Debug.Log($"[DialogueEngine] {sourceName} ヘッダー一覧: {string.Join(", ", headers)}");
 
             int idxRegexPattern = FindColumnIndex(headers, "regex", "regex_jp", "正規表現", "pattern_text");
@@ -3295,6 +3466,7 @@ namespace Nekolpos.System
             int idxWaitTime = FindColumnIndex(headers, "WaitTime", "wait_time");
             int idxHideUi = FindColumnIndex(headers, "HideUI", "hide_ui");
             int idxAnimation = FindColumnIndex(headers, "Animation", "animation");
+            int idxReactionIcon = FindColumnIndex(headers, "ReactionIcon", "reaction_icon");
             int idxEmotionChangeType = FindColumnIndex(headers, "emotion_change_type", "EmotionChangeType");
             int idxEmotionChangeValue = FindColumnIndex(headers, "emotion_change_value", "EmotionChangeValue");
             int idxCallOnly = FindColumnIndex(headers, "call_only", "CallOnly", "pattern_access", "PatternAccess");
@@ -3400,6 +3572,9 @@ namespace Nekolpos.System
 
                 DialogueReactionData reaction = new DialogueReactionData()
                 {
+                    DiarySourceCsv = global::System.IO.Path.GetFileNameWithoutExtension(sourceName),
+                    DiarySourceEntryId = idxDiarySourceId >= 0 && columns.Length > idxDiarySourceId ? columns[idxDiarySourceId].Trim() : "",
+                    DiarySourceRegexId = idxRegexLabel >= 0 && columns.Length > idxRegexLabel ? columns[idxRegexLabel].Trim().Replace("\\_", "_") : "",
                     LabelHash = labelHash,
                     TextJP = (idxText >= 0 && columns.Length > idxText) ? columns[idxText] : "",
                     TeachingCategory = ResolveTeachingCategory(columns, idxTeachingCategory, sourceTeachingCategory).ToString(),
@@ -3437,6 +3612,7 @@ namespace Nekolpos.System
                 if (idxResponseType >= 0 && columns.Length > idxResponseType) reaction.ResponseType = columns[idxResponseType];
                 if (idxCondition >= 0 && columns.Length > idxCondition) reaction.Condition = columns[idxCondition];
                 if (idxAnimation >= 0 && columns.Length > idxAnimation) reaction.Animation = columns[idxAnimation];
+                if (idxReactionIcon >= 0 && columns.Length > idxReactionIcon) reaction.ReactionIcon = ReactionIconUtility.Parse(columns[idxReactionIcon]);
                 if (idxWaitTime >= 0 && columns.Length > idxWaitTime && TryParseFloat(columns[idxWaitTime], out float waitTime))
                 {
                     reaction.WaitTime = waitTime;
@@ -3496,7 +3672,7 @@ namespace Nekolpos.System
                 }
                 if (idxRandomRepeatLimit >= 0 && columns.Length > idxRandomRepeatLimit && int.TryParse(columns[idxRandomRepeatLimit], out int randomRepeatLimit))
                 {
-                    reaction.RandomRepeatLimit = Math.Max(0, randomRepeatLimit);
+                    reaction.RandomRepeatLimit = Math.Max(-1, randomRepeatLimit);
                 }
 
                 bool isSpeechControlExplicitlySet = false;
@@ -3698,6 +3874,8 @@ namespace Nekolpos.System
             return 1;
         }
 
+        internal bool EvaluateDiaryCondition(string condition) => ConversationGameStateConditionEvaluator.Evaluate(GetConversationGameState(), condition);
+
         private ConversationGameState GetConversationGameState()
         {
             if (conversationGameStateManager == null)
@@ -3748,7 +3926,7 @@ namespace Nekolpos.System
                 "Accident"
             };
 
-            string lastReason = PlayerPrefs.GetString(DialogueManager.PlayerDefeatLastReasonPrefsKey, string.Empty);
+            string lastReason = ProgressSaveStore.GetString(DialogueManager.PlayerDefeatLastReasonPrefsKey, string.Empty);
             state.SetString("LastPlayerDefeatReason", lastReason ?? string.Empty);
 
             for (int i = 0; i < defeatReasons.Length; i++)
@@ -3756,7 +3934,7 @@ namespace Nekolpos.System
                 string reason = defeatReasons[i];
                 state.SetBool(
                     "PlayerDefeatedBy" + reason,
-                    PlayerPrefs.GetInt(DialogueManager.PlayerDefeatReasonPrefsPrefix + reason, 0) != 0);
+                    ProgressSaveStore.GetInt(DialogueManager.PlayerDefeatReasonPrefsPrefix + reason, 0) != 0);
             }
         }
 

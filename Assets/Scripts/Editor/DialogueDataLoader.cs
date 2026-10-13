@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -41,6 +41,7 @@ namespace Nekolpos.EditorTools
         private static readonly string[] WaitTimeHeaderAliases = { "WaitTime", "wait_time" };
         private static readonly string[] HideUiHeaderAliases = { "HideUI", "hide_ui" };
         private static readonly string[] AnimationHeaderAliases = { "Animation", "animation" };
+        private static readonly string[] ReactionIconHeaderAliases = { "ReactionIcon", "reaction_icon" };
         private static readonly string[] PriorityHeaderAliases = { "Priority", "priority" };
         private static readonly string[] InternalIdHeaderAliases = { "ID", "id" };
         private static readonly string[] IntentHeaderAliases = { "intent", "Intent" };
@@ -212,6 +213,7 @@ namespace Nekolpos.EditorTools
             int idxWaitTime = FindColumnIndex(headers, WaitTimeHeaderAliases);
             int idxHideUi = FindColumnIndex(headers, HideUiHeaderAliases);
             int idxAnimation = FindColumnIndex(headers, AnimationHeaderAliases);
+            int idxReactionIcon = FindColumnIndex(headers, ReactionIconHeaderAliases);
             int idxPriority = FindColumnIndex(headers, PriorityHeaderAliases);
             int idxInternalId = FindColumnIndex(headers, InternalIdHeaderAliases);
             int idxIntent = FindColumnIndex(headers, IntentHeaderAliases);
@@ -255,6 +257,7 @@ namespace Nekolpos.EditorTools
                     WaitTime = ParseFloat(GetColumn(columns, idxWaitTime), 0f),
                     HideUI = ParseBool(GetColumn(columns, idxHideUi)),
                     Animation = GetColumn(columns, idxAnimation),
+                    ReactionIcon = GetColumn(columns, idxReactionIcon),
                     Priority = ParsePriority(GetColumn(columns, idxPriority)),
                     Intent = GetColumn(columns, idxIntent),
                     ReactionType = GetColumn(columns, idxReactionType),
@@ -600,6 +603,9 @@ namespace Nekolpos.EditorTools
                 EnsureCanonicalHeader(dataSet.Headers, HideUiHeaderAliases, "HideUI");
             }
 
+            if (HasAnyValue(dataSet.Entries, entry => !string.IsNullOrWhiteSpace(entry.ReactionIcon)))
+                EnsureCanonicalHeader(dataSet.Headers, ReactionIconHeaderAliases, "ReactionIcon");
+
             if (HasAnyValue(dataSet.Entries, entry => !string.IsNullOrWhiteSpace(entry.Animation)))
             {
                 EnsureCanonicalHeader(dataSet.Headers, AnimationHeaderAliases, "Animation");
@@ -764,6 +770,7 @@ namespace Nekolpos.EditorTools
                 case "emotionchangevalue":
                 case "waittime":
                 case "hideui":
+                case "reactionicon":
                 case "animation":
                 case "priority":
                 case "intent":
@@ -896,7 +903,7 @@ namespace Nekolpos.EditorTools
             }
 
             return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed)
-                ? Math.Max(0, parsed)
+                ? Math.Max(-1, parsed)
                 : -1;
         }
 
@@ -1130,6 +1137,7 @@ namespace Nekolpos.EditorTools
                 WaitTime = source.WaitTime,
                 HideUI = source.HideUI,
                 Animation = source.Animation,
+                ReactionIcon = source.ReactionIcon,
                 Priority = source.Priority,
                 Intent = source.Intent,
                 ReactionType = source.ReactionType,

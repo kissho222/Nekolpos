@@ -20,8 +20,6 @@ namespace Nekolpos.System
         private const float ReferenceRefreshSeconds = 1f;
         private const int MenuButtonSortingOrder = 7000;
         private const int MenuPanelSortingOrder = 7100;
-        private const string SaveKeyBgmMuted = "OpenBeta.Audio.BgmMuted";
-        private const string SaveKeySeMuted = "OpenBeta.Audio.SeMuted";
         private const string GoTitleButtonKey = "OBT_GoTitleButton";
         private const string RirekiButtonKey = "OBT_RirekiButton";
         private const string TeachingResetButtonKey = "TEACH_RESET_BUTTON";
@@ -32,8 +30,10 @@ namespace Nekolpos.System
         [SerializeField] private Button menuButton;
         [SerializeField] private GameObject menuPanel;
         [SerializeField] private Button goTitleButton;
-        [SerializeField] private Button bgmButton;
-        [SerializeField] private Button seButton;
+        [SerializeField] private Button settingsButton;
+        [SerializeField] private SettingsPanel settingsPanel;
+        [SerializeField] private Button closeMenuButton;
+        [SerializeField] private Button unstuckButton;
         [SerializeField] private Button logButton;
         [SerializeField] private Button teachingResetButton;
         [SerializeField] private Button enqueteButton;
@@ -55,25 +55,25 @@ namespace Nekolpos.System
         private bool isPaused;
         private bool isMenuButtonHovered;
         private bool initialConversationCompleted;
-        private bool bgmMuted;
-        private bool seMuted;
+        private bool transitionSuppressed;
         private float nextReferenceRefreshTime;
-        private readonly List<AudioSource> bgmSources = new List<AudioSource>();
-        private readonly List<AudioSource> seSources = new List<AudioSource>();
         public bool IsPaused => isPaused;
+
+        public void SetTransitionSuppressed(bool suppressed)
+        {
+            transitionSuppressed = suppressed;
+            if (suppressed && isPaused) CloseMenu();
+            SetMenuButtonVisible(initialConversationCompleted);
+        }
 
         private void Awake()
         {
             ResolveReferences();
-            ApplyTheme();
             BindButtons();
-            LoadAudioState();
-            RefreshAudioSources();
             SetMenuButtonVisible(false);
             SetMenuPanelVisible(false, true);
             RefreshLabels();
             ApplyPlatformButtonVisibility();
-            ApplyAudioMuteState();
         }
 
         private void Update()
@@ -82,17 +82,16 @@ namespace Nekolpos.System
             if (Time.unscaledTime >= nextReferenceRefreshTime)
             {
                 ResolveReferences();
-                RefreshAudioSources();
-                ApplyAudioMuteState();
                 nextReferenceRefreshTime = Time.unscaledTime + ReferenceRefreshSeconds;
             }
             DetectInitialConversationCompletion();
             UpdateMenuButtonAlpha();
             AnimateMenuPanel();
 
-            if (initialConversationCompleted && Input.GetKeyDown(KeyCode.Escape))
+            if (!DebugConsoleInput.IsBlocked && initialConversationCompleted && !SettingsPanel.ClosedThisFrame && Input.GetKeyDown(KeyCode.Escape))
             {
-                ToggleMenu();
+                if (!WalkDialogueController.CancelledThisFrame && !WalkDialogueController.TryCancelActiveChoice())
+                    ToggleMenu();
             }
         }
 
@@ -107,6 +106,8 @@ namespace Nekolpos.System
 
         public void ToggleMenu()
         {
+            if (transitionSuppressed) return;
+            if (SettingsPanel.IsOpen) { SettingsPanel.Close(); return; }
             if (isPaused)
             {
                 CloseMenu();
@@ -134,6 +135,7 @@ namespace Nekolpos.System
 
         public void OpenMenu()
         {
+            if (transitionSuppressed) return;
             if (isPaused || !isActiveAndEnabled)
             {
                 return;
@@ -148,6 +150,8 @@ namespace Nekolpos.System
             previousTimeScale = Time.timeScale;
             Time.timeScale = 0f;
             isPaused = true;
+            NotifyWalkModePauseState(isOpen: true);
+            ApplyMenuPointerState();
             chatUI?.SetMenuInputBlocked(true);
             if (chatUI != null)
             {
@@ -165,8 +169,10 @@ namespace Nekolpos.System
                 return;
             }
 
+            SettingsPanel.CloseForOwner(this);
             Time.timeScale = previousTimeScale;
             isPaused = false;
+            NotifyWalkModePauseState(isOpen: false);
             chatUI?.SetMenuInputBlocked(false);
             if (chatUI != null)
             {
@@ -177,19 +183,29 @@ namespace Nekolpos.System
             SetMenuPanelVisible(false, false);
         }
 
+        private static void NotifyWalkModePauseState(bool isOpen)
+        {
+            PlayerWalkModeController walkModeController = FindFirstObjectByType<PlayerWalkModeController>(FindObjectsInactive.Include);
+            walkModeController?.SetPauseMenuOpen(isOpen);
+        }
+
+        private static void ApplyMenuPointerState()
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+
         private void ResolveReferences()
         {
             menuButton ??= FindSceneButton("MenuButton");
             rootCanvas ??= ResolveRootCanvas();
             menuPanel ??= FindCanvasObject("MenuPanel") ?? FindSceneObject("MenuPanel");
             goTitleButton ??= FindMenuPanelButton("GoTitleButton") ?? FindSceneButton("GoTitleButton");
-            bgmButton ??= FindMenuPanelButton("BGMButton") ?? FindSceneButton("BGMButton");
-            seButton ??= FindMenuPanelButton("SEButton") ?? FindSceneButton("SEButton");
+            EnsureSettingsEntry();
             logButton ??= FindMenuPanelButton("LogButton") ?? FindPauseLogButton();
             teachingResetButton ??= FindMenuPanelButton("TeachingResetButton");
             if (TeachingResetButtonEnabled)
             {
-                teachingResetButton ??= CreateTeachingResetButton();
             }
             else if (teachingResetButton != null)
             {
@@ -223,14 +239,7 @@ namespace Nekolpos.System
 
                 relay.Bind(this);
                 EnsureOverlayCanvas(menuButton.gameObject, MenuButtonSortingOrder);
-                RectTransform buttonRect = menuButton.GetComponent<RectTransform>();
-                if (buttonRect != null)
-                {
-                    buttonRect.anchorMin = buttonRect.anchorMax = new Vector2(0f, 1f);
-                    buttonRect.pivot = new Vector2(0f, 1f);
-                    buttonRect.anchoredPosition = new Vector2(12f, -12f);
-                    buttonRect.sizeDelta = new Vector2(64f, 64f);
-                }
+
             }
 
             if (menuPanel != null && menuPanelGroup == null)
@@ -258,7 +267,6 @@ namespace Nekolpos.System
                 }
 
                 relay.Bind(this);
-                EnsureMenuDismissControls();
             }
 
             ApplyPlatformButtonVisibility();
@@ -267,9 +275,10 @@ namespace Nekolpos.System
         private void BindButtons()
         {
             Bind(menuButton, ToggleMenu);
+            Bind(settingsButton, OpenSettings);
+            Bind(unstuckButton, UnstuckFromMenu);
+            Bind(closeMenuButton, CloseMenu);
             Bind(goTitleButton, GoTitle);
-            Bind(bgmButton, ToggleBgm);
-            Bind(seButton, ToggleSe);
             Bind(logButton, OpenLogFromMenu);
             if (TeachingResetButtonEnabled)
             {
@@ -279,31 +288,9 @@ namespace Nekolpos.System
             Bind(endButton, QuitGame);
         }
 
-        private void ApplyTheme()
-        {
-            if (menuPanel != null)
-            {
-                UIStyle.ApplyPanel(menuPanel);
-            }
-
-            ApplyButtonStyle(menuButton);
-            ApplyButtonStyle(goTitleButton);
-            ApplyButtonStyle(bgmButton);
-            ApplyButtonStyle(seButton);
-            ApplyButtonStyle(logButton);
-            if (TeachingResetButtonEnabled)
-            {
-                ApplyButtonStyle(teachingResetButton);
-            }
-            ApplyButtonStyle(enqueteButton);
-            ApplyButtonStyle(endButton);
-        }
-
         private void RefreshLabels()
         {
             SetButtonLabel(goTitleButton, BasicSystemDialogueCatalog.Get(GoTitleButtonKey, "タイトルへ"));
-            SetButtonLabel(bgmButton, bgmMuted ? "BGM OFF" : "BGM ON");
-            SetButtonLabel(seButton, seMuted ? "SE OFF" : "SE ON");
             SetButtonLabel(logButton, BasicSystemDialogueCatalog.Get(RirekiButtonKey, "履歴"));
             if (TeachingResetButtonEnabled)
             {
@@ -351,6 +338,7 @@ namespace Nekolpos.System
 
         private void SetMenuButtonVisible(bool visible)
         {
+            visible &= !transitionSuppressed;
             if (menuButton == null)
             {
                 return;
@@ -446,7 +434,7 @@ namespace Nekolpos.System
 
         private void UpdateMenuButtonAlpha()
         {
-            if (menuButtonGroup == null || !initialConversationCompleted || isPaused)
+            if (transitionSuppressed || menuButtonGroup == null || !initialConversationCompleted || isPaused)
             {
                 return;
             }
@@ -515,119 +503,33 @@ namespace Nekolpos.System
             target.transform.localScale = localScale;
         }
 
-        private void ToggleBgm()
+        private void EnsureSettingsEntry()
         {
-            bgmMuted = !bgmMuted;
-            PlayerPrefs.SetInt(SaveKeyBgmMuted, bgmMuted ? 1 : 0);
-            PlayerPrefs.Save();
-            RefreshAudioSources();
-            ApplyBgmMuteState();
-            RefreshLabels();
+            if (unstuckButton == null) return;
+            var walk = FindFirstObjectByType<PlayerWalkModeController>(FindObjectsInactive.Include);
+            unstuckButton.gameObject.SetActive(walk != null && walk.IsWalkMode);
+            unstuckButton.interactable = walk != null && !walk.IsTransitioning && !walk.IsTabletInteractionActive;
         }
 
-        private void ToggleSe()
+        public void OpenSettings()
         {
-            seMuted = !seMuted;
-            PlayerPrefs.SetInt(SaveKeySeMuted, seMuted ? 1 : 0);
-            PlayerPrefs.Save();
-            RefreshAudioSources();
-            ApplySeMuteStateToRuntimeSources();
-            RefreshLabels();
+            if (!isPaused) return;
+            if (settingsPanel != null) settingsPanel.Show(this, ApplyMenuPointerState);
+            else Debug.LogError("[OpenBetaPause] SettingsPanel参照が未設定です。", this);
         }
 
-        private void LoadAudioState()
+        private void UnstuckFromMenu()
         {
-            bgmMuted = PlayerPrefs.GetInt(SaveKeyBgmMuted, 0) != 0;
-            seMuted = PlayerPrefs.GetInt(SaveKeySeMuted, 0) != 0;
-        }
-
-        private void ApplyAudioMuteState()
-        {
-            ApplyBgmMuteState();
-            ApplySeMuteStateToRuntimeSources();
-        }
-
-        private void ApplyBgmMuteState()
-        {
-            for (int i = 0; i < bgmSources.Count; i++)
-            {
-                if (bgmSources[i] != null)
-                {
-                    bgmSources[i].mute = bgmMuted;
-                }
-            }
-        }
-
-        private void ApplySeMuteStateToRuntimeSources()
-        {
-            for (int i = 0; i < seSources.Count; i++)
-            {
-                AudioSource source = seSources[i];
-                if (source == null)
-                {
-                    continue;
-                }
-
-                source.mute = seMuted;
-            }
-        }
-
-        private void RefreshAudioSources()
-        {
-            bgmSources.Clear();
-            seSources.Clear();
-            AudioSource[] sources = FindSceneComponents<AudioSource>();
-            for (int i = 0; i < sources.Length; i++)
-            {
-                AudioSource source = sources[i];
-                if (source.GetComponentInParent<BackgroundMusicController>(true) != null)
-                    bgmSources.Add(source);
-                else
-                    seSources.Add(source);
-            }
-        }
-
-        // Audio created after the menu's discovery pass must start muted, before its first Play call.
-        public static void ApplySavedAudioState(AudioSource source, bool isBgm)
-        {
-            if (source != null)
-                source.mute = PlayerPrefs.GetInt(isBgm ? SaveKeyBgmMuted : SaveKeySeMuted, 0) != 0;
-        }
-
-        private void EnsureMenuDismissControls()
-        {
-            if (rootCanvas == null || menuPanel == null) return;
-
-            if (menuPanel.transform.Find("CloseMenuButton") != null) return;
-            GameObject closeObject = new GameObject("CloseMenuButton", typeof(RectTransform), typeof(Image), typeof(Button));
-            closeObject.transform.SetParent(menuPanel.transform, false);
-            RectTransform closeRect = (RectTransform)closeObject.transform;
-            closeRect.anchorMin = closeRect.anchorMax = Vector2.one;
-            closeRect.pivot = Vector2.one;
-            closeRect.anchoredPosition = new Vector2(-12f, -12f);
-            closeRect.sizeDelta = new Vector2(64f, 64f);
-            GameObject labelObject = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-            labelObject.transform.SetParent(closeObject.transform, false);
-            RectTransform labelRect = (RectTransform)labelObject.transform;
-            labelRect.anchorMin = Vector2.zero;
-            labelRect.anchorMax = Vector2.one;
-            labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
-            TMP_Text label = labelObject.GetComponent<TMP_Text>();
-            TMP_Text existingLabel = menuPanel.GetComponentInChildren<TMP_Text>(true);
-            if (existingLabel != null) label.font = existingLabel.font;
-            label.text = "×";
-            label.fontSize = 36f;
-            label.alignment = TextAlignmentOptions.Center;
-            label.raycastTarget = false;
-            Button closeButton = closeObject.GetComponent<Button>();
-            closeButton.targetGraphic = closeObject.GetComponent<Image>();
-            closeButton.onClick.AddListener(CloseMenu);
-            UIStyle.ApplyButton(closeButton);
+            if (!isPaused) return;
+            var walk = FindFirstObjectByType<PlayerWalkModeController>(FindObjectsInactive.Include);
+            if (walk != null && walk.TryUnstuck()) CloseMenu();
         }
 
         private void OpenLogFromMenu()
         {
-            CloseMenu();
+            // ログ送信・確認画面もポーズメニュー配下の操作として扱う。
+            // ここでCloseMenuするとTimeScaleと散歩入力が復帰してカーソルが失われる。
+            ApplyMenuPointerState();
 
             if (chatUI != null)
             {
@@ -651,6 +553,8 @@ namespace Nekolpos.System
                 return;
             }
 
+            // 外部ブラウザから戻った後も、ゲーム側はポーズ中のまま操作する。
+            ApplyMenuPointerState();
             Application.OpenURL(enqueteUrl);
         }
 
@@ -662,8 +566,17 @@ namespace Nekolpos.System
             ResetOpenBetaState();
             GameManager.Instance?.ResetForTitleScreen();
             PlayTitleBgmNow();
-            Debug.Log($"[OpenBetaPause][GoTitle] loading title scene={OpenBetaSceneNames.Title} frame={Time.frameCount}");
-            SceneManager.LoadScene(OpenBetaSceneNames.Title, LoadSceneMode.Single);
+            Debug.Log($"[OpenBetaPause][GoTitle] loading main scene={OpenBetaSceneNames.Main} frame={Time.frameCount}");
+            SceneManager.LoadScene(OpenBetaSceneNames.Main, LoadSceneMode.Single);
+        }
+
+        private static void StopInteractionsForTitleReload()
+        {
+            foreach (PlayerInteractor interactor in FindSceneComponents<PlayerInteractor>())
+            {
+                interactor.ResetInteractionState();
+                interactor.enabled = false;
+            }
         }
 
         private void QuitGame()
@@ -672,20 +585,48 @@ namespace Nekolpos.System
             Application.Quit();
         }
 
-        private static void ResetOpenBetaState()
+        public static void ResetOpenBetaState(bool resetConversationState = true)
         {
-            OpenBetaTitleBootstrap[] bootstraps = FindSceneComponents<OpenBetaTitleBootstrap>();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            NekolposDebugConsole.Instance?.Close();
+            DebugConsoleInput.ReleaseAll();
+#endif
+            NekolposGameBootstrap[] bootstraps = FindSceneComponents<NekolposGameBootstrap>();
             Debug.Log($"[OpenBetaPause][GoTitle] ResetOpenBetaState titleBootstraps={bootstraps.Length}");
             for (int i = 0; i < bootstraps.Length; i++)
             {
                 bootstraps[i]?.AbortRuntimeFlowForTitleReload();
             }
 
+            foreach (OpenBetaPauseMenuController menu in FindSceneComponents<OpenBetaPauseMenuController>())
+            {
+                menu.isPaused = false;
+                menu.SetMenuPanelVisible(false, true);
+                menu.chatUI?.SetMenuInputBlocked(false);
+            }
+            foreach (DialogueTimelineSequenceController sequence in FindSceneComponents<DialogueTimelineSequenceController>())
+                sequence.Finish();
+            foreach (DiaryCalendarController diary in FindSceneComponents<DiaryCalendarController>())
+                diary.ResetRuntimeStateForTitleReload();
+            foreach (TabletHomeApplicationController tablet in FindSceneComponents<TabletHomeApplicationController>())
+                tablet.ResetRuntimeStateForTitleReload();
+            foreach (PlayerAreaTransitionController transition in FindSceneComponents<PlayerAreaTransitionController>())
+                transition.ResetForTitleReload();
+            foreach (PlayerWalkModeController walk in FindSceneComponents<PlayerWalkModeController>())
+                walk.ResetForTitleReload();
+            StopInteractionsForTitleReload();
+            foreach (Nekolpos.ActionSystem.FadeController fade in FindSceneComponents<Nekolpos.ActionSystem.FadeController>())
+                fade.ResetForTitleReload();
+            Time.timeScale = 1f;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            EventSystem.current?.SetSelectedGameObject(null);
+
             ConversationGameStateManager[] managers = FindSceneComponents<ConversationGameStateManager>();
             Debug.Log($"[OpenBetaPause][GoTitle] ResetOpenBetaState conversationStateManagers={managers.Length}");
             for (int i = 0; i < managers.Length; i++)
             {
-                managers[i]?.ResetStateFromInitialJson();
+                if (resetConversationState) managers[i]?.ResetStateFromInitialJson();
             }
 
             ChatUIController[] chatUis = FindSceneComponents<ChatUIController>();
@@ -722,7 +663,6 @@ namespace Nekolpos.System
                 backgroundMusicController.PlayTitleMusic(true);
             }
 
-            ApplyBgmMuteState();
         }
 
         private void SetHover(bool hovered)
@@ -791,27 +731,6 @@ namespace Nekolpos.System
         {
             Transform target = menuPanel != null ? FindDescendant(menuPanel.transform, objectName) : null;
             return target != null ? target.GetComponent<Button>() : null;
-        }
-
-        private Button CreateTeachingResetButton()
-        {
-            if (menuPanel == null || logButton == null)
-            {
-                return null;
-            }
-
-            GameObject clone = Instantiate(logButton.gameObject, logButton.transform.parent, false);
-            clone.name = "TeachingResetButton";
-            RectTransform cloneRect = clone.GetComponent<RectTransform>();
-            RectTransform logRect = logButton.GetComponent<RectTransform>();
-            if (cloneRect != null && logRect != null)
-            {
-                cloneRect.anchoredPosition = logRect.anchoredPosition + new Vector2(0f, -44f);
-            }
-
-            Button button = clone.GetComponent<Button>();
-            ApplyButtonStyle(button);
-            return button;
         }
 
         private Canvas ResolveRootCanvas()
@@ -930,14 +849,6 @@ namespace Nekolpos.System
             }
 
             return false;
-        }
-
-        private static void ApplyButtonStyle(Button button)
-        {
-            if (button != null)
-            {
-                UIStyle.ApplyButton(button);
-            }
         }
 
         private static void EnsureOverlayCanvas(GameObject target, int sortingOrder)

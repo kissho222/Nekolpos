@@ -14,8 +14,11 @@ public sealed class FreeCameraController : MonoBehaviour
 
     private void Update()
     {
-        rotationX -= Input.GetAxis("Mouse Y") * mouseSensitivity;
-        rotationY += Input.GetAxis("Mouse X") * mouseSensitivity;
+        if (Nekolpos.System.DebugConsoleInput.IsBlocked) return;
+        if (Time.timeScale <= 0f || Nekolpos.System.SettingsPanel.IsOpen) return;
+        Vector2 look = Nekolpos.System.SettingsManager.LookInput(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"), mouseSensitivity);
+        rotationX -= look.y;
+        rotationY += look.x;
         transform.rotation = Quaternion.Euler(rotationX, rotationY, 0f);
 
         Vector3 move = transform.forward * Input.GetAxis("Vertical") + transform.right * Input.GetAxis("Horizontal");

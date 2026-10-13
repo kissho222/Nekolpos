@@ -13,7 +13,6 @@ namespace Nekolpos.EditorTools
             "Assets/Settings/PV/PV_Morning_VolumeProfile.asset",
         };
 
-        [MenuItem("Tools/Nekolpos/Repair Depth Of Field Profiles")]
         public static void Repair()
         {
             foreach (string path in ProfilePaths)

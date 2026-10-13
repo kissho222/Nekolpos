@@ -34,6 +34,8 @@ namespace Nekolpos.System
         private const string EntriesPrefsKey = "Nekolpos.Diary.Entries.v1";
         private const string PawSpriteResourcePath = "Diary/肉球マーク";
         private const string TemporarySpecialDiaryId = "TEMP_SPECIAL_DIARY_001";
+        private const string DebugOctoberFirstSpecialDiaryId = "TEMP_SPECIAL_DIARY_OCT01";
+        private const string DebugOctoberFirstSpecialDiaryBody = "今日は、ネルコに顔を近づけられた。\n目の前いっぱいに顔があって、息がかかるたびに身体ごと包まれているみたいだった。\nそのまま大きな舌先で頬をぺろっと舐められて、あまりの近さにしばらく動けなかった。\nたぶんネルコには、私がどれだけどきどきしていたか全部ばれていたと思う。";
         private const int DayNumberFontSize = 35;
         private const int DayPreviewFontSize = 16;
         private const int DayPreviewCharacterLimit = 12;
@@ -66,9 +68,11 @@ namespace Nekolpos.System
         private Button specialSortButton;
         private TMP_Text calendarTitleText;
         private TMP_Text detailTitleText;
+        [SerializeField] private Image detailSpecialPaw;
         private TMP_Text detailBodyText;
         private GameObject detailBackImage;
         private TMP_Text writingPromptText;
+        private TMP_Text writingDateText;
         private TMP_Text writingBodyText;
         private GameObject microphoneIndicator;
         private Button morningButton;
@@ -89,6 +93,28 @@ namespace Nekolpos.System
         private bool isDetailPageTransitioning;
         private readonly List<DiaryJournalStore.DiaryDraft> entriesAwaitingConfirmation = new List<DiaryJournalStore.DiaryDraft>();
         private bool confirmingSpecialEntries;
+        private bool isNightDiaryActive;
+        public bool IsNightDiaryActive => isNightDiaryActive;
+        public bool IsCalendarWindowOpen => activeWindow != null && activeWindow.activeInHierarchy;
+        public bool IsWritingOrTransitioning => writingCoroutine != null || isViewTransitioning || isDetailPageTransitioning;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public bool TryAdvanceIsolatedNightDiary()
+        {
+            if (!DebugSaveSession.CanRunScenarios || DebugConsoleInput.ConsoleOwnsInput || !isNightDiaryActive || IsWritingOrTransitioning) return false;
+            if (writingFinishButton != null && writingFinishButton.gameObject.activeInHierarchy && writingFinishButton.interactable)
+            { writingFinishButton.onClick.Invoke(); return true; }
+            foreach (var button in new[] { morningButton, afternoonButton, eveningButton })
+                if (button != null && button.gameObject.activeInHierarchy && button.interactable) { button.onClick.Invoke(); return true; }
+            return false;
+        }
+#endif
+        private bool isDebugNightDiary;
+        private int activeNightDiaryDay;
+        private int completedNightDiaryDay;
+        public bool HasCurrentNightDiary => timeManager != null &&
+            ((isNightDiaryActive && activeNightDiaryDay == timeManager.CurrentDay) || completedNightDiaryDay == timeManager.CurrentDay);
+        private ScrollRect writingBodyScroll;
+        private ScrollRect detailBodyScroll;
 
         private void Awake()
         {
@@ -112,8 +138,7 @@ namespace Nekolpos.System
 
         private void OnDestroy()
         {
-            StopWindowTransition();
-            StopDetailPageTransition();
+            ResetRuntimeStateForTitleReload();
             if (Instance == this)
             {
                 Instance = null;
@@ -188,6 +213,39 @@ namespace Nekolpos.System
             AddEntryForDate(date, text, isSpecial: true, diaryId: diaryId, refreshCalendar: true);
         }
 
+        /// <summary>Clears saved diary entries and unfinished drafts through the Debug Panel only.</summary>
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public void ResetAllDiaryDataForDebug()
+        {
+            if (!DebugConsoleGuard.CanMutate(out string reason))
+            {
+                Debug.LogWarning("[DiaryCalendar] 日記リセットを拒否: " + reason, this);
+                return;
+            }
+
+            StopWritingRoutine();
+            entriesAwaitingConfirmation.Clear();
+            confirmingSpecialEntries = false;
+            isNightDiaryActive = false;
+            isDebugNightDiary = false;
+            activeNightDiaryDay = 0;
+            entriesByDate.Clear();
+            specialEntriesByDate.Clear();
+            entryRecords.Clear();
+            entriesLoaded = true;
+            specialSortMode = false;
+            detailIsSpecialSort = false;
+            hasDetailDate = false;
+            DiaryJournalStore.ResetAllForDebug();
+            ProgressSaveStore.DeleteKey(EntriesPrefsKey);
+            ProgressSaveStore.Save();
+            if (panel != null && panel.activeInHierarchy)
+            {
+                BuildCalendar();
+            }
+        }
+#endif
+
         [ContextMenu("Add Temporary Special Diary")]
         private void AddTemporarySpecialDiary()
         {
@@ -204,8 +262,51 @@ namespace Nekolpos.System
             AddSpecialEntryForDate(date, text, TemporarySpecialDiaryId);
         }
 
+        /// <summary>
+        /// Debug-only test setup for crossing from September into October. The target is derived from the
+        /// saved game-start date, never from the PC's current clock.
+        /// </summary>
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public bool AddDebugOctoberFirstSpecialDiary()
+        {
+            if (!TryResolveTimeManager())
+            {
+                Debug.LogWarning("[DiaryCalendar] TimeManager が見つからないため、10/1特別日記を追加できません。", this);
+                return false;
+            }
+
+            DateTime targetDate = GetDebugOctoberFirstDate(timeManager.GameStartDate);
+            int targetDay = CalculateDebugOctoberFirstDayNumber(timeManager.GameStartDate);
+            timeManager.SetCurrentTime(targetDay, timeManager.CurrentPeriod);
+            AddSpecialEntryForDate(targetDate, DebugOctoberFirstSpecialDiaryBody, DebugOctoberFirstSpecialDiaryId);
+            Debug.Log($"[DiaryCalendar] デバッグ用特別日記を {targetDate:M/d}（Day {targetDay}）へ追加しました。", this);
+            return true;
+        }
+#endif
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        [ContextMenu("Add Debug October 1 Special Diary")]
+        private void AddDebugOctoberFirstSpecialDiaryFromInspector()
+        {
+            AddDebugOctoberFirstSpecialDiary();
+        }
+#endif
+
+        private static int CalculateDebugOctoberFirstDayNumber(DateTime gameStartDate)
+        {
+            return (GetDebugOctoberFirstDate(gameStartDate) - gameStartDate.Date).Days + 1;
+        }
+
+        private static DateTime GetDebugOctoberFirstDate(DateTime gameStartDate)
+        {
+            DateTime startDate = gameStartDate.Date;
+            DateTime targetDate = new DateTime(startDate.Year, 10, 1);
+            return targetDate < startDate ? targetDate.AddYears(1) : targetDate;
+        }
+
         private void AddEntryForDate(DateTime date, string text, bool isSpecial, string diaryId, bool refreshCalendar)
         {
+            text = ResolveDiaryBody(text);
             if (string.IsNullOrWhiteSpace(text))
             {
                 return;
@@ -253,21 +354,33 @@ namespace Nekolpos.System
                 return;
             }
 
+            if (completedNightDiaryDay == timeManager.CurrentDay)
+            {
+                OpenCalendar();
+                return;
+            }
+
             panel.SetActive(true);
             StopWritingRoutine();
-            OpenBetaTitleBootstrap bootstrap = FindFirstObjectByType<OpenBetaTitleBootstrap>();
+            NekolposGameBootstrap bootstrap = FindFirstObjectByType<NekolposGameBootstrap>();
             if (bootstrap != null)
             {
                 bootstrap.SetHomeLocation(CatHomeLocation.Desk);
                 bootstrap.EnterTabletCameraView();
             }
 
+            bool keepWritingBackground = isNightDiaryActive && activeWindow == writingView;
             HideApplicationWindows();
             DateTime currentDate = timeManager.GetCalendarDate(timeManager.CurrentDay);
+            isNightDiaryActive = true;
+            DebugConsoleTrace.Diary(true);
+            isDebugNightDiary = NekolposGameBootstrap.IsDebugStart;
+            activeNightDiaryDay = timeManager.CurrentDay;
             viewedMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
             BuildCalendar(showWindow: false);
-            ShowWindowImmediately(calendarView);
+            ShowWindowImmediately(keepWritingBackground ? writingView : calendarView);
             ResetWritingPresentation();
+            UpdateWritingDate(activeNightDiaryDay);
             entriesAwaitingConfirmation.Clear();
             confirmingSpecialEntries = false;
 
@@ -286,6 +399,13 @@ namespace Nekolpos.System
             morningButton.interactable = DiaryJournalStore.HasNormalDraft(timeManager.CurrentDay, DayPeriod.Morning);
             afternoonButton.interactable = DiaryJournalStore.HasNormalDraft(timeManager.CurrentDay, DayPeriod.Afternoon);
             eveningButton.interactable = DiaryJournalStore.HasNormalDraft(timeManager.CurrentDay, DayPeriod.Evening);
+            if (!morningButton.interactable && !afternoonButton.interactable && !eveningButton.interactable)
+            {
+                // No authored normal text exists for this day. Allow confirmation without fabricating diary prose.
+                promptParentPanel.SetActive(false);
+                OpenWritingWindow();
+                writingCoroutine = StartCoroutine(WriteEntriesRoutine(Array.Empty<DiaryJournalStore.DiaryDraft>()));
+            }
         }
 
         private void BuildCalendar(bool showWindow = true, SlideDirection direction = SlideDirection.Forward)
@@ -327,7 +447,7 @@ namespace Nekolpos.System
                 DateTime date = first.AddDays(day - 1);
                 string key = Key(date);
                 string preview = entriesByDate.TryGetValue(key, out List<string> notes) && notes.Count > 0
-                    ? notes[0]
+                    ? ResolveDiaryBody(notes[0])
                     : string.Empty;
                 label.text = FormatDayCellText(day, preview);
                 SetDayCellPaw(button, specialEntriesByDate.ContainsKey(key));
@@ -344,7 +464,8 @@ namespace Nekolpos.System
                 calendarTitleText.text = "特別な日記";
             }
 
-            List<DateTime> dates = GetSpecialEntryDates();
+            var grouped = BuildSpecialEntryGroups(out var repeatCounts);
+            List<DateTime> dates = grouped.Keys.OrderBy(date => date).ToList();
             for (int index = 0; index < dayButtons.Count; index++)
             {
                 Button button = dayButtons[index];
@@ -366,7 +487,9 @@ namespace Nekolpos.System
                 }
 
                 DateTime date = dates[index];
-                label.text = FormatSpecialDayCellText(date);
+                string preview = grouped.TryGetValue(date, out List<string> notes) && notes.Count > 0
+                    ? ResolveDiaryBody(notes[0]) : string.Empty;
+                label.text = FormatSpecialCellText(FormatSpecialDateLabel(date, repeatCounts[date]), preview);
                 button.onClick.AddListener(() => ShowEntries(date, specialOnly: true));
             }
 
@@ -376,9 +499,7 @@ namespace Nekolpos.System
 
         private void ShowEntries(DateTime date, bool specialOnly)
         {
-            string key = Key(date);
-            Dictionary<string, List<string>> source = specialOnly ? specialEntriesByDate : entriesByDate;
-            if (!source.TryGetValue(key, out List<string> notes) || notes.Count == 0) return;
+            if (!TryGetEntries(date, specialOnly, out List<string> notes)) return;
 
             ApplyDetailEntry(date, notes, specialOnly);
             SetView(detailView, SlideDirection.Forward);
@@ -402,8 +523,11 @@ namespace Nekolpos.System
 
         private bool TryGetEntries(DateTime date, bool specialOnly, out List<string> notes)
         {
-            Dictionary<string, List<string>> source = specialOnly ? specialEntriesByDate : entriesByDate;
-            return source.TryGetValue(Key(date), out notes) && notes.Count > 0;
+            if (specialOnly)
+            {
+                return BuildSpecialEntryGroups(out _).TryGetValue(date.Date, out notes) && notes.Count > 0;
+            }
+            return entriesByDate.TryGetValue(Key(date), out notes) && notes.Count > 0;
         }
 
         private void ApplyDetailEntry(DateTime date, List<string> notes, bool isSpecialSort)
@@ -413,7 +537,16 @@ namespace Nekolpos.System
             detailIsSpecialSort = isSpecialSort;
             viewedMonth = new DateTime(detailDate.Year, detailDate.Month, 1);
             if (detailTitleText != null) detailTitleText.text = FormatDetailTitle(detailDate);
-            if (detailBodyText != null) detailBodyText.text = string.Join("\n\n", notes);
+            if (isSpecialSort && detailTitleText != null)
+            {
+                BuildSpecialEntryGroups(out var repeatCounts);
+                repeatCounts.TryGetValue(detailDate, out int repeats);
+                detailTitleText.text = FormatSpecialDateLabel(detailDate, repeats) + "の日記";
+            }
+            if (detailBodyText != null) detailBodyText.text = string.Join("\n\n", notes.Select(ResolveDiaryBody));
+            detailBodyScroll = EnsureBodyScroll(detailBodyText);
+            ResetBodyScroll(detailBodyScroll, atBottom: false);
+            SetDetailPaw(specialEntriesByDate.ContainsKey(Key(detailDate)));
             RefreshDetailDayButtons();
         }
 
@@ -463,20 +596,39 @@ namespace Nekolpos.System
 
         private List<DateTime> GetSpecialEntryDates()
         {
-            return specialEntriesByDate.Keys
-                .Select(key => DateTime.TryParseExact(
-                    key,
-                    "yyyy-MM-dd",
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.None,
-                    out DateTime date)
-                    ? (DateTime?)date.Date
-                    : null)
-                .Where(date => date.HasValue)
-                .Select(date => date.Value)
-                .OrderBy(date => date)
-                .ToList();
+            return BuildSpecialEntryGroups(out _).Keys.OrderBy(date => date).ToList();
         }
+
+        private Dictionary<DateTime, List<string>> BuildSpecialEntryGroups(out Dictionary<DateTime, int> repeatCounts)
+        {
+            var grouped = new Dictionary<DateTime, List<string>>();
+            repeatCounts = new Dictionary<DateTime, int>();
+            var firstDates = new Dictionary<string, DateTime>(StringComparer.Ordinal);
+            foreach (var pair in specialEntriesByDate.OrderBy(item => item.Key, StringComparer.Ordinal))
+            {
+                if (!DateTime.TryParseExact(pair.Key, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out DateTime date)) continue;
+                foreach (string body in pair.Value)
+                {
+                    if (firstDates.TryGetValue(body, out DateTime firstDate))
+                    {
+                        repeatCounts[firstDate]++;
+                        continue;
+                    }
+                    firstDates.Add(body, date);
+                    if (!grouped.TryGetValue(date, out var notes))
+                    {
+                        grouped[date] = notes = new List<string>();
+                        repeatCounts[date] = 0;
+                    }
+                    notes.Add(body);
+                }
+            }
+            return grouped;
+        }
+
+        private static string FormatSpecialDateLabel(DateTime date, int repeats) =>
+            $"{date.Month}/{date.Day}" + (repeats > 0 ? $" 他{repeats}件" : string.Empty);
 
         private void RefreshDetailDayButtons()
         {
@@ -533,7 +685,15 @@ namespace Nekolpos.System
             return $"{dayText}\n<size={DayPreviewFontSize}>{Truncate(preview.Trim(), DayPreviewCharacterLimit)}</size>";
         }
 
-        private static string FormatSpecialDayCellText(DateTime date) => $"<size={DayNumberFontSize}>{date.Month}/{date.Day}</size>";
+        private static string FormatSpecialDayCellText(DateTime date, string preview)
+            => FormatSpecialCellText(FormatSpecialDateLabel(date, 0), preview);
+
+        private static string FormatSpecialCellText(string dateLabel, string preview)
+        {
+            string dateText = $"<size={DayNumberFontSize}>{dateLabel}</size>";
+            return string.IsNullOrWhiteSpace(preview) ? dateText
+                : $"{dateText}\n<size={DayPreviewFontSize}>{Truncate(preview.Trim(), DayPreviewCharacterLimit)}</size>";
+        }
 
         private static string FormatDetailTitle(DateTime date) => $"{date.Month}/{date.Day}の日記";
 
@@ -544,7 +704,7 @@ namespace Nekolpos.System
                 return;
             }
 
-            DiaryEntryCollection collection = JsonUtility.FromJson<DiaryEntryCollection>(PlayerPrefs.GetString(EntriesPrefsKey, string.Empty)) ?? new DiaryEntryCollection();
+            DiaryEntryCollection collection = JsonUtility.FromJson<DiaryEntryCollection>(ProgressSaveStore.GetString(EntriesPrefsKey, string.Empty)) ?? new DiaryEntryCollection();
             foreach (DiaryEntry entry in collection.entries)
             {
                 if (entry == null || string.IsNullOrWhiteSpace(entry.date) || string.IsNullOrWhiteSpace(entry.text))
@@ -595,6 +755,7 @@ namespace Nekolpos.System
             detailBodyText ??= FindChildComponent<TMP_Text>("DetailBody");
             detailBackImage ??= FindChild("DetailBackImage");
             writingPromptText ??= FindChildComponent<TMP_Text>("WritingPrompt");
+            writingDateText ??= FindChildComponent<TMP_Text>("WritingDate");
             writingBodyText ??= FindChildComponent<TMP_Text>("WritingBody");
             microphoneIndicator ??= FindChild("MicrophoneIndicator");
             previousMonthButton ??= FindChildComponent<Button>("PreviousButton");
@@ -611,6 +772,20 @@ namespace Nekolpos.System
             eveningButton ??= FindChildComponent<Button>("EveningButton");
             writingFinishButton ??= FindChildComponent<Button>("WritingFinishButton");
             reWritingButton ??= FindChildComponent<Button>("ReWritingButton");
+
+            writingBodyScroll = EnsureBodyScroll(writingBodyText);
+            detailBodyScroll = EnsureBodyScroll(detailBodyText);
+            // Notes outside WritingView (including the beta notice) must not cover the action buttons.
+            foreach (TMP_Text label in panel.GetComponentsInChildren<TMP_Text>(true))
+                if (label.GetComponentInParent<Button>(true) == null && label.GetComponentInParent<TMP_InputField>(true) == null)
+                    label.raycastTarget = false;
+            if (writingView != null)
+            {
+                // Decorative graphics must not intercept the rewrite/finish buttons or scroll gestures.
+                foreach (Graphic graphic in writingView.GetComponentsInChildren<Graphic>(true))
+                    if (graphic.GetComponentInParent<Button>(true) == null && graphic.GetComponent<ScrollRect>() == null)
+                        graphic.raycastTarget = false;
+            }
 
             if (dayButtons.Count > 0)
             {
@@ -758,6 +933,61 @@ namespace Nekolpos.System
             return pawSprite;
         }
 
+        private void SetDetailPaw(bool visible)
+        {
+            if (detailSpecialPaw == null && detailView != null)
+                detailSpecialPaw = detailView.transform.Find("SpecialDiaryPaw")?.GetComponent<Image>();
+            if (detailSpecialPaw != null) detailSpecialPaw.gameObject.SetActive(visible);
+        }
+
+        private static ScrollRect EnsureBodyScroll(TMP_Text body)
+        {
+            if (body == null) return null;
+            if (body.transform.parent.TryGetComponent<ScrollRect>(out var existing)) return existing;
+            RectTransform textRect = body.rectTransform;
+            var viewportObject = new GameObject("DiaryBodyViewport", typeof(RectTransform), typeof(Image), typeof(RectMask2D), typeof(ScrollRect));
+            var viewport = viewportObject.GetComponent<RectTransform>();
+            viewport.SetParent(textRect.parent, false);
+            viewport.SetSiblingIndex(textRect.GetSiblingIndex());
+            viewport.anchorMin = textRect.anchorMin;
+            viewport.anchorMax = textRect.anchorMax;
+            viewport.pivot = textRect.pivot;
+            viewport.sizeDelta = textRect.sizeDelta;
+            viewport.anchoredPosition = textRect.anchoredPosition;
+            var image = viewportObject.GetComponent<Image>();
+            image.color = Color.clear;
+            image.raycastTarget = true;
+            textRect.SetParent(viewport, false);
+            textRect.anchorMin = new Vector2(0f, 1f);
+            textRect.anchorMax = Vector2.one;
+            textRect.pivot = new Vector2(0.5f, 1f);
+            textRect.sizeDelta = Vector2.zero;
+            textRect.anchoredPosition = Vector2.zero;
+            body.alignment = TextAlignmentOptions.TopLeft;
+            body.textWrappingMode = TextWrappingModes.Normal;
+            body.overflowMode = TextOverflowModes.Overflow;
+            body.raycastTarget = false;
+            var fitter = body.GetComponent<ContentSizeFitter>() ?? body.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            var scroll = viewportObject.GetComponent<ScrollRect>();
+            scroll.viewport = viewport;
+            scroll.content = textRect;
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 50f;
+            return scroll;
+        }
+
+        private static void ResetBodyScroll(ScrollRect scroll, bool atBottom)
+        {
+            if (scroll == null) return;
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scroll.content);
+            scroll.StopMovement();
+            scroll.verticalNormalizedPosition = atBottom ? 0f : 1f;
+        }
+
         private void BindCalendarControls()
         {
             BindButton(previousMonthButton, () => MoveMonth(-1));
@@ -802,7 +1032,15 @@ namespace Nekolpos.System
 
         private IEnumerator WritePendingSpecialEntriesRoutine(IReadOnlyList<DiaryJournalStore.DiaryDraft> entries)
         {
-            yield return WriteEntriesRoutine(entries);
+            // One writing session covers one date; later dates stay in the persistent queue.
+            var ordered = entries == null ? Array.Empty<DiaryJournalStore.DiaryDraft>() : entries
+                .OrderBy(entry => entry.occurredDay)
+                .ThenBy(entry => entry.period)
+                .ThenBy(entry => entry.sequence)
+                .ToArray();
+            yield return WriteEntriesRoutine(ordered.Length > 0
+                ? ordered.TakeWhile(entry => entry.occurredDay == ordered[0].occurredDay).ToArray()
+                : ordered);
         }
 
         private IEnumerator OpenPendingWritingAfterCalendarRoutine(IReadOnlyList<DiaryJournalStore.DiaryDraft> entries)
@@ -815,6 +1053,7 @@ namespace Nekolpos.System
 
         private IEnumerator WriteEntriesRoutine(IReadOnlyList<DiaryJournalStore.DiaryDraft> entries)
         {
+            UpdateWritingDate(entries != null && entries.Count > 0 ? entries[0].occurredDay : activeNightDiaryDay);
             if (entries == null || entries.Count == 0)
             {
                 ShowWritingFinish();
@@ -828,12 +1067,15 @@ namespace Nekolpos.System
             for (int index = 0; index < entries.Count; index++)
             {
                 DiaryJournalStore.DiaryDraft entry = entries[index];
-                string prefix = index > 0 ? "それと……\n" : string.Empty;
+                entry.body = ResolveDiaryBody(entry.body);
+                string prefix = index > 0 && entries[index - 1].occurredDay == entry.occurredDay
+                    ? "それと……\n" : string.Empty;
                 writingBodyText.text += index > 0 ? "\n\n" + prefix : prefix;
                 float characterDelay = Mathf.Clamp(2f / Mathf.Max(1, entry.body.Length), 0.005f, 0.035f);
                 foreach (char character in entry.body)
                 {
                     writingBodyText.text += character;
+                    ResetBodyScroll(writingBodyScroll, atBottom: true);
                     yield return new WaitForSecondsRealtime(characterDelay);
                 }
             }
@@ -843,11 +1085,48 @@ namespace Nekolpos.System
             writingCoroutine = null;
         }
 
+        private void UpdateWritingDate(int day)
+        {
+            if (writingDateText != null && TryResolveTimeManager())
+            {
+                writingDateText.text = FormatDetailTitle(timeManager.GetCalendarDate(day));
+            }
+        }
+
         private void ShowWritingFinish()
         {
             writingPromptText.text = string.Empty;
             writingFinishButton.gameObject.SetActive(true);
-            reWritingButton.gameObject.SetActive(true);
+            reWritingButton.gameObject.SetActive(!confirmingSpecialEntries);
+            writingFinishButton.transform.SetAsLastSibling();
+            reWritingButton.transform.SetAsLastSibling();
+            EnsureWritingButtonHitArea(writingFinishButton);
+            EnsureWritingButtonHitArea(reWritingButton);
+        }
+
+        private static void EnsureWritingButtonHitArea(Button button)
+        {
+            if (button == null) return;
+            var existing = button.transform.Find("DiaryButtonHitArea");
+            if (existing != null)
+            {
+                // Reference refreshes can run while the button is hidden; always
+                // restore its input surface when presenting the finish actions.
+                var existingImage = existing.GetComponent<Image>();
+                if (existingImage != null) existingImage.raycastTarget = true;
+                return;
+            }
+            // The entire button must receive input even when its artwork is hidden or only the text has a raycast.
+            var host = new GameObject("DiaryButtonHitArea", typeof(RectTransform), typeof(Image));
+            host.transform.SetParent(button.transform, false);
+            var rect = host.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            var hitImage = host.GetComponent<Image>();
+            hitImage.color = Color.clear;
+            hitImage.raycastTarget = true;
+            hitImage.canvasRenderer.cullTransparentMesh = false;
         }
 
         private void SetPeriodButtonsVisible(bool visible)
@@ -912,6 +1191,7 @@ namespace Nekolpos.System
 
         private void RestartNightDiary()
         {
+            if (confirmingSpecialEntries) return;
             StopWritingRoutine();
             entriesAwaitingConfirmation.Clear();
             confirmingSpecialEntries = false;
@@ -922,6 +1202,8 @@ namespace Nekolpos.System
         private void ConfirmWritingAndOpenCalendar()
         {
             StopWritingRoutine();
+            bool wasSpecial = confirmingSpecialEntries;
+            bool wroteNormalDiary = isNightDiaryActive && !wasSpecial;
             foreach (DiaryJournalStore.DiaryDraft entry in entriesAwaitingConfirmation)
             {
                 if (!TryResolveTimeManager())
@@ -931,7 +1213,7 @@ namespace Nekolpos.System
 
                 AddEntryForDate(
                     timeManager.GetCalendarDate(entry.occurredDay),
-                    entry.body,
+                    ResolveDiaryBody(entry.body),
                     isSpecial: confirmingSpecialEntries,
                     diaryId: entry.diaryId,
                     refreshCalendar: false);
@@ -942,12 +1224,74 @@ namespace Nekolpos.System
                 else
                 {
                     DiaryJournalStore.RemoveNormalDraft(entry);
+                    wroteNormalDiary = true;
                 }
             }
 
             entriesAwaitingConfirmation.Clear();
             confirmingSpecialEntries = false;
+            if (wasSpecial && isNightDiaryActive)
+            {
+                BeginNightDiary();
+                return;
+            }
+            if (wroteNormalDiary)
+            {
+                CompleteNightDiary();
+            }
             BuildCalendar(direction: SlideDirection.Backward);
+        }
+
+        private void CompleteNightDiary()
+        {
+            if (!isNightDiaryActive || !TryResolveTimeManager())
+            {
+                return;
+            }
+
+            // Discard unused drafts now, but keep the current night until the player finishes viewing the tablet.
+            DiaryJournalStore.DiscardNormalDraftsForDay(activeNightDiaryDay);
+            completedNightDiaryDay = activeNightDiaryDay;
+            DebugConsoleTrace.Diary(false);
+            if (promptParentPanel != null) promptParentPanel.SetActive(false);
+            isNightDiaryActive = false;
+            isDebugNightDiary = false;
+            activeNightDiaryDay = 0;
+        }
+
+        public bool TryBeginCompletedNightSleep()
+        {
+            if (completedNightDiaryDay == 0 || !TryResolveTimeManager()) return false;
+            if (completedNightDiaryDay != timeManager.CurrentDay)
+            {
+                completedNightDiaryDay = 0;
+                return false;
+            }
+            if (DialogueManager.Instance == null || !DialogueManager.Instance.TryBeginNightSleep()) return false;
+            completedNightDiaryDay = 0;
+            return true;
+        }
+
+        private static string ResolveDiaryBody(string body)
+        {
+            return DialogueManager.ResolveRuntimeText(body);
+        }
+
+        private void DiscardUnconfirmedDebugNightDiary()
+        {
+            if (!isNightDiaryActive)
+            {
+                return;
+            }
+
+            if (isDebugNightDiary)
+            {
+                DiaryJournalStore.DiscardNormalDraftsForDay(activeNightDiaryDay);
+            }
+
+            isNightDiaryActive = false;
+            isDebugNightDiary = false;
+            activeNightDiaryDay = 0;
         }
 
         private IEnumerator SlideWindowRoutine(GameObject target, SlideDirection direction)
@@ -1028,7 +1372,8 @@ namespace Nekolpos.System
             TMP_Text incomingBodyText = incomingPage.GetComponentInChildren<TMP_Text>(true);
             if (incomingBodyText != null)
             {
-                incomingBodyText.text = string.Join("\n\n", notes);
+                incomingBodyText.text = string.Join("\n\n", notes.Select(ResolveDiaryBody));
+                ResetBodyScroll(EnsureBodyScroll(incomingBodyText), atBottom: false);
             }
 
             RectTransform outgoingRect = outgoingPage.transform as RectTransform;
@@ -1242,6 +1587,19 @@ namespace Nekolpos.System
             button.onClick.AddListener(action);
         }
 
+        public void ResetRuntimeStateForTitleReload()
+        {
+            completedNightDiaryDay = 0;
+            StopWritingRoutine();
+            StopDetailPageTransition();
+            StopWindowTransition();
+            entriesAwaitingConfirmation.Clear();
+            confirmingSpecialEntries = false;
+            DiscardUnconfirmedDebugNightDiary();
+            if (promptParentPanel != null) promptParentPanel.SetActive(false);
+            if (panel != null) panel.SetActive(false);
+        }
+
         private void Close()
         {
             StopWritingRoutine();
@@ -1249,6 +1607,7 @@ namespace Nekolpos.System
             StopWindowTransition();
             entriesAwaitingConfirmation.Clear();
             confirmingSpecialEntries = false;
+            DiscardUnconfirmedDebugNightDiary();
             if (promptParentPanel != null)
             {
                 promptParentPanel.SetActive(false);
@@ -1298,8 +1657,8 @@ namespace Nekolpos.System
                     .ToList(),
             };
 
-            PlayerPrefs.SetString(EntriesPrefsKey, JsonUtility.ToJson(collection));
-            PlayerPrefs.Save();
+            ProgressSaveStore.SetString(EntriesPrefsKey, JsonUtility.ToJson(collection));
+            ProgressSaveStore.Save();
         }
 
         private bool TryResolveTimeManager()

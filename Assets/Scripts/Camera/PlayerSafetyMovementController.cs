@@ -11,7 +11,9 @@ public sealed class PlayerSafetyMovementController : MonoBehaviour
     [SerializeField] private bool enableMouseLook = true;
     [SerializeField, Min(0f)] private float mouseSensitivity = 3f;
     [SerializeField, Min(0f)] private float gravity = 9.81f;
+    [SerializeField, Min(0f)] private float maxFallSpeed = 2f;
     [SerializeField, Min(0f)] private float groundedDownwardSpeed = 0.1f;
+    [SerializeField, Min(0f)] private float jumpHeight = 0.02f;
 
     [Header("Walkable Surface")]
     [Tooltip("立ってよい面だけを含めるLayerMask。初期値は未設定のため、Inspectorで必ず指定する。Layer名はコードへ固定しない。")]
@@ -24,7 +26,8 @@ public sealed class PlayerSafetyMovementController : MonoBehaviour
     [Header("Edge Protection")]
     [SerializeField] private bool edgeFallPreventionEnabled = true;
     [SerializeField, Min(0f)] private float edgeLookAheadDistance = 0.02f;
-    [SerializeField, Min(0.001f)] private float maximumSafeStepDown = 0.02f;
+    [Tooltip("前方の下方にWalkable面がある時だけ、通常歩行で降りてよい最大落差です。虚空やこの値を超える落差はEdgeFallPreventionで止めます。")]
+    [SerializeField, Min(0.001f)] private float maximumSafeStepDown = 0.03f;
 
     [Header("Safe Position")]
     [SerializeField, Min(0f)] private float safePositionStabilitySeconds = 0.1f;
@@ -52,6 +55,10 @@ public sealed class PlayerSafetyMovementController : MonoBehaviour
     public Vector3 LastSafePosition => lastSafePosition;
     public bool EdgeFallPreventionEnabled => edgeFallPreventionEnabled;
     public bool SafetyRecoverySuspended => safetyRecoverySuspended;
+    public bool CanJump => CanStartJump(
+        characterController != null && characterController.enabled,
+        characterController != null && characterController.isGrounded,
+        isOnWalkableSurface);
 
     private void Awake()
     {
@@ -62,9 +69,11 @@ public sealed class PlayerSafetyMovementController : MonoBehaviour
 
     private void Update()
     {
+        if (Nekolpos.System.DebugConsoleInput.IsBlocked || Time.timeScale <= 0f || Nekolpos.System.SettingsPanel.IsOpen) return;
         UpdateLookRotation();
         RefreshWalkableState();
         RecoverFromUnsafeFallIfNeeded();
+        TryStartJump();
         MovePlayer(ReadMovementInput());
         RefreshWalkableState();
         UpdateLastSafePosition();
@@ -138,6 +147,28 @@ public sealed class PlayerSafetyMovementController : MonoBehaviour
         }
     }
 
+    /// <summary>復帰した向きと視点操作の内部角度を同期し、次フレームの巻き戻りを防ぐ。</summary>
+    public void SetLookRotation(Quaternion rotation)
+    {
+        Vector3 angles = rotation.eulerAngles;
+        rotationX = Mathf.DeltaAngle(0f, angles.x);
+        rotationY = angles.y;
+        transform.rotation = rotation;
+    }
+
+    /// <summary>
+    /// 現在の重力とInspector設定のJump Heightから、1回のジャンプ初速を求める。
+    /// </summary>
+    public static float CalculateJumpVelocity(float gravity, float jumpHeight)
+    {
+        return Mathf.Sqrt(2f * Mathf.Max(0f, gravity) * Mathf.Max(0f, jumpHeight));
+    }
+
+    public static bool CanStartJump(bool isCharacterControllerEnabled, bool isGrounded, bool isWalkable)
+    {
+        return isCharacterControllerEnabled && isGrounded && isWalkable;
+    }
+
     public static bool IsWalkableSurfaceNormal(Vector3 normal, float maximumSlopeDegrees)
     {
         float minimumUpDot = Mathf.Cos(Mathf.Clamp(maximumSlopeDegrees, 0f, 89f) * Mathf.Deg2Rad);
@@ -151,8 +182,9 @@ public sealed class PlayerSafetyMovementController : MonoBehaviour
             return;
         }
 
-        rotationX = Mathf.Clamp(rotationX - Input.GetAxis("Mouse Y") * mouseSensitivity, -80f, 80f);
-        rotationY += Input.GetAxis("Mouse X") * mouseSensitivity;
+        Vector2 look = Nekolpos.System.SettingsManager.LookInput(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"), mouseSensitivity);
+        rotationX = Mathf.Clamp(rotationX - look.y, -80f, 80f);
+        rotationY += look.x;
         transform.rotation = Quaternion.Euler(rotationX, rotationY, 0f);
     }
 
@@ -179,10 +211,36 @@ public sealed class PlayerSafetyMovementController : MonoBehaviour
             horizontalMove = Vector3.zero;
         }
 
-        verticalVelocity = characterController.isGrounded && verticalVelocity <= 0f
-            ? -groundedDownwardSpeed
-            : verticalVelocity - gravity * Time.deltaTime;
-        characterController.Move((horizontalMove + Vector3.up * verticalVelocity) * Time.deltaTime);
+        verticalVelocity = CalculateVerticalVelocity(
+            characterController.isGrounded,
+            verticalVelocity,
+            gravity,
+            groundedDownwardSpeed,
+            maxFallSpeed,
+            Time.deltaTime);
+        CollisionFlags collisionFlags = characterController.Move((horizontalMove + Vector3.up * verticalVelocity) * Time.deltaTime);
+        if ((collisionFlags & CollisionFlags.Above) != 0 && verticalVelocity > 0f)
+        {
+            verticalVelocity = 0f;
+        }
+    }
+
+    private static float CalculateVerticalVelocity(
+        bool isGrounded,
+        float currentVerticalVelocity,
+        float gravity,
+        float groundedDownwardSpeed,
+        float maxFallSpeed,
+        float deltaTime)
+    {
+        if (isGrounded && currentVerticalVelocity <= 0f)
+        {
+            return -groundedDownwardSpeed;
+        }
+
+        return Mathf.Max(
+            currentVerticalVelocity - gravity * deltaTime,
+            -Mathf.Max(0f, maxFallSpeed));
     }
 
     private bool CanMoveOntoWalkableSurface(Vector3 direction, float movementDistance)
@@ -193,8 +251,57 @@ public sealed class PlayerSafetyMovementController : MonoBehaviour
         }
 
         float lookAhead = Mathf.Max(movementDistance + edgeLookAheadDistance, characterController.radius);
-        float allowedStepDown = Mathf.Max(maximumSafeStepDown, characterController.stepOffset);
-        return TryFindWalkableGround(transform.position + direction * lookAhead, allowedStepDown, out _);
+        Vector3 destinationProbePosition = transform.position + direction * lookAhead;
+        bool hasNormalWalkableDestination = TryFindWalkableGround(destinationProbePosition, groundProbeDistance, out _);
+        if (hasNormalWalkableDestination)
+        {
+            return true;
+        }
+
+        bool hasControlledStepDownLanding = TryFindControlledStepDownLanding(destinationProbePosition);
+        if (hasControlledStepDownLanding)
+        {
+            return true;
+        }
+
+        // During ascent, accept only a nearby Walkable landing surface that the small jump can reach.
+        // A missing landing surface still blocks movement, preserving edge-fall prevention.
+        bool hasJumpReachableLanding = verticalVelocity > 0f &&
+                                       TryFindWalkableGround(
+                                           destinationProbePosition + Vector3.up * Mathf.Max(0f, jumpHeight),
+                                           Mathf.Max(0f, jumpHeight) + maximumSafeStepDown,
+                                           out _);
+        return IsWalkableMoveAllowed(
+            hasNormalWalkableDestination,
+            hasControlledStepDownLanding,
+            verticalVelocity,
+            hasJumpReachableLanding);
+    }
+
+    public static bool IsWalkableMoveAllowed(bool hasNormalWalkableDestination, float currentVerticalVelocity, bool hasJumpReachableLanding)
+    {
+        return hasNormalWalkableDestination || (currentVerticalVelocity > 0f && hasJumpReachableLanding);
+    }
+
+    public static bool IsWalkableMoveAllowed(
+        bool hasNormalWalkableDestination,
+        bool hasControlledStepDownLanding,
+        float currentVerticalVelocity,
+        bool hasJumpReachableLanding)
+    {
+        return hasNormalWalkableDestination ||
+               hasControlledStepDownLanding ||
+               (currentVerticalVelocity > 0f && hasJumpReachableLanding);
+    }
+
+    public static bool IsControlledStepDownAllowed(
+        bool hasWalkableLanding,
+        float dropDistance,
+        float maximumControlledStepDown)
+    {
+        return hasWalkableLanding &&
+               dropDistance > 0f &&
+               dropDistance <= Mathf.Max(0f, maximumControlledStepDown);
     }
 
     private void RefreshWalkableState()
@@ -202,9 +309,21 @@ public sealed class PlayerSafetyMovementController : MonoBehaviour
         isOnWalkableSurface = TryFindWalkableGround(transform.position, groundProbeDistance, out _);
     }
 
+    private bool TryFindControlledStepDownLanding(Vector3 destinationProbePosition)
+    {
+        if (!TryFindWalkableGround(destinationProbePosition, maximumSafeStepDown, out RaycastHit landingHit))
+        {
+            return false;
+        }
+
+        float currentFootHeight = characterController.bounds.min.y;
+        float dropDistance = currentFootHeight - landingHit.point.y;
+        return IsControlledStepDownAllowed(true, dropDistance, maximumSafeStepDown);
+    }
+
     private void UpdateLastSafePosition()
     {
-        if (safetyRecoverySuspended || !isOnWalkableSurface || Mathf.Abs(verticalVelocity) > 0.5f)
+        if (!ShouldUpdateLastSafePosition(safetyRecoverySuspended, isOnWalkableSurface, verticalVelocity))
         {
             stableWalkableSeconds = 0f;
             return;
@@ -215,6 +334,21 @@ public sealed class PlayerSafetyMovementController : MonoBehaviour
         {
             SetLastSafePosition(transform.position);
         }
+    }
+
+    public static bool ShouldUpdateLastSafePosition(bool safetyRecoveryIsSuspended, bool isWalkable, float currentVerticalVelocity)
+    {
+        return !safetyRecoveryIsSuspended && isWalkable && Mathf.Abs(currentVerticalVelocity) <= 0.5f;
+    }
+
+    private void TryStartJump()
+    {
+        if (WalkDialogueController.HandledInputThisFrame || !Input.GetKeyDown(KeyCode.Space) || !CanJump)
+        {
+            return;
+        }
+
+        verticalVelocity = CalculateJumpVelocity(gravity, jumpHeight);
     }
 
     private void RecoverFromUnsafeFallIfNeeded()

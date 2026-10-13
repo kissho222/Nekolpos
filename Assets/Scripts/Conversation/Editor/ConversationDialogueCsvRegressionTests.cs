@@ -16,7 +16,7 @@ namespace Nekolpos.Conversation.Editor
     {
         private static readonly string[] DialogueEngineCsvFiles =
         {
-            "DialoguePreview_Integrated.csv",
+            "DialoguePreview.csv",
             "teacchseries_dialogue_source_2201.csv",
             "teacchTalk_body.csv",
             "teacchCatExpression.csv",
@@ -47,8 +47,8 @@ namespace Nekolpos.Conversation.Editor
         [Test]
         public void DialoguePreview_RegexPatternsCompileAndImportantRoutesExist()
         {
-            List<Dictionary<string, string>> rows = ReadCsvRows(ReadTalkCsv("DialoguePreview_Integrated.csv"));
-            AssertRegexColumnsCompile("DialoguePreview_Integrated.csv", rows);
+            List<Dictionary<string, string>> rows = ReadCsvRows(ReadTalkCsv("DialoguePreview.csv"));
+            AssertRegexColumnsCompile("DialoguePreview.csv", rows);
 
             HashSet<string> routeKeys = BuildRouteKeySet(rows);
 
@@ -77,7 +77,7 @@ namespace Nekolpos.Conversation.Editor
         [Test]
         public void DialoguePreview_ChoiceAndCallTargetsResolveWithinSameRegexGroup()
         {
-            List<Dictionary<string, string>> rows = ReadCsvRows(ReadTalkCsv("DialoguePreview_Integrated.csv"));
+            List<Dictionary<string, string>> rows = ReadCsvRows(ReadTalkCsv("DialoguePreview.csv"));
             HashSet<string> routeKeys = BuildRouteKeySet(rows);
 
             foreach (Dictionary<string, string> row in rows)
@@ -102,6 +102,70 @@ namespace Nekolpos.Conversation.Editor
                         $"Missing {column} target {target} for group {group} at source id {Read(row, "id")}.");
                 }
             }
+        }
+
+        [Test]
+        public void DialoguePreview_WalkChoiceExecutesTheWalkAction()
+        {
+            List<Dictionary<string, string>> rows = ReadCsvRows(ReadTalkCsv("DialoguePreview.csv"));
+            Dictionary<string, string> walkChoice = rows.SingleOrDefault(row => Read(row, "id") == "01230");
+
+            Assert.That(walkChoice, Is.Not.Null, "散歩のChoice行が見つかりません。");
+            Assert.That(Read(walkChoice, "response_type"), Is.EqualTo("Choice"));
+            Assert.That(Read(walkChoice, "action_id"), Is.EqualTo("walk"));
+        }
+
+        [TestCase("DialoguePreview.csv")]
+        [TestCase("teacchTalk_body.csv")]
+        [TestCase("teacchseries_dialogue_source_2201.csv")]
+        public void SourceIds_DoNotShareUnrelatedRuntimeGroups(string fileName)
+        {
+            List<Dictionary<string, string>> rows = ReadCsvRows(ReadTalkCsv(fileName));
+            foreach (var group in rows.GroupBy(row => Read(row, "id")))
+            {
+                string[] labels = group.Select(row => Read(row, "regex_id").Replace("\\_", "_").Trim())
+                    .Distinct(StringComparer.Ordinal).ToArray();
+                Assert.That(labels.Length, Is.EqualTo(1), $"{fileName}: id {group.Key} shares {string.Join(", ", labels)}");
+                if (labels[0].Length == 0)
+                {
+                    Assert.That(group.Select(row => Read(row, "regex_jp")).Distinct().Count(), Is.EqualTo(1),
+                        $"{fileName}: id {group.Key} shares unrelated unlabeled inputs.");
+                }
+            }
+        }
+
+        [Test]
+        public void RenumberedTeachingRows_KeepExistingDiscoveryKeys()
+        {
+            var tail = ReadCsvRows(ReadTalkCsv("teacchTalk_body.csv"))
+                .Where(row => Read(row, "regex_id") == "body_tail").ToArray();
+            Assert.That(tail.Length, Is.EqualTo(5));
+            Assert.That(tail.All(row => Read(row, "id") == "111" &&
+                Read(row, "EntryID") == "teacchTalk_body:104:body_tail"), Is.True);
+            var puss = ReadCsvRows(ReadTalkCsv("teacchseries_dialogue_source_2201.csv"))
+                .Where(row => Read(row, "regex_id") == "puss_in_boots").ToArray();
+            Assert.That(puss.Length, Is.EqualTo(4));
+            Assert.That(puss.All(row => Read(row, "id") == "23330" &&
+                Read(row, "EntryID") == "teacchseries_dialogue_source_2201:2317:puss_in_boots"), Is.True);
+        }
+
+        [Test]
+        public void RepairedConversationGroups_KeepAllLinesAndReachableResponses()
+        {
+            var rows = ReadCsvRows(ReadTalkCsv("DialoguePreview.csv"));
+            var morning = rows.Where(row => Read(row, "id") == "00370").ToArray();
+            Assert.That(morning.Length, Is.EqualTo(3));
+            Assert.That(morning.All(row => Read(row, "regex_id") == "goodmorning"), Is.True);
+            Assert.That(morning.Where(row => Read(row, "pattern") == "2")
+                .All(row => Read(row, "condition") == "Night || Evening || Day"), Is.True);
+            var exercise = rows.Single(row => Read(row, "regex_id") == "exercise" && Read(row, "response_type") == "Choice");
+            Assert.That(Read(exercise, "choice_yes_pattern"), Is.Empty);
+            Assert.That(Read(exercise, "action_id"), Is.EqualTo("action_gameoftag_play_result"));
+            var nyan = ReadCsvRows(ReadTalkCsv("teacchseries_dialogue_source_2201.csv"))
+                .Where(row => Read(row, "id") == "22450").ToArray();
+            Assert.That(nyan.Length, Is.EqualTo(4));
+            Assert.That(nyan.All(row => Read(row, "regex_id") == "series_nyanpuppu"), Is.True);
+            Assert.That(nyan.Select(row => Read(row, "order")), Is.EqualTo(new[] { "0", "1", "2", "3" }));
         }
 
         [Test]
@@ -351,7 +415,7 @@ namespace Nekolpos.Conversation.Editor
             List<TalkTopicData> hints = TalkTopicHintCatalog.LoadEnabledHintsFromCsvText(csvText, sourceName);
             Assert.That(hints.Count, Is.GreaterThan(0), sourceName);
             Assert.That(hints.All(hint => !string.IsNullOrWhiteSpace(hint.Import)), Is.True, sourceName);
-            Assert.That(hints.Any(hint => hint.Source == "DialoguePreview_Integrated.csv"), Is.True, sourceName);
+            Assert.That(hints.Any(hint => hint.Source == "DialoguePreview.csv"), Is.True, sourceName);
         }
     }
 }

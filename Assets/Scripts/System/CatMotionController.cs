@@ -24,8 +24,15 @@ namespace Nekolpos.System
 
         private Coroutine returnToIdleCoroutine;
         private string currentMotionId;
+        private string currentLocomotionState;
 
         public bool IsPlayingMotion { get; private set; }
+        /// <summary>
+        /// True while the Animator is being driven through the transform-neutral
+        /// locomotion path. This is deliberately independent from conversation motion.
+        /// </summary>
+        public bool IsPlayingLocomotion => !string.IsNullOrEmpty(currentLocomotionState);
+        public string CurrentLocomotionState => currentLocomotionState;
 
         private void Awake()
         {
@@ -37,6 +44,7 @@ namespace Nekolpos.System
         {
             ResolveReferences();
             DisableRootMotion();
+            ClearLocomotionState();
 
             if (string.IsNullOrWhiteSpace(motionId))
             {
@@ -76,6 +84,7 @@ namespace Nekolpos.System
         {
             ResolveReferences();
             DisableRootMotion();
+            ClearLocomotionState();
 
             if (returnToIdleCoroutine != null)
             {
@@ -95,6 +104,57 @@ namespace Nekolpos.System
         public void ReturnToIdle()
         {
             PlayIdle();
+        }
+
+        /// <summary>
+        /// Plays an in-place locomotion state without changing the normal cat's
+        /// conversation home transform. Conversation and Timeline motions take priority;
+        /// callers must wait until <see cref="IsPlayingMotion"/> is false.
+        /// </summary>
+        public bool PlayLocomotion(string stateName, float blendSeconds)
+        {
+            ResolveReferences();
+            DisableRootMotion();
+
+            if (string.IsNullOrWhiteSpace(stateName))
+            {
+                Debug.LogWarning("[CatMotionController] PlayLocomotion skipped: stateName is empty.", this);
+                return false;
+            }
+
+            if (IsPlayingMotion)
+            {
+                Debug.LogWarning($"[CatMotionController] PlayLocomotion skipped while conversation motion is active. state={stateName}", this);
+                return false;
+            }
+
+            if (!TryPlayAnimatorStateWithoutHomeSnap(stateName.Trim(), blendSeconds))
+            {
+                return false;
+            }
+
+            currentLocomotionState = stateName.Trim();
+            return true;
+        }
+
+        /// <summary>
+        /// Ends transform-neutral locomotion and returns to the configured idle state
+        /// without snapping to a conversation home anchor.
+        /// </summary>
+        public bool StopLocomotionAndReturnToIdle()
+        {
+            ResolveReferences();
+            DisableRootMotion();
+
+            if (!IsPlayingLocomotion)
+            {
+                return false;
+            }
+
+            ClearLocomotionState();
+
+            return !string.IsNullOrWhiteSpace(idleStateName) &&
+                   TryPlayAnimatorStateWithoutHomeSnap(idleStateName, defaultBlendSeconds);
         }
 
         public void Configure(Animator normalAnimator, CatPositionController normalPositionController, string defaultIdleStateName = null)
@@ -130,21 +190,61 @@ namespace Nekolpos.System
 
         private void PlayAnimatorState(string stateName, float blendSeconds)
         {
+            PrepareAnimator();
+            PlayAnimatorStateUnchecked(stateName, blendSeconds);
+            positionController?.SnapToHome();
+        }
+
+        private bool TryPlayAnimatorStateWithoutHomeSnap(string stateName, float blendSeconds)
+        {
+            if (animator == null)
+            {
+                Debug.LogWarning($"[CatMotionController] Locomotion skipped: Animator is missing. state={stateName}", this);
+                return false;
+            }
+
+            int stateHash = Animator.StringToHash(stateName);
+            int fullPathHash = Animator.StringToHash($"Base Layer.{stateName}");
+            if (!animator.HasState(0, stateHash) && !animator.HasState(0, fullPathHash))
+            {
+                Debug.LogWarning($"[CatMotionController] Locomotion skipped: state '{stateName}' does not exist on layer 0.", this);
+                return false;
+            }
+
+            PrepareAnimator();
+            PlayAnimatorStateUnchecked(animator.HasState(0, stateHash) ? stateHash : fullPathHash, blendSeconds);
+            return true;
+        }
+
+        private void PrepareAnimator()
+        {
             animator.enabled = true;
             animator.speed = 1f;
             animator.applyRootMotion = false;
+        }
 
+        private void PlayAnimatorStateUnchecked(string stateName, float blendSeconds)
+        {
+            PlayAnimatorStateUnchecked(Animator.StringToHash(stateName), blendSeconds);
+        }
+
+        private void PlayAnimatorStateUnchecked(int stateHash, float blendSeconds)
+        {
             if (blendSeconds <= 0f)
             {
-                animator.Play(stateName, 0, 0f);
+                animator.Play(stateHash, 0, 0f);
             }
             else
             {
-                animator.CrossFadeInFixedTime(stateName, blendSeconds, 0, 0f);
+                animator.CrossFadeInFixedTime(stateHash, blendSeconds, 0, 0f);
             }
 
             animator.Update(0f);
-            positionController?.SnapToHome();
+        }
+
+        private void ClearLocomotionState()
+        {
+            currentLocomotionState = string.Empty;
         }
 
         private IEnumerator ReturnToIdleAfterCurrentMotion()

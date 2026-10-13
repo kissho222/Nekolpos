@@ -70,7 +70,7 @@ namespace Backgammon.Conversation
 
             // H: は基本会話地点だけを参照するため、会話状態の初期化前でも評価できる。
             // それ以外の既存Conditionは、従来どおり状態なしでは成立させない。
-            if (state == null)
+            if (state == null && normalized.IndexOf("HasValue:", StringComparison.OrdinalIgnoreCase) < 0)
             {
                 return false;
             }
@@ -123,7 +123,7 @@ namespace Backgammon.Conversation
 
             bool hasPositiveLocation = false;
             bool matchesAnyPositiveLocation = false;
-            CatHomeLocation currentLocation = CatPositionController.CurrentConversationLocation;
+            string currentAreaId = ResolveConditionAreaId();
 
             for (int tokenIndex = 0; tokenIndex < tokens.Length; tokenIndex++)
             {
@@ -138,7 +138,7 @@ namespace Backgammon.Conversation
 
                 if (isNegated)
                 {
-                    if (currentLocation == location)
+                    if (string.Equals(currentAreaId, location.ToString(), StringComparison.Ordinal))
                     {
                         return false;
                     }
@@ -147,10 +147,21 @@ namespace Backgammon.Conversation
                 }
 
                 hasPositiveLocation = true;
-                matchesAnyPositiveLocation |= currentLocation == location;
+                matchesAnyPositiveLocation |= string.Equals(currentAreaId, location.ToString(), StringComparison.Ordinal);
             }
 
             return !hasPositiveLocation || matchesAnyPositiveLocation;
+        }
+
+        private static string ResolveConditionAreaId()
+        {
+            if (PlayerAreaTracker.TryGetConditionAreaId(out string playerAreaId))
+            {
+                return playerAreaId;
+            }
+
+            // PlayerAreaTrackerを持たない旧テストSceneだけ、従来の猫ホーム位置を明示的に使う。
+            return CatPositionController.CurrentConversationLocation.ToString();
         }
 
         private static bool TryParseLocationId(string value, out CatHomeLocation location)
@@ -253,6 +264,23 @@ namespace Backgammon.Conversation
 
         private static bool EvaluateSingleClause(ConversationGameState state, string expression)
         {
+            expression = expression.Trim();
+            if (expression.StartsWith("HasValue:", StringComparison.OrdinalIgnoreCase))
+            {
+                string variable = expression.Substring("HasValue:".Length).Trim();
+                if (Nekolpos.Dialogue.UnknownWord.WordVariables.IsVariable(variable))
+                    return Nekolpos.Dialogue.UnknownWord.WordVariables.HasValue(variable, state);
+                return state != null && state.TryGetValue(variable, out var v) && v != null &&
+                    (v.kind != ConversationGameStateValueKind.String || !string.IsNullOrWhiteSpace(v.stringValue));
+            }
+            if (expression.StartsWith("!", StringComparison.Ordinal))
+            {
+                string inner = expression.Substring(1).Trim();
+                if (inner.StartsWith("(") && inner.EndsWith(")")) inner = inner.Substring(1, inner.Length - 2);
+                var innerMatch = ExpressionRegex.Match(inner);
+                if (innerMatch.Success && (state == null || !state.TryGetValue(innerMatch.Groups["key"].Value, out _))) return false;
+                return !EvaluateSingleClause(state, inner);
+            }
             var match = ExpressionRegex.Match(expression);
             if (!match.Success)
             {
@@ -263,11 +291,19 @@ namespace Backgammon.Conversation
             var op = NormalizeOperator(match.Groups["op"].Value);
             var token = ParseToken(match.Groups["value"].Value);
 
-            if (!state.TryGetValue(key, out var actualValue))
+            if (state == null || !state.TryGetValue(key, out var actualValue))
             {
                 return false;
             }
 
+            if ((key.Equals("PsychologyState", StringComparison.OrdinalIgnoreCase) || key.Equals("psychology_state", StringComparison.OrdinalIgnoreCase)) &&
+                actualValue.kind == ConversationGameStateValueKind.String && (op == "==" || op == "!="))
+            {
+                string actual = NormalizePsychologyStateKey(actualValue.stringValue);
+                string expected = NormalizePsychologyStateKey(token.ToComparableString());
+                bool equal = actual == expected;
+                return op == "==" ? equal : !equal;
+            }
             switch (op)
             {
                 case "contains":
@@ -288,17 +324,20 @@ namespace Backgammon.Conversation
             }
         }
 
+        private static string NormalizePsychologyStateKey(string value)
+        {
+            string[] parts = (value ?? "").ToUpperInvariant().Split('_');
+            Array.Sort(parts, StringComparer.Ordinal);
+            return string.Join("_", parts);
+        }
+
         private static string NormalizeLogicalOperators(string expression)
         {
-            return (expression ?? string.Empty)
-                .Replace(" AND ", " && ")
-                .Replace(" and ", " && ")
-                .Replace("AND", "&&")
-                .Replace("かつ", "&&")
-                .Replace(" または ", " || ")
-                .Replace(" OR ", " || ")
-                .Replace(" or ", " || ")
-                .Replace("OR", "||");
+            // Operators inside a quoted state name must remain data, including NORMAL.
+            return Regex.Replace(expression ?? "", @"""[^""]*""|'[^']*'|\b(?<op>AND|OR)\b|(?<jp>かつ|または)", match =>
+                match.Groups["op"].Success ? (match.Groups["op"].Value.Equals("AND", StringComparison.OrdinalIgnoreCase) ? "&&" : "||") :
+                match.Groups["jp"].Success ? (match.Value == "かつ" ? "&&" : "||") : match.Value,
+                RegexOptions.IgnoreCase);
         }
 
         private static bool TryGetShorthandCondition(string expression, out ShorthandConditionDefinition definition)

@@ -121,6 +121,9 @@ namespace Nekolpos.System
 
         public static string ResolveLogsDirectoryPath(string overrideLogsDirectoryPath = null)
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (DebugSaveSession.IsIsolated) return Path.Combine(DebugSaveSession.FileRoot, "ConversationLogs");
+#endif
             return !string.IsNullOrWhiteSpace(overrideLogsDirectoryPath)
                 ? overrideLogsDirectoryPath
                 : Path.Combine(

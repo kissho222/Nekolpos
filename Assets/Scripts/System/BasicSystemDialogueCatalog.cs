@@ -18,6 +18,7 @@ namespace Nekolpos.System
         public const string GreetingNightKey = "greeting_night";
         public const string GreetingEveningKey = "greeting_evening";
         public const string GreetingRevivedMorningKey = "greeting_revived_morning";
+        public const string GreetingAfterDiaryKey = "greeting_after_diary";
         public const string UnknownWordPromptKey = "unknown_word_prompt";
         public const string FallbackUnknownInputKey = "fallback_unknown_input";
         public const string BranchResolverId = "BasicSystemDialogue";
@@ -284,6 +285,8 @@ namespace Nekolpos.System
 
         private static bool IsConditionMatched(ConversationGameState state, DialogueRow row)
         {
+            if (row != null && row.TextByLocale.TryGetValue("ja", out string template) &&
+                !Nekolpos.Dialogue.UnknownWord.WordVariables.CanResolve(template, state)) return false;
             if (row == null || string.IsNullOrWhiteSpace(row.Condition))
             {
                 return true;

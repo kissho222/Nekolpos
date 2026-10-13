@@ -98,10 +98,58 @@ namespace Nekolpos.System
         private ConversationDataManager conversationDataManager;
         private CatAnimationRuntime catAnimationRuntime;
         private CatPresentationModeController catPresentationMode;
-        private OpenBetaTitleBootstrap titleInputRouter;
+        private NekolposGameBootstrap titleInputRouter;
         private readonly List<Button> runtimeChoiceButtons = new List<Button>();
         private readonly List<string> currentChoiceDisplayLabels = new List<string>();
         private Canvas rootCanvas;
+        private ControlGuideHUD inputControlGuide;
+        private RectTransform responsiveInputRect;
+        private float authoredInputWidth;
+        private readonly Vector3[] inputGuideCorners = new Vector3[4];
+
+        internal void BindInputControlGuide(ControlGuideHUD guide) => inputControlGuide = guide;
+
+        private void LateUpdate()
+        {
+            UpdateResponsiveInputWidth();
+        }
+
+        private void OnDisable()
+        {
+            if (responsiveInputRect != null)
+                responsiveInputRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, authoredInputWidth);
+            responsiveInputRect = null;
+        }
+
+        internal void UpdateResponsiveInputWidth()
+        {
+            if (chatInputField == null) return;
+            var input = chatInputField.transform as RectTransform;
+            var parent = input != null ? input.parent as RectTransform : null;
+            if (parent == null) return;
+            if (responsiveInputRect != input)
+            {
+                responsiveInputRect = input;
+                authoredInputWidth = input.rect.width;
+            }
+            // Inspectorの中心・高さを維持し、狭い表示領域でのみ横幅を縮める。
+            float center = input.localPosition.x + (0.5f - input.pivot.x) * input.rect.width;
+            float left = parent.rect.xMin + 12f;
+            float right = parent.rect.xMax - 12f;
+            var guide = inputControlGuide != null && inputControlGuide.IsVisible ? inputControlGuide.Panel : null;
+            if (guide != null)
+            {
+                guide.GetWorldCorners(inputGuideCorners);
+                Vector3 bottom = parent.InverseTransformPoint(inputGuideCorners[0]);
+                Vector3 top = parent.InverseTransformPoint(inputGuideCorners[1]);
+                float inputBottom = input.localPosition.y - input.pivot.y * input.rect.height;
+                if (top.y > inputBottom && bottom.y < inputBottom + input.rect.height)
+                    right = Mathf.Min(right, bottom.x - 12f);
+            }
+            float width = Mathf.Min(authoredInputWidth, Mathf.Max(1f, 2f * Mathf.Min(center - left, right - center)));
+            if (!Mathf.Approximately(input.rect.width, width))
+                input.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
+        }
         private Image chatInputFieldBackground;
         private Graphic chatInputFieldTextGraphic;
         private Graphic chatInputFieldPlaceholderGraphic;
@@ -120,6 +168,7 @@ namespace Nekolpos.System
         private bool choiceLayoutInitialized;
         private int selectedChoiceIndex = -1;
         private float choiceSpaceSubmitLockedUntil;
+        private int choiceOpenedFrame = -1;
         private Color inputFieldBaseBackgroundColor = Color.white;
         private Color inputFieldBaseTextColor = Color.black;
         private Color inputFieldBasePlaceholderColor = Color.white;
@@ -181,6 +230,13 @@ namespace Nekolpos.System
         public event Action OnBackRequested;
 
         public bool IsTyping => isTyping;
+        public bool HasActiveImeComposition => externalImeCompositionActive || !string.IsNullOrEmpty(Input.compositionString);
+        public bool IsLogWindowOpen => logWindowPanel != null && logWindowPanel.activeInHierarchy;
+        public bool HasOpenChoices => choicePanel != null && choicePanel.activeInHierarchy;
+        public bool IsControlGuideInputActive => isActiveAndEnabled && !isUiSuppressed &&
+            !menuInputBlocked && !isTyping && !IsInDialogueMode && (choicePanel == null || !choicePanel.activeInHierarchy) &&
+            RouteSubmittedInputToDialogueEngine && chatInputField != null &&
+            chatInputField.gameObject.activeInHierarchy && chatInputField.interactable;
         public bool IsMenuInputBlocked => menuInputBlocked;
 
         public void SetMenuInputBlocked(bool blocked)
@@ -241,7 +297,7 @@ namespace Nekolpos.System
             }
         }
 
-        public void SetTitleInputRouter(OpenBetaTitleBootstrap router)
+        public void SetTitleInputRouter(NekolposGameBootstrap router)
         {
             if (ReferenceEquals(titleInputRouter, router))
             {
@@ -252,7 +308,7 @@ namespace Nekolpos.System
             VerboseLog($"[ChatUI][Submit] SetTitleInputRouter router={FormatTitleRouter(router)} frame={Time.frameCount}");
         }
 
-        public void ClearTitleInputRouterIfMatches(OpenBetaTitleBootstrap router)
+        public void ClearTitleInputRouterIfMatches(NekolposGameBootstrap router)
         {
             VerboseLog($"[ChatUI][Submit] ClearTitleInputRouterIfMatches current={FormatTitleRouter(titleInputRouter)} target={FormatTitleRouter(router)} referenceEquals={ReferenceEquals(titleInputRouter, router)} frame={Time.frameCount}");
             if (!ReferenceEquals(titleInputRouter, router))
@@ -263,7 +319,7 @@ namespace Nekolpos.System
             SetTitleInputRouter(null);
         }
 
-        private static string FormatTitleRouter(OpenBetaTitleBootstrap router)
+        private static string FormatTitleRouter(NekolposGameBootstrap router)
         {
             return router != null
                 ? $"{router.name}#{router.GetInstanceID()} session={router.TitleSessionId} current={router.IsCurrentTitleSession}"
@@ -391,7 +447,6 @@ namespace Nekolpos.System
             { "{{PLAYER_NAME}}", "八雲" }
         };
 
-        private static readonly Regex PlaceholderRegex = new Regex(@"\{\{\s*([A-Za-z0-9_?]+)\s*\}\}", RegexOptions.Compiled);
 
         public void SetRuntimeRenameValues(string playerName, string catName, string playerCalling, string catPronoun)
         {
@@ -666,7 +721,7 @@ namespace Nekolpos.System
 
         private void Update()
         {
-            if (menuInputBlocked) return;
+            if (menuInputBlocked || DebugConsoleInput.IsBlocked) return;
             MaintainInputImeCompositionMode();
             TrackImeComposition();
             imeCompositionVisualController?.Refresh();
@@ -702,13 +757,6 @@ namespace Nekolpos.System
                     suppressClickAdvanceUntilRelease = true; // 再表示クリックで即文字送りしない
                 }
                 return;
-            }
-
-            // ウィンドウの表示・非表示切り替え（例としてTabキー。お好みで変更可能）
-            // （※今回は自動制御がメインですが、手動でのトグル機能も残しています）
-            if (Input.GetKeyDown(KeyCode.Tab))
-            {
-                ToggleWindowVisibility();
             }
 
             if (choicePanel != null && choicePanel.activeSelf)
@@ -1105,7 +1153,7 @@ namespace Nekolpos.System
             bool inputFieldVisible = chatInputField != null &&
                 chatInputField.gameObject.activeInHierarchy;
             bool shouldShow = logButtonAllowedDuringConversation &&
-                !isUiSuppressed &&
+                !isUiSuppressed && (choicePanel == null || !choicePanel.activeInHierarchy) &&
                 (chatWindowVisible || inputFieldVisible);
 
             if (logButton.gameObject.activeSelf != shouldShow)
@@ -1138,6 +1186,7 @@ namespace Nekolpos.System
                 yield break;
             }
 
+            while (DebugConsoleInput.IsBlocked) yield return null;
             ResetInputFieldCaretSelection();
             if (EventSystem.current != null)
             {
@@ -1362,7 +1411,7 @@ namespace Nekolpos.System
 
         private void HandleNextInput()
         {
-            if (menuInputBlocked || delayedDialogueProcessCoroutine != null)
+            if (DebugConsoleInput.IsBlocked || menuInputBlocked || delayedDialogueProcessCoroutine != null)
             {
                 return;
             }
@@ -1384,6 +1433,13 @@ namespace Nekolpos.System
 
         // ============================================
         // メッセージ表示関連
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public bool AdvanceIsolatedDebugMessage()
+        {
+            if (!DebugSaveSession.CanRunScenarios || DebugConsoleInput.IsBlocked) return false;
+            HandleNextInput(); return true;
+        }
+#endif
         // ============================================
 
         /// <summary>
@@ -1503,27 +1559,13 @@ namespace Nekolpos.System
         private string ReplaceVariables(string text, bool highlightRenameWords = false)
         {
             if (string.IsNullOrEmpty(text)) return text;
-
-            // CSV上で \{\{KEY\}\} のようにエスケープされた記述も受け入れる
-            string processedText = text
-                .Replace(@"\{\{", "{{")
-                .Replace(@"\}\}", "}}")
-                .Replace(@"\_", "_");
-
-            // {{ CAT_GENDER }} のような空白入りトークンも含め、1回の走査で置換する
-            processedText = PlaceholderRegex.Replace(processedText, match =>
+            return ConversationVariableResolver.ReplaceRuntimePlaceholders(text, key =>
             {
-                string canonicalKey = "{{" + match.Groups[1].Value.ToUpperInvariant() + "}}";
-                if (TryResolveVariableValue(canonicalKey, out string value))
-                {
-                    return highlightRenameWords && IsRenameWordPlaceholder(canonicalKey)
-                        ? ColorizeRenameWord(canonicalKey, value)
-                        : value;
-                }
-                return match.Value;
+                string canonicalKey = "{{" + ConversationVariableResolver.CanonicalizeRuntimeKey(key) + "}}";
+                if (!TryResolveVariableValue(canonicalKey, out string value)) return null;
+                return highlightRenameWords && IsRenameWordPlaceholder(canonicalKey)
+                    ? ColorizeRenameWord(canonicalKey, value) : value;
             });
-
-            return processedText;
         }
 
         private static bool ShouldHighlightRenameWords(string rawText)
@@ -1575,8 +1617,14 @@ namespace Nekolpos.System
             return PendingRenameWordColor;
         }
 
-        private bool TryResolveVariableValue(string key, out string value)
+        internal bool TryResolveVariableValue(string key, out string value)
         {
+            if (Nekolpos.Dialogue.UnknownWord.WordVariables.IsVariable(key))
+            {
+                var state = FindFirstObjectByType<ConversationGameStateManager>();
+                value = Nekolpos.Dialogue.UnknownWord.WordVariables.Resolve(key, state != null ? state.State : null);
+                return true;
+            }
             if (RenameSystem.TryResolvePlaceholder(key, out value))
             {
                 value = SanitizeDisplayVariable(value);
@@ -1589,6 +1637,11 @@ namespace Nekolpos.System
                 return true;
             }
 
+            return TryResolveWorldVariable(key, out value);
+        }
+
+        internal static bool TryResolveWorldVariable(string key, out string value)
+        {
             if (TryResolveWeatherPlaceholder(key, out value))
             {
                 return true;
@@ -1856,7 +1909,8 @@ namespace Nekolpos.System
 
         public bool SubmitExternalImeInput(string text)
         {
-            if (menuInputBlocked) return false;
+            if (DebugConsoleInput.IsBlocked) return false;
+            if (menuInputBlocked || DebugConsoleInput.IsBlocked) return false;
             string value = text ?? string.Empty;
             if (string.IsNullOrWhiteSpace(value) &&
                 chatInputField != null &&
@@ -1884,7 +1938,7 @@ namespace Nekolpos.System
 
         private bool TrySubmitInputText(string text, bool requireSubmitKey)
         {
-            if (menuInputBlocked) return false;
+            if (menuInputBlocked || DebugConsoleInput.IsBlocked) return false;
             if (IsImeCompositionActiveOrJustCommitted())
             {
                 VerboseLog("[ChatUI][Submit] ignored: IME composition is active or was just committed");
@@ -1970,7 +2024,7 @@ namespace Nekolpos.System
 
                 if (!routedToTitle)
                 {
-                    routedToTitle = OpenBetaTitleBootstrap.TryRoutePlayerInputFromChatUI(this, inputContext.OriginalInput);
+                    routedToTitle = NekolposGameBootstrap.TryRoutePlayerInputFromChatUI(this, inputContext.OriginalInput);
                 }
 
                 VerboseLog($"[ChatUI][Submit] direct title route result={routedToTitle} input={FormatDebugInput(inputContext.OriginalInput)}");
@@ -2068,7 +2122,7 @@ namespace Nekolpos.System
 
         private void ProcessSubmittedInput(string input)
         {
-            if (menuInputBlocked) return;
+            if (menuInputBlocked || DebugConsoleInput.IsBlocked) return;
             if (!RouteSubmittedInputToDialogueEngine || DialogueEngine.Instance == null)
             {
                 VerboseLog($"[ChatUI][Submit] ProcessSubmittedInput skipped route={RouteSubmittedInputToDialogueEngine} engine={(DialogueEngine.Instance != null)} input={FormatDebugInput(input)}");
@@ -2090,7 +2144,7 @@ namespace Nekolpos.System
                 return;
             }
 
-            DialogueEngine.Instance.ProcessInput(input);
+            DialogueEngine.Instance.ProcessSubmittedFreeInput(input);
         }
 
         private IEnumerator ProcessSubmittedInputAfterCatDelay(
@@ -2108,7 +2162,7 @@ namespace Nekolpos.System
             VerboseLog($"[ChatUI][Submit] delayed ProcessSubmittedInput resumed route={RouteSubmittedInputToDialogueEngine} engine={(DialogueEngine.Instance != null)} input={FormatDebugInput(input)}");
             if (RouteSubmittedInputToDialogueEngine && DialogueEngine.Instance != null)
             {
-                DialogueEngine.Instance.ProcessInput(input);
+                DialogueEngine.Instance.ProcessSubmittedFreeInput(input);
             }
         }
 
@@ -2666,6 +2720,7 @@ namespace Nekolpos.System
             HideChoices();
             EnsureChoiceLayoutInitialized();
             choicePanel.SetActive(true);
+            choiceOpenedFrame = Time.frameCount;
             SetChoiceQuestionText(question);
             choiceSpaceSubmitLockedUntil = Time.unscaledTime + ChoiceSpaceSubmitCooldownSeconds;
             currentChoiceDisplayLabels.Clear();
@@ -2931,7 +2986,8 @@ namespace Nekolpos.System
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() =>
             {
-                if (!menuInputBlocked) onClick?.Invoke();
+                // The input which submitted a chat line must not also confirm its new first choice.
+                if (!menuInputBlocked && Time.frameCount > choiceOpenedFrame) onClick?.Invoke();
             });
             Navigation navigation = button.navigation;
             navigation.mode = Navigation.Mode.None;
@@ -3026,7 +3082,7 @@ namespace Nekolpos.System
             for (int i = 0; i < texts.Length; i++)
             {
                 TMP_Text candidate = texts[i];
-                if (candidate == null || candidate.GetComponentInParent<Button>() != null)
+                if (candidate == null || candidate.GetComponentInParent<Button>(true) != null)
                 {
                     continue;
                 }
@@ -3140,6 +3196,7 @@ namespace Nekolpos.System
 
         private void HandleChoiceKeyboardInput()
         {
+            if (Time.frameCount <= choiceOpenedFrame) return;
             int activeChoiceCount = GetActiveChoiceButtonCount();
             if (activeChoiceCount <= 0)
             {

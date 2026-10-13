@@ -29,61 +29,11 @@ namespace Nekolpos.System
                 Debug.LogWarning("[Lighting][TimeChange] StateNight.Enter -> RoomLightingManager.Instance is null");
             }
 
-            if (gm.ConsumeGreetingSuppression())
-            {
-                return;
-            }
-
-            DialogueManager dm = Object.FindFirstObjectByType<DialogueManager>();
-            if (dm != null)
-            {
-                dm.PlayIsolatedGreeting(BasicSystemDialogueCatalog.Get(
-                    BasicSystemDialogueCatalog.GreetingNightKey,
-                    "夜だね。寝る前に何かする？"));
-            }
-
-            // その日立てられたフラグをすべて計算し、何を日記に書くか決める処理
-            CheckDiaryEvents();
+            // Night entry only synchronizes the state. TimeFlow exclusively owns diary startup.
+            gm.ConsumeGreetingSuppression();
         }
 
-        private void CheckDiaryEvents()
-        {
-            // ====== 💡ここで「日記システムとの連携」をこなす ======
-            // 実際には、事前に作っておいた複数の DiaryDataSO の中から、
-            // 「フラグが合致する」かつ「Priority(優先度)が一番高い」ものを探し出す仕組みを作ります。
-
-            // 例としての簡易テスト
-            if (GameFlagManager.Instance != null && GameFlagManager.Instance.GetFlag("IsDeadToday"))
-            {
-                Debug.Log("📔【日記の内容】「今日は大変な一日だった…。一度死んでしまったが、なんとかなった…」");
-            }
-            else if (GameFlagManager.Instance != null && GameFlagManager.Instance.GetFlag("TalkedToSpecialCat"))
-            {
-                Debug.Log("📔【日記の内容】「黒い猫又と秘密の話をした。」");
-            }
-            else
-            {
-                Debug.Log("📔【日記の内容】「今日は特に何もない、平和な１日だった。」");
-            }
-
-            Debug.Log("================================================");
-            Debug.Log("スペースキーで寝て、明日の【朝】を迎えます...");
-        }
-
-        public void Execute()
-        {
-            if (Input.GetKeyDown(KeyCode.Space))
-            {
-                // 朝へループする前に、1日の出来事をリセットして心機一転します！
-                if (GameFlagManager.Instance != null)
-                {
-                    GameFlagManager.Instance.ClearTemporaryFlags();
-                }
-
-                // 翌朝ステートへＧＯ
-                gm.ChangeState(new StateMorning(gm));
-            }
-        }
+        public void Execute() { }
 
         public void Exit()
         {

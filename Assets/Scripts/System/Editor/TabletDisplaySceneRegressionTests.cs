@@ -1,19 +1,248 @@
-using System.Globalization;
 using System.IO;
+using Nekolpos.Data;
 using System.Reflection;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using NUnit.Framework;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace Nekolpos.System.Editor
 {
     public sealed class TabletDisplaySceneRegressionTests
     {
-        private const string TitleScenePath = "Assets/Scenes/TitleScene.unity";
+        private const string TitleScenePath = "Assets/Scenes/MainScene.unity";
         private const string DiaryControllerPath = "Assets/Scripts/System/DiaryCalendarController.cs";
         private const string TimedEventCsvPath = "TalkSource/TalkCSV/SystemTimedEvent.csv";
+
+        [Test]
+        public void RuntimeDiaryFormatterResolvesEveryProvidedTokenInOnePass()
+        {
+            var values = new Dictionary<string, string>(global::System.StringComparer.OrdinalIgnoreCase)
+            {
+                ["PLAYER_CALLING"] = "呼称", ["PLAYER_INPUT"] = "入力", ["PENDING_VALUE"] = "候補",
+                ["TIME_OF_DAY"] = "朝", ["NEXT_TIME_OF_DAY"] = "昼", ["WEATHER"] = "晴れ",
+                ["CURRENTWEATHER"] = "Sunny", ["TOMORROWWEATHER"] = "雨", ["FORECAST_WEATHER"] = "雨",
+                ["FORCAST_WEATHER"] = "雨", ["FORCAST?WEATHER"] = "雨", ["CURRENTWEATHERFORECAST"] = "Rainy",
+                ["NEXTACTUALWEATHER"] = "Cloudy", ["WEATHERFORECASTCORRECT"] = "true", ["FutureVariable"] = "拡張"
+            };
+            var source = new DialogueReactionData { RuntimePlaceholders = values };
+            foreach (var pair in values)
+            {
+                string token = pair.Key.ToLowerInvariant().Replace("_", @"\_");
+                Assert.That(DialogueManager.ResolveRuntimeText("<b>{{ " + token + " }}</b>", responseEntry: source),
+                    Is.EqualTo("<b>" + pair.Value + "</b>"), pair.Key);
+            }
+            source.RuntimePlaceholders["PLAYER_INPUT"] = "{{PLAYER_CALLING}}";
+            Assert.That(DialogueManager.ResolveRuntimeText("{{PLAYER_INPUT}}", responseEntry: source),
+                Is.EqualTo("{{PLAYER_CALLING}}"), "Resolved values are literal, not new templates.");
+            Assert.That(DialogueManager.ResolveRuntimeText("{{MISSING_DIARY_VALUE}}/{{broken"),
+                Is.EqualTo("{{MISSING_DIARY_VALUE}}/{{broken"), "Unknown values must not be fabricated or removed.");
+        }
+
+        [Test]
+        public void DiaryFormatterWithoutManagerResolvesAllGameStateValueKinds()
+        {
+            var host = new GameObject("Diary variable context regression");
+            host.SetActive(false);
+            var stateManager = Object.FindFirstObjectByType<Backgammon.Conversation.ConversationGameStateManager>(FindObjectsInactive.Include);
+            if (stateManager == null) stateManager = host.AddComponent<Backgammon.Conversation.ConversationGameStateManager>();
+            string original = stateManager.State.SaveToJson();
+            try
+            {
+                var state = stateManager.State;
+                state.SetString("DiaryString", "状態");
+                state.SetInt("DiaryNumber", 12);
+                state.SetBool("DiaryFlag", true);
+                state.SetStringList("DiaryList", new[] { "A", "B" });
+                var method = typeof(DiaryCalendarController).GetMethod("ResolveDiaryBody", BindingFlags.Static | BindingFlags.NonPublic);
+                string resolved = (string)method.Invoke(null, new object[] { "{{ diarystring }}/{DiaryNumber}/{{DiaryFlag}}/{{DiaryList}}" });
+                Assert.That(resolved, Is.EqualTo("状態/12/true/A, B"));
+            }
+            finally
+            {
+                stateManager.State.LoadFromJson(original);
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void SpecialDiaryThumbnail_IncludesDateAndAuthoredPreview()
+        {
+            var method = typeof(DiaryCalendarController).GetMethod("FormatSpecialDayCellText", BindingFlags.Static | BindingFlags.NonPublic);
+            string preview = "確認用の日記本文が長く続きます";
+            string text = (string)method.Invoke(null, new object[] { new global::System.DateTime(2026, 10, 1), preview });
+            Assert.That(text, Does.Contain("10/1"));
+            Assert.That(text, Does.Contain("確認用の日記本文"));
+            Assert.That(text, Does.Contain("<size=16>"));
+        }
+
+        [Test]
+        public void DiaryBodyScroll_ClipsLongEntriesAndCanReachTheirEnd()
+        {
+            var canvas = new GameObject("Diary scroll regression", typeof(RectTransform), typeof(Canvas));
+            canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+            var bodyObject = new GameObject("Body", typeof(RectTransform), typeof(TMPro.TextMeshProUGUI));
+            bodyObject.transform.SetParent(canvas.transform, false);
+            try
+            {
+                var body = bodyObject.GetComponent<TMPro.TMP_Text>();
+                body.font = TMPro.TMP_Settings.defaultFontAsset;
+                body.fontSize = 24f;
+                body.rectTransform.anchorMin = body.rectTransform.anchorMax = Vector2.one * 0.5f;
+                body.rectTransform.sizeDelta = new Vector2(300f, 120f);
+                body.text = string.Join("\n", global::System.Linq.Enumerable.Range(1, 40));
+                var method = typeof(DiaryCalendarController).GetMethod("EnsureBodyScroll", BindingFlags.Static | BindingFlags.NonPublic);
+                var scroll = (ScrollRect)method.Invoke(null, new object[] { body });
+                Canvas.ForceUpdateCanvases();
+                LayoutRebuilder.ForceRebuildLayoutImmediate(scroll.content);
+                Assert.That(scroll.viewport.GetComponent<RectMask2D>(), Is.Not.Null);
+                Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
+                Assert.That(body.raycastTarget, Is.False);
+                Assert.That(scroll.viewport.GetComponent<Image>().raycastTarget, Is.True);
+                scroll.verticalNormalizedPosition = 0f;
+                Assert.That(scroll.content.anchoredPosition.y, Is.GreaterThan(0f));
+                Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(0f).Within(0.001f));
+                Assert.That(method.Invoke(null, new object[] { body }), Is.SameAs(scroll));
+            }
+            finally { UnityEngine.Object.DestroyImmediate(canvas); }
+        }
+
+        [Test]
+        public void DetailPagePaw_IsVisibleForSpecialEntriesAndDoesNotBlockInput()
+        {
+            var root = new GameObject("Detail paw regression");
+            root.SetActive(false);
+            try
+            {
+                var diary = root.AddComponent<DiaryCalendarController>();
+                var title = new GameObject("DetailTitle", typeof(RectTransform), typeof(TMPro.TextMeshProUGUI));
+                title.transform.SetParent(root.transform, false);
+                typeof(DiaryCalendarController).GetField("detailTitleText", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(diary, title.GetComponent<TMPro.TMP_Text>());
+                var pawObject = new GameObject("SpecialDiaryPaw", typeof(RectTransform), typeof(Image));
+                pawObject.transform.SetParent(root.transform, false);
+                var authoredPaw = pawObject.GetComponent<Image>();
+                authoredPaw.sprite = Resources.Load<Sprite>("Diary/肉球マーク");
+                authoredPaw.raycastTarget = false;
+                typeof(DiaryCalendarController).GetField("detailView", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(diary, root);
+                var method = typeof(DiaryCalendarController).GetMethod("SetDetailPaw", BindingFlags.Instance | BindingFlags.NonPublic);
+                method.Invoke(diary, new object[] { true });
+                Image paw = root.transform.Find("SpecialDiaryPaw").GetComponent<Image>();
+                Assert.That(paw.sprite, Is.Not.Null);
+                Assert.That(paw.raycastTarget, Is.False);
+                method.Invoke(diary, new object[] { false });
+                Assert.That(paw.gameObject.activeSelf, Is.False);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(root); }
+        }
+
+        [UnityEngine.TestTools.UnityTest]
+        public global::System.Collections.IEnumerator SpecialWritingFinishButton_ReceivesRaycastAfterHiddenReferenceRefresh()
+        {
+            yield return new UnityEngine.TestTools.EnterPlayMode();
+            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(TitleScenePath, new LoadSceneParameters(LoadSceneMode.Single));
+            Scene main = SceneManager.GetSceneByPath(TitleScenePath);
+            SceneManager.SetActiveScene(main);
+            var sceneBootstrap = UnityEngine.Object.FindFirstObjectByType<NekolposGameBootstrap>(FindObjectsInactive.Include);
+            if (!sceneBootstrap.enabled)
+            {
+                sceneBootstrap.enabled = true;
+                typeof(NekolposGameBootstrap).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(sceneBootstrap, null);
+            }
+            yield return new WaitForSecondsRealtime(0.2f);
+            GameObject original = (GameObject)typeof(DiaryCalendarController).GetField("panel", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(DiaryCalendarController.Instance);
+            var canvas = new GameObject("Rewrite raycast regression", typeof(RectTransform), typeof(Canvas), typeof(GraphicRaycaster), typeof(CanvasScaler));
+            canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvas.GetComponent<CanvasScaler>();
+            scaler.enabled = false;
+            canvas.GetComponent<Canvas>().scaleFactor = Mathf.Min(Screen.width / 1871f, Screen.height / 1213f);
+            var host = new GameObject("Diary input regression");
+            host.SetActive(false);
+            GameObject events = null;
+            var previousFocus = UnityEditor.EditorWindow.focusedWindow;
+            var gameView = global::System.Linq.Enumerable.First(Resources.FindObjectsOfTypeAll<UnityEditor.EditorWindow>(), window => window.titleContent.text == "Game");
+            gameView.Focus();
+            try
+            {
+                GameObject panel = UnityEngine.Object.Instantiate(original, canvas.transform, false);
+                panel.SetActive(true);
+                var panelRect = panel.GetComponent<RectTransform>();
+                panelRect.anchorMin = Vector2.zero;
+                panelRect.anchorMax = Vector2.one;
+                panelRect.offsetMin = panelRect.offsetMax = Vector2.zero;
+                var panelGroup = panel.GetComponent<CanvasGroup>();
+                if (panelGroup != null)
+                {
+                    panelGroup.alpha = 1f;
+                    panelGroup.blocksRaycasts = true;
+                    panelGroup.interactable = true;
+                }
+                var diary = host.AddComponent<DiaryCalendarController>();
+                typeof(DiaryCalendarController).GetField("panel", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(diary, panel);
+                typeof(DiaryCalendarController).GetMethod("ResolveCalendarReferences", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(diary, null);
+                var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+                var writing = (GameObject)typeof(DiaryCalendarController).GetField("writingView", flags).GetValue(diary);
+                typeof(DiaryCalendarController).GetMethod("HideApplicationWindows", flags).Invoke(diary, null);
+                typeof(DiaryCalendarController).GetMethod("ShowWindowImmediately", flags).Invoke(diary, new object[] { writing });
+                var prompt = (GameObject)typeof(DiaryCalendarController).GetField("promptParentPanel", flags).GetValue(diary);
+                prompt.SetActive(false);
+                typeof(DiaryCalendarController).GetMethod("ShowWritingFinish", flags).Invoke(diary, null);
+                // Reopening special writing refreshes references with hidden actions.
+                // Existing hit areas must survive that refresh and be clickable again.
+                var finish = (Button)typeof(DiaryCalendarController).GetField("writingFinishButton", flags).GetValue(diary);
+                finish.gameObject.SetActive(false);
+                typeof(DiaryCalendarController).GetMethod("ResolveCalendarReferences", flags).Invoke(diary, null);
+                Assert.That(finish.transform.Find("DiaryButtonHitArea").GetComponent<Image>().raycastTarget, Is.True);
+                finish.transform.Find("DiaryButtonHitArea").GetComponent<Image>().raycastTarget = false;
+                typeof(DiaryCalendarController).GetField("confirmingSpecialEntries", flags).SetValue(diary, true);
+                typeof(DiaryCalendarController).GetMethod("ShowWritingFinish", flags).Invoke(diary, null);
+                var rewrite = (Button)typeof(DiaryCalendarController).GetField("reWritingButton", flags).GetValue(diary);
+                Assert.That(rewrite.gameObject.activeSelf, Is.False);
+                var button = finish;
+                var eventSystem = UnityEngine.EventSystems.EventSystem.current;
+                if (eventSystem == null)
+                {
+                    events = new GameObject("Rewrite raycast events", typeof(UnityEngine.EventSystems.EventSystem));
+                    eventSystem = events.GetComponent<UnityEngine.EventSystems.EventSystem>();
+                }
+                yield return null;
+                Canvas.ForceUpdateCanvases();
+                var rect = button.GetComponent<RectTransform>();
+                var hitArea = button.transform.Find("DiaryButtonHitArea").GetComponent<Image>();
+                float deadline = Time.realtimeSinceStartup + 5f;
+                while (hitArea.depth < 0)
+                {
+                    Assert.That(Time.realtimeSinceStartup, Is.LessThan(deadline), "Game View must render the button hit area.");
+                    gameView.Repaint();
+                    yield return null;
+                    Canvas.ForceUpdateCanvases();
+                }
+                var buttonCanvas = button.GetComponentInParent<Canvas>();
+                var raycaster = buttonCanvas.GetComponent<GraphicRaycaster>() ?? buttonCanvas.gameObject.AddComponent<GraphicRaycaster>();
+                foreach (float x in new[] { 0.1f, 0.5f, 0.9f })
+                foreach (float y in new[] { 0.1f, 0.5f, 0.9f })
+                {
+                    Vector3 local = new Vector3(Mathf.Lerp(rect.rect.xMin, rect.rect.xMax, x), Mathf.Lerp(rect.rect.yMin, rect.rect.yMax, y));
+                    var pointer = new UnityEngine.EventSystems.PointerEventData(eventSystem)
+                    { position = RectTransformUtility.WorldToScreenPoint(raycaster.eventCamera, rect.TransformPoint(local)) };
+                    var hits = new List<UnityEngine.EventSystems.RaycastResult>();
+                    raycaster.Raycast(pointer, hits);
+                    Assert.That(hits, Is.Not.Empty, $"No hit at {x}/{y}, canvas={buttonCanvas.name}, depth={button.GetComponent<Graphic>().depth}");
+                    string hitNames = string.Join(", ", hits.ConvertAll(hit => hit.gameObject.name + ":" + hit.depth));
+                    Assert.That(hits[0].gameObject.GetComponentInParent<Button>(), Is.SameAs(button), $"Covered at {x}/{y}: {hitNames}, buttonDepth={button.GetComponent<Graphic>().depth}, buttonRaycast={button.GetComponent<Graphic>().raycastTarget}");
+                }
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+                UnityEngine.Object.DestroyImmediate(canvas);
+                if (events != null) UnityEngine.Object.DestroyImmediate(events);
+                if (previousFocus != null) previousFocus.Focus();
+            }
+            yield return new UnityEngine.TestTools.ExitPlayMode();
+        }
 
         [TestCase(2026, 9, 21, "9/21の日記")]
         [TestCase(2026, 12, 3, "12/3の日記")]
@@ -36,6 +265,16 @@ namespace Nekolpos.System.Editor
             StringAssert.Contains("FindChildComponent<Button>(\"NextDayButton\")", controller);
             StringAssert.Contains("BindButton(beforeDayButton, () => MoveDetailDay(-1))", controller);
             StringAssert.Contains("BindButton(nextDayButton, () => MoveDetailDay(1))", controller);
+        }
+
+        [Test]
+        public void TabletButton_AvailabilitySynchronizesClickabilityWithVisibility()
+        {
+            string bootstrap = File.ReadAllText("Assets/Scripts/System/NekolposGameBootstrap.cs");
+
+            StringAssert.Contains("bool shouldBeVisible = CanOpenTabletFromButton();", bootstrap);
+            StringAssert.Contains("tabletButton.interactable != shouldBeVisible", bootstrap);
+            StringAssert.Contains("tabletButton.interactable = shouldBeVisible;", bootstrap);
         }
 
         [Test]
@@ -147,6 +386,47 @@ namespace Nekolpos.System.Editor
         }
 
         [Test]
+        public void SpecialDiaryDuplicates_ShowEarliestDateAndCountWithoutChangingSavedEntries()
+        {
+            var root = new GameObject("Grouped special diary regression");
+            root.SetActive(false);
+            try
+            {
+                var controller = root.AddComponent<DiaryCalendarController>();
+                var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+                var entries = (Dictionary<string, List<string>>)typeof(DiaryCalendarController)
+                    .GetField("specialEntriesByDate", flags).GetValue(controller);
+                entries["2026-10-13"] = new List<string> { "A" };
+                entries["2026-10-11"] = new List<string> { "A", "B" };
+                entries["2026-10-12"] = new List<string> { "A", "A " };
+                entries["2026-10-10"] = new List<string> { "A" };
+                object[] args = { null };
+                var grouped = (Dictionary<global::System.DateTime, List<string>>)typeof(DiaryCalendarController)
+                    .GetMethod("BuildSpecialEntryGroups", flags).Invoke(controller, args);
+                var counts = (Dictionary<global::System.DateTime, int>)args[0];
+                var first = new global::System.DateTime(2026, 10, 10);
+                Assert.That(grouped[first], Is.EqualTo(new[] { "A" }));
+                Assert.That(counts[first], Is.EqualTo(3));
+                Assert.That(grouped[new global::System.DateTime(2026, 10, 11)], Is.EqualTo(new[] { "B" }));
+                Assert.That(grouped[new global::System.DateTime(2026, 10, 12)], Is.EqualTo(new[] { "A " }));
+                Assert.That(grouped.ContainsKey(new global::System.DateTime(2026, 10, 13)), Is.False);
+                Assert.That(entries["2026-10-11"], Is.EqualTo(new[] { "A", "B" }));
+                Assert.That(entries.Count, Is.EqualTo(4));
+                var label = (string)typeof(DiaryCalendarController).GetMethod("FormatSpecialDateLabel", BindingFlags.Static | BindingFlags.NonPublic)
+                    .Invoke(null, new object[] { first, counts[first] });
+                Assert.That(label, Is.EqualTo("10/10 他3件"));
+                var title = new GameObject("DetailTitle", typeof(RectTransform), typeof(TMPro.TextMeshProUGUI));
+                title.transform.SetParent(root.transform);
+                typeof(DiaryCalendarController).GetField("detailTitleText", flags).SetValue(controller, title.GetComponent<TMPro.TMP_Text>());
+                typeof(DiaryCalendarController).GetMethod("ApplyDetailEntry", flags).Invoke(controller, new object[] { first, grouped[first], true });
+                Assert.That(title.GetComponent<TMPro.TMP_Text>().text, Is.EqualTo("10/10 他3件の日記"));
+                Assert.That(typeof(DiaryCalendarController).GetMethod("FindAdjacentSpecialEntryDate", flags)
+                    .Invoke(controller, new object[] { new global::System.DateTime(2026, 10, 12), 1 }), Is.Null);
+            }
+            finally { Object.DestroyImmediate(root); }
+        }
+
+        [Test]
         public void SpecialDiarySortUnlock_IsPersistedInPlayerPrefs()
         {
             const string key = "Nekolpos.Diary.SpecialSortUnlocked.v1";
@@ -187,23 +467,60 @@ namespace Nekolpos.System.Editor
         }
 
         [Test]
+        public void DebugOctoberFirstSpecialDiary_UsesGameStartDateAndDoesNotReadThePcClock()
+        {
+            MethodInfo dayNumberMethod = typeof(DiaryCalendarController).GetMethod(
+                "CalculateDebugOctoberFirstDayNumber",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            string controller = File.ReadAllText(DiaryControllerPath);
+
+            Assert.That(dayNumberMethod, Is.Not.Null);
+            Assert.That(dayNumberMethod.Invoke(null, new object[] { new global::System.DateTime(2026, 9, 25) }), Is.EqualTo(7));
+            Assert.That(dayNumberMethod.Invoke(null, new object[] { new global::System.DateTime(2026, 10, 2) }), Is.EqualTo(365));
+            StringAssert.Contains("TEMP_SPECIAL_DIARY_OCT01", controller);
+            StringAssert.Contains("timeManager.SetCurrentTime(targetDay, timeManager.CurrentPeriod)", controller);
+            StringAssert.DoesNotContain("DateTime.Today", controller.Substring(controller.IndexOf("AddDebugOctoberFirstSpecialDiary", global::System.StringComparison.Ordinal)));
+        }
+
+        [Test]
+        public void DebugDiaryCompletion_PersistsNextDayAndExposesResetControls()
+        {
+            string diaryController = File.ReadAllText(DiaryControllerPath);
+            string bootstrap = File.ReadAllText("Assets/Scripts/System/NekolposGameBootstrap.cs");
+            string debugPanel = File.ReadAllText("Assets/Scripts/System/NekolposDebugPanel.cs");
+
+            StringAssert.Contains("CompleteNightDiary", diaryController);
+            StringAssert.Contains("DiscardUnconfirmedDebugNightDiary", diaryController);
+            StringAssert.Contains("DiaryJournalStore.DiscardNormalDraftsForDay", diaryController);
+            StringAssert.DoesNotContain("timeManager.AdvanceToNextMorning()", diaryController);
+            StringAssert.Contains("timeManager.AdvanceToNextMorning()", File.ReadAllText("Assets/Scripts/System/DialogueManager.cs"));
+            StringAssert.Contains("SaveDebugStartDay", bootstrap);
+            StringAssert.Contains("TimeManager.CurrentDayPrefsKey", bootstrap);
+            StringAssert.Contains("ResetDateButton", debugPanel);
+            StringAssert.Contains("ResetDiaryButton", debugPanel);
+            StringAssert.Contains("ResetGameStartDateForDebug", debugPanel);
+            StringAssert.Contains("ResetAllDiaryDataForDebug", debugPanel);
+        }
+
+        [Test]
         public void TabletCanvas_IsOnTheCameraSideOfDisplayArea()
         {
-            string scene = File.ReadAllText(TitleScenePath);
-            float canvasZ = ReadLocalZ(scene, "TabletCanvas");
-            float emissionZ = ReadLocalZ(scene, "EmissionPanel  ");
-
-            Assert.That(canvasZ, Is.GreaterThan(0f), "TabletCanvas must stay on DisplayArea's camera-facing side.");
-            Assert.That(canvasZ, Is.GreaterThan(emissionZ), "TabletCanvas must render in front of EmissionPanel.");
+            using var scope = new MainSceneScope();
+            Transform canvas = FindSceneObject(scope.Scene, "TabletCanvas").transform;
+            Transform emission = FindSceneObject(scope.Scene, "EmissionPanel  ").transform;
+            Assert.That(canvas.localPosition.z, Is.GreaterThan(0f));
+            Assert.That(canvas.localPosition.z, Is.GreaterThan(emission.localPosition.z));
         }
 
         [Test]
         public void TabletCanvas_PreservesTheVerifiedOrientation()
         {
-            string scene = File.ReadAllText(TitleScenePath);
-            string canvas = FindObjectSection(scene, "TabletCanvas");
-
-            StringAssert.Contains("m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}", canvas);
+            using var scope = new MainSceneScope();
+            Quaternion rotation = FindSceneObject(scope.Scene, "TabletCanvas").transform.localRotation;
+            Assert.That(rotation.x, Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(rotation.y, Is.EqualTo(1f).Within(0.0001f));
+            Assert.That(rotation.z, Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(rotation.w, Is.EqualTo(0f).Within(0.0001f));
         }
 
         [Test]
@@ -223,7 +540,7 @@ namespace Nekolpos.System.Editor
                 group.interactable = false;
                 group.blocksRaycasts = false;
 
-                OpenBetaTitleBootstrap bootstrap = bootstrapObject.AddComponent<OpenBetaTitleBootstrap>();
+                NekolposGameBootstrap bootstrap = bootstrapObject.AddComponent<NekolposGameBootstrap>();
                 SetField(bootstrap, "tabletDisplayCanvas", displayCanvas);
                 SetField(bootstrap, "tabletEmissionPanel", emissionPanel);
 
@@ -246,17 +563,12 @@ namespace Nekolpos.System.Editor
         [Test]
         public void PromptParentPanel_IsIndependentOfWritingView()
         {
-            string scene = File.ReadAllText(TitleScenePath);
-            Match diaryPanelTransform = FindRectTransformSection(scene, "DiaryPanel");
-            Match writingViewTransform = FindRectTransformSection(scene, "WritingView");
-            Match promptTransform = FindRectTransformSection(scene, "PromptParentPanel");
-
-            StringAssert.Contains(
-                $"m_Father: {{fileID: {diaryPanelTransform.Groups["id"].Value}}}",
-                promptTransform.Value);
-            StringAssert.DoesNotContain(
-                $"- {{fileID: {promptTransform.Groups["id"].Value}}}",
-                writingViewTransform.Value);
+            using var scope = new MainSceneScope();
+            Transform diaryPanel = FindSceneObject(scope.Scene, "DiaryPanel").transform;
+            Transform writingView = FindSceneObject(scope.Scene, "WritingView").transform;
+            Transform prompt = FindSceneObject(scope.Scene, "PromptParentPanel").transform;
+            Assert.That(prompt.parent, Is.EqualTo(diaryPanel));
+            Assert.That(prompt.parent, Is.Not.EqualTo(writingView));
         }
 
         [Test]
@@ -287,7 +599,7 @@ namespace Nekolpos.System.Editor
         [Test]
         public void TabletPowerReturn_UsesReciprocalEaseOutInsteadOfSnapping()
         {
-            MethodInfo easing = typeof(OpenBetaTitleBootstrap).GetMethod(
+            MethodInfo easing = typeof(NekolposGameBootstrap).GetMethod(
                 "EvaluateReciprocalEaseOut",
                 BindingFlags.Static | BindingFlags.NonPublic);
 
@@ -297,13 +609,14 @@ namespace Nekolpos.System.Editor
             Assert.That((float)easing.Invoke(null, new object[] { 0f, 2f }), Is.EqualTo(0f));
             Assert.That((float)easing.Invoke(null, new object[] { 1f, 2f }), Is.EqualTo(1f));
 
-            string source = File.ReadAllText("Assets/Scripts/System/OpenBetaTitleBootstrap.cs");
+            string source = File.ReadAllText("Assets/Scripts/System/NekolposGameBootstrap.cs");
             StringAssert.Contains("ExitTabletCameraView(useReciprocalEaseOut: true)", source);
         }
 
         [TestCase("NyanstaIcon", "NyanstaPanel")]
         [TestCase("ShopIcon", "ShopPanel")]
         [TestCase("demaeIcon", "DemaePanel")]
+        [TestCase("GameIcon", "GameCenterPanel")]
         public void TabletHome_MapsEachApplicationIconToItsWindow(string iconName, string expectedPanelName)
         {
             Assert.That(
@@ -362,53 +675,26 @@ namespace Nekolpos.System.Editor
             StringAssert.Contains("GetOrAddCanvasGroup", source);
         }
 
-        private static float ReadLocalZ(string scene, string objectName)
+        private static GameObject FindSceneObject(Scene scene, string objectName)
         {
-            string section = FindObjectSection(scene, objectName);
-            Match position = Regex.Match(
-                section,
-                @"m_LocalPosition: \{x: [^,]+, y: [^,]+, z: (?<z>[^\}]+)\}");
-
-            Assert.That(position.Success, Is.True, $"{objectName} local position was not found.");
-            return float.Parse(position.Groups["z"].Value, CultureInfo.InvariantCulture);
-        }
-
-        private static string FindObjectSection(string scene, string objectName)
-        {
-            Match match = Regex.Match(
-                scene,
-                $@"(?m)^  m_Name: '?{Regex.Escape(objectName)}'?\r?$");
-
-            Assert.That(match.Success, Is.True, $"{objectName} was not found in {TitleScenePath}.");
-            int sectionStart = scene.LastIndexOf("--- !u!1 ", match.Index, global::System.StringComparison.Ordinal);
-            int sectionEnd = scene.IndexOf("--- !u!1 ", match.Index + match.Length, global::System.StringComparison.Ordinal);
-            if (sectionEnd < 0)
+            foreach (GameObject candidate in Resources.FindObjectsOfTypeAll<GameObject>())
             {
-                sectionEnd = scene.Length;
+                if (candidate.scene == scene && candidate.name == objectName) return candidate;
             }
 
-            return scene.Substring(sectionStart, sectionEnd - sectionStart);
+            Assert.Fail($"{objectName} was not found in {TitleScenePath}.");
+            return null;
         }
 
-        private static Match FindRectTransformSection(string scene, string objectName)
+        private sealed class MainSceneScope : global::System.IDisposable
         {
-            string objectSection = FindObjectSection(scene, objectName);
-            Match gameObject = Regex.Match(objectSection, @"^--- !u!1 &(?<id>\d+)\r?$", RegexOptions.Multiline);
-            Assert.That(gameObject.Success, Is.True, $"{objectName} GameObject ID was not found.");
-
-            MatchCollection transforms = Regex.Matches(
-                scene,
-                @"(?ms)^--- !u!224 &(?<id>\d+)\r?\nRectTransform:.*?(?=^--- !u!)");
-            foreach (Match transform in transforms)
+            public MainSceneScope()
             {
-                if (transform.Value.Contains($"m_GameObject: {{fileID: {gameObject.Groups["id"].Value}}}"))
-                {
-                    return transform;
-                }
+                Scene = EditorSceneManager.OpenScene(TitleScenePath, OpenSceneMode.Additive);
             }
 
-            Assert.Fail($"{objectName} RectTransform was not found.");
-            return Match.Empty;
+            public Scene Scene { get; }
+            public void Dispose() => EditorSceneManager.CloseScene(Scene, removeScene: true);
         }
 
         private static void SetField(object target, string fieldName, object value)
@@ -418,7 +704,7 @@ namespace Nekolpos.System.Editor
             field.SetValue(target, value);
         }
 
-        private static void Invoke(OpenBetaTitleBootstrap target, string methodName)
+        private static void Invoke(NekolposGameBootstrap target, string methodName)
         {
             MethodInfo method = target.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.That(method, Is.Not.Null, $"{methodName} was not found.");

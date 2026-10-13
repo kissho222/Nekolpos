@@ -46,6 +46,7 @@ namespace Nekolpos.EditorTools
         private const string PreservedRegexEnglishSourceKey = "__source_regex_en";
 
         public int SourceLineNumber;
+        public string EditorDialogueId;
         public string InternalId;
         public string RegexPattern;
         public string RegexPatternChinese;
@@ -65,6 +66,7 @@ namespace Nekolpos.EditorTools
         public float WaitTime;
         public bool HideUI;
         public string Animation;
+        public string ReactionIcon;
         public int Priority;
         public string Intent;
         public string ReactionType;
@@ -150,6 +152,8 @@ namespace Nekolpos.EditorTools
                     return HideUI ? "true" : "false";
                 case "animation":
                     return Animation;
+                case "reactionicon":
+                    return ReactionIcon;
                 case "priority":
                     return Priority.ToString(CultureInfo.InvariantCulture);
                 case "intent":

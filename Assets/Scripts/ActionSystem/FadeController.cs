@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Cysharp.Threading.Tasks;
 using Nekolpos.System;
 using UnityEngine;
@@ -11,9 +11,17 @@ namespace Nekolpos.ActionSystem
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private CanvasGroup fadeGroup;
         [SerializeField] [Min(0.05f)] private float fadeDuration = 0.35f;
+        [SerializeField] private TransitionBackgroundView transitionBackground;
+        [SerializeField] private RectMask2D transitionMask;
+        private Vector4 originalMaskPadding;
+        private bool backgroundPrepared;
+        public float WipeBoundary { get; private set; }
 
         private bool isInitialized;
         private int fadeRequestVersion;
+        private bool wipeInProgress;
+        private RectTransform wipeRect;
+        private Vector2 originalAnchorMin, originalAnchorMax, originalOffsetMin, originalOffsetMax;
 
         /// <summary>
         /// Raised once an active fade has reached a fully opaque black overlay.
@@ -27,8 +35,31 @@ namespace Nekolpos.ActionSystem
         /// </summary>
         public event Action BecameTransparent;
 
-        public bool IsOpaque => fadeGroup != null && fadeGroup.alpha >= 0.999f;
+        public bool IsOpaque => !wipeInProgress && fadeGroup != null && fadeGroup.alpha >= 0.999f;
+        public Transform OverlayRoot => fadeGroup != null ? fadeGroup.transform : null;
         public bool IsTransparent => fadeGroup == null || fadeGroup.alpha <= 0.001f;
+
+        public void ResetForTitleReload()
+        {
+            CancelFade();
+            BecameOpaque = null;
+            BecameTransparent = null;
+        }
+
+        private void OnDisable() => CancelFade();
+
+        private void CancelFade()
+        {
+            fadeRequestVersion++;
+            RestoreWipeLayout();
+            transitionBackground?.EndPresentation();
+            backgroundPrepared = false;
+            if (fadeGroup == null) return;
+            fadeGroup.alpha = 0f;
+            fadeGroup.blocksRaycasts = false;
+            fadeGroup.interactable = false;
+            fadeGroup.gameObject.SetActive(false);
+        }
 
         public void Initialize(Canvas canvas)
         {
@@ -106,7 +137,126 @@ namespace Nekolpos.ActionSystem
             EnsureUi();
             BringToFront();
             fadeRequestVersion++;
+            RestoreWipeLayout();
             ApplyAlpha(alpha);
+        }
+
+        public void WipeToBlack(float duration) => WipeAsync(true, duration).Forget();
+        public void WipeFromBlack(float duration) => WipeAsync(false, duration).Forget();
+
+        public void BeginTimeTransition()
+        {
+            if (PrepareBackground()) transitionBackground.BeginTime();
+        }
+
+        public void BeginLocationTransition()
+        {
+            if (PrepareBackground()) transitionBackground.BeginLocation();
+        }
+
+        public void BeginRevivalTransition()
+        {
+            if (transitionBackground == null) return;
+            if (!transitionBackground.ValidateRevivalConfiguration(out string error))
+            {
+                Debug.LogWarning($"[TransitionBackground] {error} Black fade remains available.", this);
+                transitionBackground.gameObject.SetActive(false);
+                backgroundPrepared = false;
+                return;
+            }
+            if (PrepareBackground()) transitionBackground.BeginRevivalDark();
+        }
+
+        public UniTask PlayRevivalSunriseAsync()
+        {
+            if (!backgroundPrepared || transitionBackground == null) return UniTask.CompletedTask;
+            transitionBackground.StartRevivalSunrise();
+            return transitionBackground.WaitForCompletionAsync();
+        }
+
+        public UniTask WaitForTransitionBackgroundAsync() => transitionBackground != null
+            ? transitionBackground.WaitForCompletionAsync() : UniTask.CompletedTask;
+
+        private bool PrepareBackground()
+        {
+            if (transitionBackground == null) return false;
+            if (!transitionBackground.ValidateConfiguration(out string error))
+            {
+                Debug.LogWarning($"[TransitionBackground] {error} Black fade remains available.", this);
+                transitionBackground.gameObject.SetActive(false);
+                return false;
+            }
+            transitionBackground.gameObject.SetActive(true);
+            backgroundPrepared = true;
+            return true;
+        }
+
+        private async UniTask WipeAsync(bool cover, float duration)
+        {
+            EnsureUi();
+            BringToFront();
+            if (fadeGroup == null) return;
+            int version = ++fadeRequestVersion;
+            RestoreWipeLayout();
+            if (cover)
+            {
+                BeginLocationTransition();
+            }
+            wipeRect = fadeGroup.transform as RectTransform;
+            if (wipeRect == null) { ApplyAlpha(cover ? 1f : 0f); return; }
+            originalAnchorMin = wipeRect.anchorMin;
+            originalAnchorMax = wipeRect.anchorMax;
+            originalOffsetMin = wipeRect.offsetMin;
+            originalOffsetMax = wipeRect.offsetMax;
+            if (transitionMask != null) originalMaskPadding = transitionMask.padding;
+            wipeInProgress = true;
+            fadeGroup.gameObject.SetActive(true);
+            fadeGroup.blocksRaycasts = true;
+            fadeGroup.interactable = true;
+            SetAlpha(1f);
+            float elapsed = 0f;
+            float seconds = float.IsNaN(duration) || float.IsInfinity(duration) ? fadeDuration : Mathf.Max(.05f, duration);
+            ApplyWipeProgress(cover, 0f);
+            while (elapsed < seconds)
+            {
+                await UniTask.Yield(PlayerLoopTiming.Update);
+                if (version != fadeRequestVersion || fadeGroup == null) return;
+                elapsed += Time.unscaledDeltaTime;
+                ApplyWipeProgress(cover, Mathf.Clamp01(elapsed / seconds));
+            }
+            RestoreWipeLayout();
+            ApplyAlpha(cover ? 1f : 0f);
+        }
+
+        private void ApplyWipeProgress(bool cover, float progress)
+        {
+            WipeBoundary = progress;
+            if (transitionMask != null)
+            {
+                float width = wipeRect.rect.width;
+                transitionMask.padding = new Vector4(cover ? 0f : progress * width, 0f,
+                    cover ? (1f - progress) * width : 0f, 0f);
+                return;
+            }
+            // Both boundaries advance left to right; opening exposes the left side first.
+            wipeRect.anchorMin = new Vector2(cover ? 0f : progress, 0f);
+            wipeRect.anchorMax = new Vector2(cover ? progress : 1f, 1f);
+            wipeRect.offsetMin = Vector2.zero;
+            wipeRect.offsetMax = Vector2.zero;
+        }
+
+        private void RestoreWipeLayout()
+        {
+            if (wipeInProgress && wipeRect != null)
+            {
+                if (transitionMask != null) transitionMask.padding = originalMaskPadding;
+                wipeRect.anchorMin = originalAnchorMin;
+                wipeRect.anchorMax = originalAnchorMax;
+                wipeRect.offsetMin = originalOffsetMin;
+                wipeRect.offsetMax = originalOffsetMax;
+            }
+            wipeInProgress = false;
+            wipeRect = null;
         }
 
         public UniTask FadeOutAsync()
@@ -149,6 +299,9 @@ namespace Nekolpos.ActionSystem
             }
 
             int requestVersion = ++fadeRequestVersion;
+            RestoreWipeLayout();
+            if (targetAlpha > 0f && !backgroundPrepared && transitionBackground != null)
+                transitionBackground.gameObject.SetActive(false);
 
             fadeGroup.gameObject.SetActive(true);
             fadeGroup.blocksRaycasts = true;
@@ -192,6 +345,8 @@ namespace Nekolpos.ActionSystem
             SetAlpha(targetAlpha);
             if (targetAlpha <= 0f)
             {
+                transitionBackground?.EndPresentation();
+                backgroundPrepared = false;
                 fadeGroup.blocksRaycasts = false;
                 fadeGroup.interactable = false;
                 fadeGroup.gameObject.SetActive(false);
@@ -208,10 +363,18 @@ namespace Nekolpos.ActionSystem
             if (rootCanvas == null)
             {
                 ChatUIController chatUi = GetComponent<ChatUIController>();
+                chatUi ??= FindFirstObjectByType<ChatUIController>(FindObjectsInactive.Include);
                 if (chatUi != null && chatUi.messageText != null)
                 {
-                    rootCanvas = chatUi.messageText.canvas;
+                    rootCanvas = chatUi.messageText.canvas != null
+                        ? chatUi.messageText.canvas.rootCanvas
+                        : null;
                 }
+            }
+
+            if (rootCanvas == null)
+            {
+                rootCanvas = FindFirstObjectByType<Canvas>(FindObjectsInactive.Include);
             }
 
             if (rootCanvas == null || fadeGroup != null)

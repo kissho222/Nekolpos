@@ -267,6 +267,7 @@ namespace Backgammon.Conversation
 
         private void Update()
         {
+            if (Nekolpos.System.DebugConsoleInput.IsBlocked) return;
             if (IsTyping && (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return)))
             {
                 SkipTyping();

@@ -28,6 +28,8 @@ namespace Nekolpos.System
         [SerializeField] private Transform windowInteriorTarget;
         [SerializeField] private Volume globalVolume;
         [SerializeField] private WeatherType fallbackWeather = WeatherType.Sunny;
+        [Tooltip("撮影Sceneだけで使用。照明用Volumeを一時生成し、本番Profileを書き換えません。")]
+        [SerializeField] private bool photoStudioPreview;
         [Header("Skybox Presets")]
         [SerializeField] private Material morningSkybox;
         [SerializeField] private Material daySkybox;
@@ -65,6 +67,7 @@ namespace Nekolpos.System
         private TimeOfDayRig eveningRig;
         private Light nightMoonLight;
         private GameObject openBetaRigRoot;
+        private readonly global::System.Collections.Generic.List<VolumeProfile> photoStudioProfiles = new global::System.Collections.Generic.List<VolumeProfile>();
 
         private const string TableLampLightName = "ライト テーブルランプ";
         private const string NightCeilingLightName = "照明 シーリングライト";
@@ -92,6 +95,7 @@ namespace Nekolpos.System
 
         private void Awake()
         {
+            if (photoStudioPreview) return;
             if (Instance == null)
             {
                 Instance = this;
@@ -100,6 +104,24 @@ namespace Nekolpos.System
             {
                 Destroy(gameObject);
             }
+        }
+
+        private void OnDestroy()
+        {
+            foreach (var profile in photoStudioProfiles)
+            {
+                foreach (var component in profile.components) Destroy(component);
+                Destroy(profile);
+            }
+        }
+
+        private GameObject FindLightingObject(string objectName)
+        {
+            if (!photoStudioPreview) return GameObject.Find(objectName);
+            foreach (var root in gameObject.scene.GetRootGameObjects())
+                foreach (var child in root.GetComponentsInChildren<Transform>(true))
+                    if (child.name == objectName) return child.gameObject;
+            return null;
         }
 
         private void Start()
@@ -147,7 +169,7 @@ namespace Nekolpos.System
         {
             if (directionalLight == null)
             {
-                GameObject directionalLightObject = GameObject.Find("Directional Light");
+                GameObject directionalLightObject = FindLightingObject("Directional Light");
                 if (directionalLightObject != null)
                 {
                     directionalLight = directionalLightObject.GetComponent<Light>();
@@ -156,7 +178,7 @@ namespace Nekolpos.System
 
             if (ceilingLightAnchor == null)
             {
-                GameObject livingLightObject = GameObject.Find("ライト リビング");
+                GameObject livingLightObject = FindLightingObject("ライト リビング");
                 if (livingLightObject != null)
                 {
                     ceilingLightAnchor = livingLightObject.transform;
@@ -178,7 +200,7 @@ namespace Nekolpos.System
                 globalVolume = Object.FindFirstObjectByType<Volume>();
             }
 
-            if (timeManager == null)
+            if (!photoStudioPreview && timeManager == null)
             {
                 timeManager = Object.FindFirstObjectByType<TimeManager>();
             }
@@ -284,7 +306,7 @@ namespace Nekolpos.System
         {
             if (nightMoonLight == null)
             {
-                GameObject moonObject = GameObject.Find("Night_Moon_Fill");
+                GameObject moonObject = FindLightingObject("Night_Moon_Fill");
                 if (moonObject == null)
                 {
                     moonObject = new GameObject("Night_Moon_Fill");
@@ -503,7 +525,7 @@ namespace Nekolpos.System
 
         private WeatherType ResolveWeather()
         {
-            if (timeManager == null)
+            if (!photoStudioPreview && timeManager == null)
             {
                 timeManager = Object.FindFirstObjectByType<TimeManager>();
             }
@@ -920,11 +942,11 @@ namespace Nekolpos.System
             }
         }
 
-        private static void DisableRoomLightsForNight()
+        private void DisableRoomLightsForNight()
         {
             for (int i = 0; i < RoomLightsDisabledForNight.Length; i++)
             {
-                GameObject lightObject = GameObject.Find(RoomLightsDisabledForNight[i]);
+                GameObject lightObject = FindLightingObject(RoomLightsDisabledForNight[i]);
                 if (lightObject == null)
                 {
                     continue;
@@ -938,13 +960,13 @@ namespace Nekolpos.System
             }
         }
 
-        private static Light FindSceneLightByNameIncludingInactive(string lightName)
+        private Light FindSceneLightByNameIncludingInactive(string lightName)
         {
             Transform[] transforms = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             for (int i = 0; i < transforms.Length; i++)
             {
                 Transform current = transforms[i];
-                if (current == null || current.name != lightName)
+                if (current == null || current.name != lightName || (photoStudioPreview && current.gameObject.scene != gameObject.scene))
                 {
                     continue;
                 }
@@ -965,7 +987,7 @@ namespace Nekolpos.System
             Light[] lights = Object.FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             for (int i = 0; i < lights.Length; i++)
             {
-                if (lights[i] != null && lights[i].name == lightName)
+                if (lights[i] != null && lights[i].name == lightName && (!photoStudioPreview || lights[i].gameObject.scene == gameObject.scene))
                 {
                     return lights[i];
                 }
@@ -1063,7 +1085,7 @@ namespace Nekolpos.System
                 return;
             }
 
-            openBetaRigRoot = GameObject.Find(openBetaRigRootName);
+            openBetaRigRoot = FindLightingObject(openBetaRigRootName);
             if (openBetaRigRoot == null)
             {
                 openBetaRigRoot = new GameObject(openBetaRigRootName);
@@ -1152,11 +1174,15 @@ namespace Nekolpos.System
             float whiteBalanceTint)
         {
 #if UNITY_EDITOR
-            VolumeProfile profile = LoadOrCreateOpenBetaVolumeProfileAsset(name);
+            VolumeProfile profile = photoStudioPreview
+                ? ScriptableObject.CreateInstance<VolumeProfile>()
+                : LoadOrCreateOpenBetaVolumeProfileAsset(name);
 #else
             VolumeProfile profile = ScriptableObject.CreateInstance<VolumeProfile>();
             profile.name = $"PV_OB_{name}_VolumeProfile_Runtime";
 #endif
+
+            if (photoStudioPreview) photoStudioProfiles.Add(profile);
 
             WhiteBalance whiteBalance = GetOrAddVolumeComponent<WhiteBalance>(profile);
             whiteBalance.temperature.Override(whiteBalanceTemperature);
@@ -1172,8 +1198,11 @@ namespace Nekolpos.System
             tonemapping.mode.Override(TonemappingMode.ACES);
 
 #if UNITY_EDITOR
-            EditorUtility.SetDirty(profile);
-            AssetDatabase.SaveAssetIfDirty(profile);
+            if (EditorUtility.IsPersistent(profile))
+            {
+                EditorUtility.SetDirty(profile);
+                AssetDatabase.SaveAssetIfDirty(profile);
+            }
 #endif
 
             return profile;

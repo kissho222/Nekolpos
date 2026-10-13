@@ -1,0 +1,34 @@
+# 死亡後の朝日復活トランジション（Issue #68）
+
+既存DialogueManager.TriggerPlayerDefeat / death: / defeat: の処理を拡張する。死亡演出・死亡フラグ・Pending日記・既存SystemTimedEvent本文・PostPatternは維持する。説明文や会話CSVは追加しない。
+
+## 順序と設定
+
+1. 既存死亡演出、通常の黒フェード、既存の結果テキスト。
+2. 本文が閉じてから完全黒を保持。DialogueManagerのDefeatBlackHoldSeconds（初期0.5秒）。
+3. FadeController.BeginRevivalTransitionで共通Prefabを暗い空＋黒い前景へ切替。前景Image.colorを黒へ変更するため、境界・足跡も暗くなるが元PNGは不変。空と前景は常に不透明なのでゲームは露出しない。
+4. 完全遮蔽のままTimeManager.AdvanceToNextMorning。既存OnTimeAdvancedのBootstrap処理でTableへのプレイヤー・ネルコ・カメラ・視線を復帰させ、描画後段まで待つ。
+5. 太陽は朝のX位置の画面下から実際に上昇する。太陽のAlphaは最初から通常値で、前景/画面外の幾何的遮蔽を使う。前景境界を外周光が越える位置を求め、その瞬間から空色と前景Tintを同じ係数で朝色へ戻す。
+6. 太陽と色が朝の通常値へ到達したあと、従来FadeInでゲームを開き、入力/既存PostPatternへ戻る。
+
+TransitionBackgroundViewのRevivalSeconds（初期2.5秒）は上昇全体の長さ。RevivalColourStartOffset（初期0、-0.25〜0.25）は可視境界からの色復帰開始の前後調整。RevivalDarkTop/Bottomは開始時の暗い空色。朝の到着位置/色は既存Morning設定を使用し、前景Tintは最後に白（元画像の色）へ戻す。前景・太陽・空のサイズ/描画順は共通Prefabを正本とする。
+
+## 分離と中断
+
+Revivalモードは時計イベントをそのまま表示へ反映しない。通常Time/Locationモードの演出は維持し、EndPresentation/再開始/無効化で前景Tintを白へ復元する。FadeControllerの即時透明化、タイトル復帰、Scene破棄も同じリセット経路を使う。
+
+DialogueManager.IsPlayerDefeatRunningで二重死亡を拒否し、死亡中の通常時間進行/就寝も拒否する。タイトル復帰/破棄で待機をキャンセルし、後から翌朝更新や明転を実行しない。ResultTextUIは表示世代とキャンセル対応を加え、終了した旧テキストが新しい表示を隠さない。
+
+死亡の黒フェードから明転完了まではOpenBetaPauseMenuController.SetTransitionSuppressedでメニューアイコンを非表示にし、メニュー起動も拒否する。終了/中断で既存の会話開始条件に従って戻す。メニュー用Canvasの高いSortingOrderは変更せず、通常遷移へこの抑制を追加しない。
+
+## 検証
+
+TransitionBackgroundTestsで暗色保持・時計更新の遮断・空/前景の同期補間・幾何的に隠した太陽・到達・中断/通常遷移復帰・設定不備を検証する。TimeFlowCoordinatorTestsで実死亡の翌朝/完全遮蔽/二重拒否/タイトル取消/既存Pending日記を確認する。ResultTextUILayoutTestsで旧結果表示の遅延終了が後続表示へ影響しないことを確認する。
+
+実EditorとWebGLの画面・操作・ビルド結果はHANDOFF/Issue完了報告に記録する。WebGL検証用SceneとProbeを一時作成する場合は通常MainSceneの複製を使用し、検証後に除去する。製品Sceneにテスト専用ボタンを残さない。
+
+2026-10-10検証済み：EditModeの113種類（114実行）は全成功、Skip0。Editor実死亡の36フレームで完全遮蔽中の翌朝/Table復帰、暗色保持、上昇と色復帰、最後の明転を確認。WebGL Development Build成功（Error0/Warning0、132.58秒）後、ブラウザーでも死亡2回を実行し、各回の翌朝更新が完全遮蔽中に1回だけ発生し、透明化・前景白への復帰を確認した。証跡はoutput/revival-transition。
+
+複製Sceneもファイル名をMainSceneにすること。BootstrapはScene名で初期化を限定するため、別名の初回検証は通常起動確認として採用せず、MainScene名で再Build・再検証した。一時Scene/Probeは証跡へ退避後Assetsから除去済み。Windows64・製品MainScene・非Play・Scene未変更へ復元。Editorの日付/時間帯・日記Draft/Pendingは復元したが、検証による死亡履歴AngerがEditorのPlayerPrefsに残る。製品のファイル保存とは別である。
+
+WebGL起動時の既存URP/TAA backbuffer RenderPassエラー1件は継続しており、死亡処理中の追加エラーはなかった。描画設定の修正は今回の変更に含めない。モバイル実機での最終確認は未実施。

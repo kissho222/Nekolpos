@@ -36,6 +36,64 @@ namespace Nekolpos.System
         private static readonly List<DiaryDraft> pendingSpecialEntries = new List<DiaryDraft>();
         private static bool loaded;
         private static int nextSequence;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetSession() { drafts.Clear(); pendingSpecialEntries.Clear(); loaded = false; nextSequence = 0; }
+
+        private const string VariantSequencePrefsKey = "Nekolpos.Diary.VariantSequence.v1";
+        [Serializable] private sealed class VariantPosition { public string id; public int next; }
+        [Serializable] private sealed class VariantPositions { public List<VariantPosition> entries = new List<VariantPosition>(); }
+
+        public static int GetNextVariantIndex(string diaryId, int count)
+        {
+            if (count <= 0) return 0;
+            var state = JsonUtility.FromJson<VariantPositions>(ProgressSaveStore.GetString(VariantSequencePrefsKey, ""));
+            int next = state?.entries?.FirstOrDefault(item => item.id == diaryId)?.next ?? 0;
+            return ((next % count) + count) % count;
+        }
+
+        // Selection and progress commit belong to the recording boundary, never Resolve/preview.
+        public static bool RecordVariants(string diaryId, int day, DayPeriod period, bool special,
+            IReadOnlyList<DiaryTextVariants.Text> variants, string mode, string locale = "ja", Func<string, string> resolveText = null)
+        {
+            if (string.IsNullOrWhiteSpace(diaryId) || variants == null || variants.Count == 0) return false;
+            bool sequence = DiaryTextVariants.IsSequence(mode);
+            int index = sequence ? GetNextVariantIndex(diaryId, variants.Count) : variants.Count == 1 ? 0 : UnityEngine.Random.Range(0, variants.Count);
+            string body = variants[index]?.Resolve(locale) ?? "";
+            if (resolveText != null) body = resolveText(body);
+            if (string.IsNullOrWhiteSpace(body)) return false;
+            EnsureLoaded();
+            var target = special ? pendingSpecialEntries : drafts;
+            int previousSequence = nextSequence;
+            string previousPositions = ProgressSaveStore.GetString(VariantSequencePrefsKey, "");
+            string previousDrafts = ProgressSaveStore.GetString(DraftPrefsKey, "");
+            string previousPending = ProgressSaveStore.GetString(PendingPrefsKey, "");
+            int previousUnlock = ProgressSaveStore.GetInt(SpecialSortUnlockedPrefsKey, 0);
+            try
+            {
+                if (!Add(target, diaryId, day, period, body)) return false;
+                if (sequence)
+                {
+                    var positions = JsonUtility.FromJson<VariantPositions>(previousPositions) ?? new VariantPositions();
+                    var position = positions.entries.FirstOrDefault(item => item.id == diaryId);
+                    if (position == null) { position = new VariantPosition { id = diaryId }; positions.entries.Add(position); }
+                    position.next = (index + 1) % variants.Count;
+                    ProgressSaveStore.SetString(VariantSequencePrefsKey, JsonUtility.ToJson(positions));
+                }
+                if (special) ProgressSaveStore.SetInt(SpecialSortUnlockedPrefsKey, 1);
+                Save();
+                return true;
+            }
+            catch
+            {
+                target.RemoveAll(item => item.sequence >= previousSequence);
+                nextSequence = previousSequence;
+                ProgressSaveStore.SetString(VariantSequencePrefsKey, previousPositions);
+                ProgressSaveStore.SetString(DraftPrefsKey, previousDrafts);
+                ProgressSaveStore.SetString(PendingPrefsKey, previousPending);
+                ProgressSaveStore.SetInt(SpecialSortUnlockedPrefsKey, previousUnlock);
+                throw;
+            }
+        }
 
         public static void RecordNormalDraft(string diaryId, int day, DayPeriod period, string body)
         {
@@ -56,13 +114,13 @@ namespace Nekolpos.System
         /// <summary>Marks the special-diary browser as discovered. This survives application restarts.</summary>
         public static void UnlockSpecialDiarySort()
         {
-            if (PlayerPrefs.GetInt(SpecialSortUnlockedPrefsKey, 0) != 0)
+            if (ProgressSaveStore.GetInt(SpecialSortUnlockedPrefsKey, 0) != 0)
             {
                 return;
             }
 
-            PlayerPrefs.SetInt(SpecialSortUnlockedPrefsKey, 1);
-            PlayerPrefs.Save();
+            ProgressSaveStore.SetInt(SpecialSortUnlockedPrefsKey, 1);
+            ProgressSaveStore.Save();
         }
 
         public static bool IsSpecialDiarySortUnlocked
@@ -70,7 +128,7 @@ namespace Nekolpos.System
             get
             {
                 EnsureLoaded();
-                return PlayerPrefs.GetInt(SpecialSortUnlockedPrefsKey, 0) != 0;
+                return ProgressSaveStore.GetInt(SpecialSortUnlockedPrefsKey, 0) != 0;
             }
         }
 
@@ -136,6 +194,35 @@ namespace Nekolpos.System
             return drafts.Any(item => item.occurredDay == day && item.period == period);
         }
 
+        /// <summary>
+        /// Discards the uncommitted morning, afternoon, and evening material for one game day.
+        /// Special pending entries intentionally remain queued because they may be written on a later night.
+        /// </summary>
+        public static void DiscardNormalDraftsForDay(int day)
+        {
+            EnsureLoaded();
+            if (drafts.RemoveAll(item => item.occurredDay == Mathf.Max(1, day)) > 0)
+            {
+                Save();
+            }
+        }
+
+        /// <summary>Clears every uncommitted diary draft and the special-diary unlock for the debug reset tool.</summary>
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public static void ResetAllForDebug()
+        {
+            EnsureLoaded();
+            drafts.Clear();
+            pendingSpecialEntries.Clear();
+            nextSequence = 0;
+            ProgressSaveStore.DeleteKey(VariantSequencePrefsKey);
+            ProgressSaveStore.DeleteKey(DraftPrefsKey);
+            ProgressSaveStore.DeleteKey(PendingPrefsKey);
+            ProgressSaveStore.DeleteKey(SpecialSortUnlockedPrefsKey);
+            ProgressSaveStore.Save();
+        }
+#endif
+
         private static bool Add(List<DiaryDraft> target, string diaryId, int day, DayPeriod period, string body)
         {
             EnsureLoaded();
@@ -175,7 +262,7 @@ namespace Nekolpos.System
 
         private static void Load(string key, List<DiaryDraft> target)
         {
-            DiaryDraftCollection collection = JsonUtility.FromJson<DiaryDraftCollection>(PlayerPrefs.GetString(key, string.Empty));
+            DiaryDraftCollection collection = JsonUtility.FromJson<DiaryDraftCollection>(ProgressSaveStore.GetString(key, string.Empty));
             if (collection?.entries == null)
             {
                 return;
@@ -187,9 +274,9 @@ namespace Nekolpos.System
         private static void Save()
         {
             EnsureLoaded();
-            PlayerPrefs.SetString(DraftPrefsKey, JsonUtility.ToJson(new DiaryDraftCollection { entries = drafts }));
-            PlayerPrefs.SetString(PendingPrefsKey, JsonUtility.ToJson(new DiaryDraftCollection { entries = pendingSpecialEntries }));
-            PlayerPrefs.Save();
+            ProgressSaveStore.SetString(DraftPrefsKey, JsonUtility.ToJson(new DiaryDraftCollection { entries = drafts }));
+            ProgressSaveStore.SetString(PendingPrefsKey, JsonUtility.ToJson(new DiaryDraftCollection { entries = pendingSpecialEntries }));
+            ProgressSaveStore.Save();
         }
     }
 }

@@ -109,7 +109,9 @@ namespace Nekolpos.EditorTools
                 PruneBackups(backupDirectory);
             }
 
-            TalkTopicMasterCsvUtility.WriteMaster(outputPath, rows);
+            TalkTopicMasterCsvUtility.SaveAndSynchronize(outputPath,
+                Path.Combine(projectRoot, TalkTopicMasterCsvUtility.RuntimePath),
+                () => TalkTopicMasterCsvUtility.WriteMaster(outputPath, rows));
             AssetDatabase.Refresh();
 
             for (int i = 0; i < warnings.Count; i++)
@@ -440,7 +442,7 @@ namespace Nekolpos.EditorTools
                 && (headerSet.Contains("input") || headerSet.Contains("response") || headerSet.Contains("responses") || headerSet.Contains("output_ja"));
         }
 
-        private static string BuildSourceKey(Dictionary<string, string> row, int fallbackIndex)
+        internal static string BuildSourceKey(Dictionary<string, string> row, int fallbackIndex)
         {
             string id = Read(row, "id", "ID", "key");
             string regexId = DecodePreviewToken(Read(row, "regex_id", "regex ID", "regexid"));

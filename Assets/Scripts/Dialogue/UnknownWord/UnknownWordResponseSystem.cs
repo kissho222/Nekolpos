@@ -30,6 +30,11 @@ namespace Nekolpos.Dialogue.UnknownWord
 
             reaction.IntentID = "UNKNOWN_WORD";
             reaction.ReactionType = "UnknownWord";
+            reaction.RuntimePlaceholders = new Dictionary<string, string>
+            {
+                ["unknown_word"] = result.UnknownWord,
+                ["WORD_ORIGINAL_INPUT"] = result.OriginalInput ?? result.UnknownWord
+            };
             return reaction;
         }
 

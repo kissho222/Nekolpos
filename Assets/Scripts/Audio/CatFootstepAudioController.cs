@@ -131,7 +131,7 @@ namespace Nekolpos.Audio
             }
 
             footstepAudioSource.playOnAwake = false;
-            Nekolpos.System.OpenBetaPauseMenuController.ApplySavedAudioState(footstepAudioSource, false);
+            Nekolpos.System.SettingsManager.RouteAudio(footstepAudioSource, Nekolpos.System.SettingsAudioCategory.Se);
             footstepAudioSource.loop = false;
             footstepAudioSource.spatialBlend = 1f;
             footstepAudioSource.minDistance = minDistance;

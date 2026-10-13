@@ -165,7 +165,7 @@ namespace Nekolpos.System
 
                 if (marker != retainedMarker)
                 {
-                    DestroyObject(marker);
+                    DestroyMarkerObject(marker);
                 }
             }
 
@@ -187,12 +187,12 @@ namespace Nekolpos.System
                 return;
             }
 
-            DestroyObject(debugMarker);
+            DestroyMarkerObject(debugMarker);
             debugMarker = null;
             debugMarkerRenderer = null;
         }
 
-        private static void DestroyObject(Object target)
+        private static void DestroyMarkerObject(Object target)
         {
             if (target == null)
             {

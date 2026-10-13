@@ -15,7 +15,7 @@ public class ControlModeSwitcher : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Y))
+        if (!Nekolpos.System.DebugConsoleInput.IsBlocked && Input.GetKeyDown(KeyCode.Y))
         {
             cameraMode = !cameraMode;
             ApplyMode();

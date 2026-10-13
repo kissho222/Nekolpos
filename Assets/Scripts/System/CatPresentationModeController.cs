@@ -64,6 +64,10 @@ namespace Nekolpos.System
         [SerializeField] private float idleVariationLookRigFadeOutSeconds = 0.9f;
         [SerializeField] private float idleVariationLookRigFadeInSeconds = 1f;
 
+        [Header("Runtime Coordination")]
+        [Tooltip("散歩中の歩行AnimatorがIdle Variationを一時停止しているかを示します。")]
+        [SerializeField] private bool isLocomotionActive;
+
         public CatPresentationMode CurrentMode { get; private set; } = CatPresentationMode.Opening;
         public GameObject OpCat => openingCat;
         public GameObject NormalCat => normalCat;
@@ -71,6 +75,7 @@ namespace Nekolpos.System
         public CatPositionController PositionController => positionController;
         public CatMotionController MotionController => motionController;
         public bool IsDelayingDialogueResponse { get; private set; }
+        public bool IsLocomotionActive => isLocomotionActive;
 
         private bool hasSwitchedToNormal;
         private Coroutine idleVariationCoroutine;
@@ -217,10 +222,11 @@ namespace Nekolpos.System
 
             // 場所移動Timelineでは、開始Signalが暗転を始める前にホームへスナップしてはならない。
             // ここで位置を変えると、ネルコが暗転前に消える／跳ぶように見える。
-            // 遷移先への配置はOpenBetaTitleBootstrapが暗転完了後に行う。
+            // 遷移先への配置はNekolposGameBootstrapが暗転完了後に行う。
             CurrentMode = CatPresentationMode.Timeline;
             StopIdleVariationLoop();
             StopRestartIdleVariationCoroutine();
+            StopNormalLookRigRefreshCoroutine();
             SetConversationInputEnabled(false);
             Debug.Log($"[CatPresentationMode] Timeline started; previous={modeBeforeTimeline}", this);
         }
@@ -310,8 +316,37 @@ namespace Nekolpos.System
             RestartIdleVariationLoopAfterMotion();
         }
 
+        /// <summary>
+        /// 自由歩行AnimatorとIdle Variationの競合を避ける。
+        /// 視線Controller自体は停止せず、歩行終了後だけ通常のIdle Variationを再開する。
+        /// </summary>
+        public void SetLocomotionActive(bool active)
+        {
+            if (isLocomotionActive == active)
+            {
+                return;
+            }
+
+            isLocomotionActive = active;
+            if (active)
+            {
+                StopIdleVariationLoop();
+                StopRestartIdleVariationCoroutine();
+                return;
+            }
+
+            if (isActiveAndEnabled &&
+                (CurrentMode == CatPresentationMode.Conversation || CurrentMode == CatPresentationMode.Idle))
+            {
+                StartIdleVariationLoop();
+            }
+        }
+
         public void ResumeIdleAfterTimeline()
         {
+            StopIdleVariationLoop();
+            StopRestartIdleVariationCoroutine();
+            StopNormalLookRigRefreshCoroutine();
             CatPresentationMode restoredMode = modeBeforeTimeline;
             if (restoredMode != CatPresentationMode.Conversation && restoredMode != CatPresentationMode.Idle)
             {
@@ -333,7 +368,13 @@ namespace Nekolpos.System
             // Timelineの制御解除後も、現在選択中の基本会話拠点へ復帰する。
             // Desk選択中にTableアンカーへ戻らないよう、直接アンカーを参照しない。
             ResolveNormalCatReferences();
-            positionController?.MoveToHome();
+            // Stopping the variation coroutine cancels its return-to-idle step.
+            // Reconcile both the Animator and motion ownership before restarting
+            // the scheduler, which only accepts the base idle state.
+            motionController?.PlayIdle();
+            lookRig?.ClearTemporaryMaxDownPitchDegrees();
+            SetLookRigEnabled(true);
+            if (positionController != null) positionController.MoveToHome();
 
             if (isActiveAndEnabled)
             {
@@ -546,6 +587,7 @@ namespace Nekolpos.System
         private bool CanRunIdleVariationLoop()
         {
             return enableIdleVariations &&
+                   !isLocomotionActive &&
                    (CurrentMode == CatPresentationMode.Conversation || CurrentMode == CatPresentationMode.Idle) &&
                    normalCat != null &&
                    normalCat.activeInHierarchy &&

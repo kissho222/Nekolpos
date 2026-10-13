@@ -1,0 +1,15 @@
+# 会話と独立日記候補の接続
+
+## 比較と採用
+
+独立関連表は既存Dialogue CSVを変更せず、1会話から0..n候補・1候補から複数会話を扱える。Diary側へDialogueID列を置く方式では複数参照の表現が複雑になり、Dialogue側へDiary列を追加する方式では形式ごとの変更と複数候補の表現が必要になる。独立関連表を採用する。未接続のDiary_Normal.csv/DiaryDataSOは正本にしない。
+
+正本は `TalkSource/Diary/DiaryCandidates.csv`（DiaryId,kind,ja,en,zh,Enabled）と `DialogueDiaryLinks.csv`（DialogueId,DiaryId,condition,Enabled）。本文はユーザーが記入し自動生成しない。候補は共有可能。GUIDはEditorの識別子でありRuntimeのLabelHash/Patternとは区別する。Build前に対応表と現行CSVを照合してRuntime読込用の出典/id/regex_id/pattern対応を生成し、候補・リンクと共に暗号化JSONへ出力する。関連表に未解決ID/重複/無効種別がある場合は公開を拒否する。
+
+## 発生・選択・保存
+
+発生は最初の行が始まる時。表示中の行送りと「直前会話の再表示」は再発火しない。別の通常入力やCall/Choiceで新しい会話が始まる場合は独立の発生として扱う。リンク条件は既存GameState評価器で判定し、本文変数は既存RuntimeText解決を使う。空本文は記録しない。
+
+同じ会話再生で独立候補が1件以上記録された場合、後続の同会話TimedEvent由来日記は抑止する。条件不一致や候補なしなら従来の日記経路を維持する。死亡時の独立候補も特別Pendingにする運用を推奨するが、既存死亡・心理結果フロー自体は維持する。
+
+通常草稿は既存と同じ発生日・時間帯の最新sequenceを選択する。複数リンクの順序は関連表の行順で、最後の通常候補が選ばれる。Weight/ランダム/優先度は追加しない。特別候補は全件を発生順で保持する。保存は既存DiaryJournalStore/ProgressSaveStoreを共有し、夜の記入確定後は既存Calendar/Detailへ接続する。Debug Startで未確定の当日通常草稿を破棄する既存仕様は維持する。通常モードの保存済み草稿と特別Pendingはロード後も取得できる。

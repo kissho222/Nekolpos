@@ -281,7 +281,7 @@ namespace Nekolpos.Audio
             }
 
             audioSource.playOnAwake = false;
-            Nekolpos.System.OpenBetaPauseMenuController.ApplySavedAudioState(audioSource, true);
+            Nekolpos.System.SettingsManager.RouteAudio(audioSource, Nekolpos.System.SettingsAudioCategory.Bgm);
             audioSource.loop = currentMode != MusicMode.Game;
             audioSource.spatialBlend = 0f;
             audioSource.volume = Mathf.Clamp(audioSource.volume, 0f, volume);

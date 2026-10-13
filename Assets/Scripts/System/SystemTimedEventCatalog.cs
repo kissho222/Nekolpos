@@ -29,6 +29,7 @@ namespace Nekolpos.System
             new Dictionary<string, TimedEventRow>(StringComparer.OrdinalIgnoreCase);
 
         private static bool isLoaded;
+        public static void ResetCache() { isLoaded = false; RowsByKey.Clear(); }
 
         public sealed class ResolvedTimedEvent
         {
@@ -36,6 +37,8 @@ namespace Nekolpos.System
             public string DiaryId;
             public bool IsSpecialDiary;
             public string Text;
+            public List<DiaryTextVariants.Text> DiaryVariants;
+            public string DiarySelectionMode, Locale;
             public int TimeMinutes;
             public float DisplaySeconds;
         }
@@ -45,6 +48,8 @@ namespace Nekolpos.System
             public string Key;
             public string DiaryId;
             public bool IsSpecialDiary;
+            public List<DiaryTextVariants.Text> DisplayVariants, DiaryVariants;
+            public string DiarySelectionMode;
             public int TimeMinutes;
             public float DisplaySeconds;
             public readonly Dictionary<string, string> TextByLocale =
@@ -75,7 +80,8 @@ namespace Nekolpos.System
                 Key = row.Key,
                 DiaryId = string.IsNullOrWhiteSpace(row.DiaryId) ? row.Key : row.DiaryId,
                 IsSpecialDiary = row.IsSpecialDiary,
-                Text = text,
+                Text = DiaryTextVariants.RandomText(row.DisplayVariants, resolvedLocale),
+                DiaryVariants = row.DiaryVariants, DiarySelectionMode = row.DiarySelectionMode, Locale = resolvedLocale,
                 TimeMinutes = row.TimeMinutes,
                 DisplaySeconds = row.DisplaySeconds
             };
@@ -198,6 +204,12 @@ namespace Nekolpos.System
                 AddLocalizedValue(row.TextByLocale, "ja", GetColumn(columns, jaIndex));
                 AddLocalizedValue(row.TextByLocale, "en", GetColumn(columns, enIndex));
                 AddLocalizedValue(row.TextByLocale, "zh-Hans", GetColumn(columns, zhIndex));
+                row.DisplayVariants = DiaryTextVariants.Read(GetColumn(columns, jaIndex), GetColumn(columns, enIndex), GetColumn(columns, zhIndex), GetColumn(columns, FindColumnIndex(headers, "display_variants")));
+                bool dedicatedDiary = FindColumnIndex(headers, "diary_ja") >= 0;
+                row.DiaryVariants = dedicatedDiary
+                    ? DiaryTextVariants.Read(GetColumn(columns, FindColumnIndex(headers, "diary_ja")), GetColumn(columns, FindColumnIndex(headers, "diary_en")), GetColumn(columns, FindColumnIndex(headers, "diary_zh")), GetColumn(columns, FindColumnIndex(headers, "diary_variants")))
+                    : new List<DiaryTextVariants.Text>(row.DisplayVariants);
+                row.DiarySelectionMode = GetColumn(columns, FindColumnIndex(headers, "diary_selection_mode"));
                 RowsByKey[key] = row;
             }
         }

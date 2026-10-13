@@ -10,7 +10,7 @@ namespace Nekolpos.System
     public class StateDead : IGameState
     {
         private GameManager gm;
-        private float delayTimer = 0f;
+
 
         public StateDead(GameManager gameManager)
         {
@@ -32,19 +32,7 @@ namespace Nekolpos.System
             // GameManager内や、他の FadeManager のようなクラスを叩く。
         }
 
-        public void Execute()
-        {
-            // 死亡演出を見せるため、ちょっとだけ時間を待つ（例として3秒待つ）
-            delayTimer += Time.deltaTime;
-
-            if (delayTimer > 3f)
-            {
-                Debug.Log("（時間を翌朝に強制セット……タイムトラベル中……）");
-                
-                // 問答無用で朝にしてしまう！
-                gm.ChangeState(new StateMorning(gm));
-            }
-        }
+        public void Execute() { }
 
         public void Exit()
         {

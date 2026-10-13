@@ -66,6 +66,7 @@ namespace Nekolpos.System
 
         private static bool ShouldRun()
         {
+            if (DebugSaveSession.IsIsolated) return false;
 #if PERF_DIAG
             return true;
 #elif UNITY_EDITOR

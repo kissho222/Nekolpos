@@ -27,7 +27,7 @@ namespace Nekolpos.System
                 return false;
             }
 
-            return PlayerPrefs.GetInt(BuildEntryKey(category, entryId), 0) != 0;
+            return ProgressSaveStore.GetInt(BuildEntryKey(category, entryId), 0) != 0;
         }
 
         public static bool IsSeriesDiscovered(string seriesGroupId)
@@ -37,7 +37,7 @@ namespace Nekolpos.System
                 return false;
             }
 
-            return PlayerPrefs.GetInt(BuildSeriesKey(seriesGroupId), 0) != 0;
+            return ProgressSaveStore.GetInt(BuildSeriesKey(seriesGroupId), 0) != 0;
         }
 
         public static DiscoveryMarkResult MarkDiscovered(TeachingCategory category, string entryId, string seriesGroupId)
@@ -53,19 +53,19 @@ namespace Nekolpos.System
 
             if (!IsDiscovered(category, entryId))
             {
-                PlayerPrefs.SetInt(BuildEntryKey(category, entryId), 1);
+                ProgressSaveStore.SetInt(BuildEntryKey(category, entryId), 1);
                 IncrementCount(BuildCategoryCountKey(category));
                 result.EntryWasNew = true;
             }
 
             if (category == TeachingCategory.CatSeries && !string.IsNullOrWhiteSpace(seriesGroupId) && !IsSeriesDiscovered(seriesGroupId))
             {
-                PlayerPrefs.SetInt(BuildSeriesKey(seriesGroupId), 1);
+                ProgressSaveStore.SetInt(BuildSeriesKey(seriesGroupId), 1);
                 IncrementCount(BuildSeriesCountKey());
                 result.SeriesWasNew = true;
             }
 
-            PlayerPrefs.Save();
+            ProgressSaveStore.Save();
             if (result.EntryWasNew || result.SeriesWasNew)
             {
                 DiscoveryChanged?.Invoke(result);
@@ -76,12 +76,12 @@ namespace Nekolpos.System
 
         public static int GetCategoryUniqueCount(TeachingCategory category)
         {
-            return category == TeachingCategory.None ? 0 : PlayerPrefs.GetInt(BuildCategoryCountKey(category), 0);
+            return category == TeachingCategory.None ? 0 : ProgressSaveStore.GetInt(BuildCategoryCountKey(category), 0);
         }
 
         public static int GetCatSeriesUniqueSeriesCount()
         {
-            return PlayerPrefs.GetInt(BuildSeriesCountKey(), 0);
+            return ProgressSaveStore.GetInt(BuildSeriesCountKey(), 0);
         }
 
         public static int GetCatExpressionRankingValue()
@@ -103,13 +103,13 @@ namespace Nekolpos.System
                     continue;
                 }
 
-                PlayerPrefs.DeleteKey(BuildCategoryCountKey(category));
+                ProgressSaveStore.DeleteKey(BuildCategoryCountKey(category));
                 DeleteKnownKeys(BuildKnownEntryListKey(category), key => BuildEntryKey(category, key));
             }
 
-            PlayerPrefs.DeleteKey(BuildSeriesCountKey());
+            ProgressSaveStore.DeleteKey(BuildSeriesCountKey());
             DeleteKnownKeys(BuildKnownSeriesListKey(), BuildSeriesKey);
-            PlayerPrefs.Save();
+            ProgressSaveStore.Save();
             DiscoveryChanged?.Invoke(new DiscoveryMarkResult { WasReset = true });
         }
 
@@ -135,7 +135,7 @@ namespace Nekolpos.System
 
         private static void IncrementCount(string key)
         {
-            PlayerPrefs.SetInt(key, PlayerPrefs.GetInt(key, 0) + 1);
+            ProgressSaveStore.SetInt(key, ProgressSaveStore.GetInt(key, 0) + 1);
         }
 
         private static string BuildEntryKey(TeachingCategory category, string entryId)
@@ -170,25 +170,25 @@ namespace Nekolpos.System
 
         private static void RememberKnownKey(string listKey, string value)
         {
-            string existing = PlayerPrefs.GetString(listKey, string.Empty);
+            string existing = ProgressSaveStore.GetString(listKey, string.Empty);
             HashSet<string> values = ParseList(existing);
             if (!values.Add(value))
             {
                 return;
             }
 
-            PlayerPrefs.SetString(listKey, string.Join("\n", values));
+            ProgressSaveStore.SetString(listKey, string.Join("\n", values));
         }
 
         private static void DeleteKnownKeys(string listKey, Func<string, string> buildSaveKey)
         {
-            HashSet<string> values = ParseList(PlayerPrefs.GetString(listKey, string.Empty));
+            HashSet<string> values = ParseList(ProgressSaveStore.GetString(listKey, string.Empty));
             foreach (string value in values)
             {
-                PlayerPrefs.DeleteKey(buildSaveKey(value));
+                ProgressSaveStore.DeleteKey(buildSaveKey(value));
             }
 
-            PlayerPrefs.DeleteKey(listKey);
+            ProgressSaveStore.DeleteKey(listKey);
         }
 
         private static HashSet<string> ParseList(string raw)

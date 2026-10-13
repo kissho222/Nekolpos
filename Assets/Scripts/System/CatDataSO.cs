@@ -31,7 +31,7 @@ namespace Nekolpos.Data
         [Tooltip("猫又からプレイヤーへの呼び方（例：お前、キミ、ご主人様、〇〇(名前)）")]
         public string playerCalling = "お前";
 
-        [Header("パラメータ (Stats)")]
+        [Header("心理値の初期値・自然回復の基準値")]
         [Tooltip("食事の名前・好みなど")]
         public string favoriteFoodName = "マグロの刺身";
 
@@ -40,18 +40,18 @@ namespace Nekolpos.Data
         public int affectionLevel = 50;
 
         [Range(0, 100)]
-        public int sadisticLevel = 50;
+        public int sadisticLevel = 30;
 
         [Range(0, 100)]
-        public int concernLevel = 50;
+        public int concernLevel = 30;
 
         [Range(0, 100)]
-        public int hostilityLevel = 50;
+        public int hostilityLevel = 0;
 
         [Range(0, 100)]
-        public int obedienceLevel = 50;
+        public int obedienceLevel = 30;
 
         [Range(0, 100)]
-        public int instinctLevel = 50;
+        public int instinctLevel = 0;
     }
 }

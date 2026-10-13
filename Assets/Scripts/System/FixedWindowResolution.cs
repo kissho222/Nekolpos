@@ -22,6 +22,10 @@ namespace Nekolpos.System
         private float lastResizeTime;
         private bool hasPendingResize;
         private Coroutine restorePositionCoroutine;
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        private IntPtr playerWindow;
+        private bool windowRaised;
+#endif
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void EnsureInstance()
@@ -52,14 +56,23 @@ namespace Nekolpos.System
 
             instance = this;
             DontDestroyOnLoad(gameObject);
+#if UNITY_STANDALONE_WIN
+            SettingsManager.EnsureInstance();
+            TrackScreenSize();
+#else
             TrackScreenSize();
             ApplyAspectRatio(force: true);
+#endif
 #endif
         }
 
         private void Update()
         {
 #if UNITY_STANDALONE && !UNITY_EDITOR
+#if UNITY_STANDALONE_WIN
+            if (SettingsManager.Instance != null && SettingsManager.Instance.IsDisplayChangePending) return;
+#endif
+            UpdateFullscreenWindowOrder(Application.isFocused);
             if (!IsWindowed())
             {
                 TrackScreenSize();
@@ -85,10 +98,37 @@ namespace Nekolpos.System
 
         private void OnApplicationFocus(bool hasFocus)
         {
+            UpdateFullscreenWindowOrder(hasFocus);
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+            if (SettingsManager.Instance != null && SettingsManager.Instance.IsDisplayChangePending) return;
+#endif
             if (hasFocus)
             {
                 ApplyAspectRatio(force: false);
             }
+        }
+
+        private void UpdateFullscreenWindowOrder(bool hasFocus)
+        {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+            if (hasFocus && playerWindow == IntPtr.Zero) playerWindow = GetActiveWindow();
+            if (playerWindow == IntPtr.Zero) return;
+            bool shouldRaise = hasFocus && !IsWindowed();
+            if (shouldRaise == windowRaised) return;
+            // Topmost only while focused fullscreen; Alt-Tab must release other applications normally.
+            if (SetWindowPos(playerWindow, new IntPtr(shouldRaise ? -1 : -2), 0, 0, 0, 0,
+                SetWindowPosFlags.NoMove | SetWindowPosFlags.NoSize | SetWindowPosFlags.NoActivate))
+                windowRaised = shouldRaise;
+#endif
+        }
+
+        private void OnDestroy()
+        {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+            if (windowRaised && playerWindow != IntPtr.Zero)
+                SetWindowPos(playerWindow, new IntPtr(-2), 0, 0, 0, 0,
+                    SetWindowPosFlags.NoMove | SetWindowPosFlags.NoSize | SetWindowPosFlags.NoActivate);
+#endif
         }
 
         private static bool IsWindowed()
@@ -104,6 +144,10 @@ namespace Nekolpos.System
 
         private void ApplyAspectRatio(bool force)
         {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+            // Explicit settings may select non-16:9 modes; never overwrite the user's resolution.
+            if (SettingsManager.Instance != null) return;
+#endif
             if (!IsWindowed() || Screen.width <= 0 || Screen.height <= 0)
             {
                 return;
@@ -247,6 +291,8 @@ namespace Nekolpos.System
         [global::System.Flags]
         private enum SetWindowPosFlags : uint
         {
+            NoSize = 0x0001,
+            NoMove = 0x0002,
             NoZOrder = 0x0004,
             NoActivate = 0x0010
         }

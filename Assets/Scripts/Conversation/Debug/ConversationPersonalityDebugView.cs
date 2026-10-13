@@ -9,6 +9,7 @@ namespace Backgammon.Conversation
 {
     public sealed class ConversationPersonalityDebugView : MonoBehaviour
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private const int MaxPersonalityValue = 100;
 
         public static readonly string[] PersonalityKeys =
@@ -137,5 +138,8 @@ namespace Backgammon.Conversation
                 }
             }
         }
+#else
+        private void Awake() { gameObject.SetActive(false); }
+#endif
     }
 }

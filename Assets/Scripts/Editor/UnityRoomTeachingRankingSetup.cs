@@ -8,7 +8,6 @@ namespace Nekolpos.EditorTools
     {
         private const string ReporterObjectName = "UnityRoomTeachingRankingReporter";
 
-        [MenuItem("Tools/Nekolpos/Setup UnityRoom Teaching Ranking Reporter")]
         public static void SetupReporter()
         {
             UnityRoomTeachingRankingReporter reporter = Object.FindFirstObjectByType<UnityRoomTeachingRankingReporter>();

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 #if UNITY_EDITOR
@@ -112,6 +112,7 @@ namespace Nekolpos.System
             int idxWaitTime = FindColumnIndex(headers, "WaitTime", "wait_time");
             int idxHideUi = FindColumnIndex(headers, "HideUI", "hide_ui");
             int idxAnimation = FindColumnIndex(headers, "Animation", "animation");
+            int idxReactionIcon = FindColumnIndex(headers, "ReactionIcon", "reaction_icon");
             int idxChoiceQuestionJa = FindColumnIndex(headers, "question_ja", "ChoiceQuestionJa", "question");
             int idxChoiceYesJa = FindColumnIndex(headers, "choice_yes_ja", "ChoiceYesLabel", "choice_yes_label");
             int idxChoiceNoJa = FindColumnIndex(headers, "choice_no_ja", "ChoiceNoLabel", "choice_no_label");
@@ -165,6 +166,7 @@ namespace Nekolpos.System
 
                 reaction.HideUI = ParseBool(GetColumn(columns, idxHideUi));
                 reaction.Animation = GetColumn(columns, idxAnimation);
+                reaction.ReactionIcon = ReactionIconUtility.Parse(GetColumn(columns, idxReactionIcon));
 
                 if (!GroupsByPattern.TryGetValue(patternId, out List<DialogueReactionData> group))
                 {
@@ -211,6 +213,7 @@ namespace Nekolpos.System
                 WaitTime = source.WaitTime,
                 HideUI = source.HideUI,
                 Animation = source.Animation,
+                ReactionIcon = source.ReactionIcon,
                 TextJP = FormatRuntimeText(source.TextJP, runtimePlaceholders),
                 BranchResolver = source.BranchResolver,
                 RuntimePlaceholders = runtimePlaceholders

@@ -25,13 +25,11 @@ namespace Nekolpos.EditorTools
             GenerateAndAssign(command.context as AnimationTrack);
         }
 
-        [MenuItem("Tools/Nekolpos/Timeline/Auto Generate Avatar Mask for Selected Track", false, 220)]
         private static void AutoGenerateFromSelectedTrack()
         {
             GenerateAndAssign(Selection.activeObject as AnimationTrack);
         }
 
-        [MenuItem("Tools/Nekolpos/Timeline/Auto Generate Avatar Mask for Selected Track", true)]
         private static bool ValidateAutoGenerateFromSelectedTrack()
         {
             return Selection.activeObject is AnimationTrack;
