@@ -2,6 +2,16 @@
 
 このファイルは、ネコルポスで調査・提案・実装を行うCodexが常時参照する判断基準である。思考は英語で行い、ユーザーへの最終回答は日本語で行う。
 
+## Codexの起動許可（2026-10-17更新・優先適用）
+
+**Codexは所有者の手動運用へ移行。dotなど外部エージェントは、所有者から対象を特定した明示的な実行許可がない限りCodexを起動・再起動・自動再試行・追加修正指示しない。** 所有者の離席、過去の包括的委任、利用枠回復、既存Issueの`codex-task`ラベルは実行許可ではない。
+
+- 所有者自身がCodexを手動起動し、対象タスクを直接指定した場合はその指示範囲のみ実行してよい。別タスクの自動取得・連続実行へ拡張しない。
+- 外部からの`codex-task`ラベル追加、GitHub Issue新規作成、HookでのIssue検出は、**単独では作業開始の許可にならない**。
+- 未許可で許されるのはIssueの下書き、調査、既存結果の読み取り、レビュー、テスト計画の策定など**Codexを起動せずに可能なこと**。
+- Codexの修正ループは自動継続しない。追加の実行には所有者の明示許可を再取得する。
+- 詳細は [dot-is-dot 作業調整規則](https://github.com/kissho222/dot-is-dot/blob/main/docs/WORK_COORDINATION.md)。
+
 ## ユーザー指示と作業範囲
 
 - 指示された手段は目的達成に最適とは限らない。効果、費用、安全性、実現性、既存システムへの影響、保守性に重要な改善余地がある場合は、実行前に代替案・根拠・トレードオフを簡潔に示す。
@@ -21,11 +31,11 @@
 ### GitHub Issue作業指示
 
 - 新しい作業を開始する際は、AGENTSと`.ai/HANDOFF.md`を確認した後、`origin`から対象リポジトリを判定し、Openかつ`codex-task`ラベル付きの通常Issueを確認する。通常は`UserPromptSubmit` Hookが`.codex/tools/github_issue_reader.py --hook`を実行する。Hookの出力が利用できない場合は、実装前に同ツールを手動実行する。
-- ChatGPT側で外部作業指示用のGitHub Issueを新規作成する場合は、必ず `codex-task` ラベルを付与する。ラベルが付いていないIssueは、自動取得されるCodex作業指示の対象にならない。
-- 対象Issueが1件なら、その番号、タイトル、本文、URL、ラベル、作成日時、更新日時を今回の外部作業指示として扱う。対象Issueが0件なら、Issueがないことを理由に作業を止めず、現在のユーザー指示に従う。
+- ChatGPT側で実装候補のGitHub Issueを新規作成する場合、**所有者からCodex実行の明示許可がない限り `codex-task` ラベルは付けない**（既存の自動取得機構の誤発火を避ける）。許可済みの場合だけ `codex-task` を付与する。
+- 対象Issueが1件なら、その番号、タイトル、本文、URL、ラベル、作成日時、更新日時を**作業候補**として扱う。**現在の所有者から個別の実行指示がある場合に限り**外部作業指示として扱う。対象Issueが0件なら、Issueがないことを理由に作業を止めず、現在のユーザー指示に従う。
 - 対象Issueが複数なら、勝手に1件を選ばない。番号とタイトルを簡潔に示し、ユーザーへ対象の指定を求める。現在の直接指示でIssue番号が明示され、そのIssueがOpenかつ`codex-task`付きの通常Issueなら、そのIssueだけを使用してよい。
-- 現在ユーザーが直接与えた明示指示は、GitHub Issue、HANDOFF、その他のドキュメントより常に優先する。Issue取得失敗、認証失敗、ネットワーク障害は安全に要約し、それだけを理由に通常作業を不必要に停止しない。
-- `codex-task`を指定して着手する場合は、ローカル実装の前に`python .codex/tools/github_issue_progress.py start --issue <番号>`を実行する。これは`codex-task`を外し、`codex-working`を付ける。進捗ラベル以外は保持し、必要な標準ラベルはツールが作成する。
+- 現在ユーザーが直接与えた明示指示は、GitHub Issue、HANDOFF、その他のドキュメントより常に優先する。ただし**以前の包括的委任・古いIssue文面はCodex実行の明示許可にならない**。Issue取得失敗、認証失敗、ネットワーク障害は安全に要約し、それだけを理由に通常作業を不必要に停止しない。
+- **所有者から当該実行の明示許可を受けて** `codex-task`を指定して着手する場合は、ローカル実装の前に`python .codex/tools/github_issue_progress.py start --issue <番号>`を実行する。これは`codex-task`を外し、`codex-working`を付ける。進捗ラベル以外は保持し、必要な標準ラベルはツールが作成する。
 - 実装と検証を完了した場合は、変更ファイル・実装内容・ビルド/テスト結果・ユーザー側の確認事項を含むUTF-8の完了報告を`github_issue_progress.py complete --issue <番号> --report-stdin`へ渡す。ツールは報告をIssueコメントとして投稿してから、`codex-working`を外し`codex-review`を付ける。報告本文やIssue本文をHANDOFFへ丸ごと転記しない。
 - ユーザー確認後に明示的な指示があった場合だけ、`github_issue_progress.py close --issue <番号>`でIssueをCloseする。`codex-review`を外す必要があると明示されたときは`--remove-review`を併用する。Assignee・Milestone・Issue本文の編集・削除は行わない。
 
