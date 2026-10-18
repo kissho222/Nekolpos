@@ -5601,126 +5601,6 @@
             "key": "PRD_DAILY_DIARY_REACTION_OBEDIENCE_001|PRD_DAILY_DIARY_REACTION_OBEDIENCE_001|1"
         },
         {
-            "id": "1ad953885ace4d4e9b57ead98abd652f",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_DAILY_DIARY_REACTION_HOSTILITY_001_047|PRD_DAILY_DIARY_REACTION_HOSTILITY_001_047|1"
-        },
-        {
-            "id": "94aa1d4a21d745668b40357aae7dbf5d",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_DAILY_DIARY_REACTION_HOSTILITY_001_047|PRD_DAILY_DIARY_REACTION_HOSTILITY_001_047|2"
-        },
-        {
-            "id": "c8e0546598724a6f97d4cbc85a3899b5",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_DAILY_DIARY_REACTION_HOSTILITY_001_047|PRD_DAILY_DIARY_REACTION_HOSTILITY_001_047|3"
-        },
-        {
-            "id": "bf0a217313b64ed1bb8963823846a7b9",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_DAILY_DIARY_REACTION_HOSTILITY_001_047|PRD_DAILY_DIARY_REACTION_HOSTILITY_001_047|4"
-        },
-        {
-            "id": "c49d3b05b7384fadaeb58d1974e37c72",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_DAILY_DIARY_REACTION_HOSTILITY_001_047|PRD_DAILY_DIARY_REACTION_HOSTILITY_001_047|5"
-        },
-        {
-            "id": "fdd4b46deffb43f59cfe84949dafb2fe",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_DAILY_DIARY_REACTION_HOSTILITY_001_047|PRD_DAILY_DIARY_REACTION_HOSTILITY_001_047|6"
-        },
-        {
-            "id": "505deca7b5d2467a8fa8fa42c970bb88",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_DAILY_DIARY_REACTION_SADISTIC_001_048|PRD_DAILY_DIARY_REACTION_SADISTIC_001_048|1"
-        },
-        {
-            "id": "078946349a014787b5be6b560ef0dc1f",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_DAILY_DIARY_REACTION_SADISTIC_001_048|PRD_DAILY_DIARY_REACTION_SADISTIC_001_048|2"
-        },
-        {
-            "id": "b3b7103f6d0e4711a06f1358349cfefa",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_DAILY_DIARY_REACTION_SADISTIC_001_048|PRD_DAILY_DIARY_REACTION_SADISTIC_001_048|3"
-        },
-        {
-            "id": "1444ed5b88fa48168544f965e60c7495",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_DAILY_DIARY_REACTION_SADISTIC_001_048|PRD_DAILY_DIARY_REACTION_SADISTIC_001_048|4"
-        },
-        {
-            "id": "b59bf7e0ca864ac0a7c64e4444d2b9eb",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_DAILY_DIARY_REACTION_SADISTIC_001_048|PRD_DAILY_DIARY_REACTION_SADISTIC_001_048|5"
-        },
-        {
-            "id": "7951846449334f0881c4c7b796b15fe2",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_001|PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_001|1"
-        },
-        {
-            "id": "b72c1dcfdde74604948b8172d7aecc00",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_001|PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_001|2"
-        },
-        {
-            "id": "c8727f16181f42c5b47591c2f947da2f",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_001|PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_001|3"
-        },
-        {
-            "id": "fb74677f054741fe8c5ae9f2d187f104",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_001|PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_001|4"
-        },
-        {
-            "id": "ed69403a8bd5496e83d4306b176c1697",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_001|PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_001|5"
-        },
-        {
-            "id": "6f439870d99441e8869ae8c7d0c1b243",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_001|PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_001|6"
-        },
-        {
-            "id": "83353f6e2569447e9cea6165d9925d20",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_002|PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_002|1"
-        },
-        {
-            "id": "c90094c452d74c52890ca3b3ca8ac4b7",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_002|PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_002|2"
-        },
-        {
-            "id": "bc80e64c741e4be4b9e8fa3cbd187c6c",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_SADISTIC_001|PRD_MAX_VALUE_EVENT_MAX_EVENT_SADISTIC_001|1"
-        },
-        {
-            "id": "26686470e6294c1ba890321769f2482c",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_SADISTIC_001|PRD_MAX_VALUE_EVENT_MAX_EVENT_SADISTIC_001|2"
-        },
-        {
-            "id": "bb2dffdd47194a41a6e19e378fd54004",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_SADISTIC_001|PRD_MAX_VALUE_EVENT_MAX_EVENT_SADISTIC_001|3"
-        },
-        {
-            "id": "23df2382dd104d56ba9d18ded4a23d5f",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_SADISTIC_001|PRD_MAX_VALUE_EVENT_MAX_EVENT_SADISTIC_001|4"
-        },
-        {
-            "id": "775e4aafc7734ba3bec2245114d33696",
-            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
-            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_SADISTIC_001|PRD_MAX_VALUE_EVENT_MAX_EVENT_SADISTIC_001|5"
-        },
-        {
             "id": "2915e46ac7274ecfa1cec2c2a9d8f6b7",
             "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
             "key": "PRD_COMPOSITE_DAILY_COMPOSITE_HOSTILITY_AFFECTION_001|PRD_COMPOSITE_DAILY_COMPOSITE_HOSTILITY_AFFECTION_001|1"
@@ -6179,6 +6059,21 @@
             "id": "7f685f409a7149a0bb9ad0fa26fe2af5",
             "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
             "key": "PRD_SPECIAL_PATTERN_SPECIAL_PATTERN_MATING_001_125|PRD_SPECIAL_PATTERN_SPECIAL_PATTERN_MATING_001_125|1"
+        },
+        {
+            "id": "1ad953885ace4d4e9b57ead98abd652f",
+            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
+            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_001|00470|1"
+        },
+        {
+            "id": "505deca7b5d2467a8fa8fa42c970bb88",
+            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
+            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_SADISTIC_001|00480|1"
+        },
+        {
+            "id": "83353f6e2569447e9cea6165d9925d20",
+            "source": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
+            "key": "PRD_MAX_VALUE_EVENT_MAX_EVENT_HOSTILITY_001|00470|99"
         }
     ]
 }
