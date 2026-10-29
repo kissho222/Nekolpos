@@ -42,6 +42,8 @@ public sealed class PlayerSafetyMovementController : MonoBehaviour
     [SerializeField] private bool safetyRecoverySuspended;
 
     private CharacterController characterController;
+    private Nekolpos.Audio.CharacterMovementAudioController movementAudio;
+    private Collider currentWalkableCollider;
     private float rotationX;
     private float rotationY;
     private float verticalVelocity;
@@ -63,21 +65,34 @@ public sealed class PlayerSafetyMovementController : MonoBehaviour
     private void Awake()
     {
         characterController = GetComponent<CharacterController>();
+        movementAudio = GetComponent<Nekolpos.Audio.CharacterMovementAudioController>();
         rotationX = transform.eulerAngles.x;
         rotationY = transform.eulerAngles.y;
     }
 
     private void Update()
     {
-        if (Nekolpos.System.DebugConsoleInput.IsBlocked || Time.timeScale <= 0f || Nekolpos.System.SettingsPanel.IsOpen) return;
+        if (Nekolpos.System.DebugConsoleInput.IsBlocked || Time.timeScale <= 0f || Nekolpos.System.SettingsPanel.IsOpen)
+        {
+            movementAudio?.SuspendMovementObservation();
+            return;
+        }
         UpdateLookRotation();
         RefreshWalkableState();
         RecoverFromUnsafeFallIfNeeded();
         TryStartJump();
+        Vector3 positionBeforeMovement = transform.position;
         MovePlayer(ReadMovementInput());
         RefreshWalkableState();
+        float horizontalDistance = Vector3.ProjectOnPlane(transform.position - positionBeforeMovement, Vector3.up).magnitude;
+        float horizontalSpeed = Time.deltaTime > 0f ? horizontalDistance / Time.deltaTime : 0f;
+        bool grounded = characterController != null && characterController.enabled && characterController.isGrounded &&
+                        isOnWalkableSurface && verticalVelocity <= 0f;
+        movementAudio?.ObserveMovement(horizontalSpeed, grounded, currentWalkableCollider, Time.deltaTime);
         UpdateLastSafePosition();
     }
+
+    private void OnDisable() => movementAudio?.ResetMovementState();
 
     public void SetMovementInput(Vector2 input)
     {
@@ -141,6 +156,7 @@ public sealed class PlayerSafetyMovementController : MonoBehaviour
 
         verticalVelocity = 0f;
         lastMovementBlockedByEdge = false;
+        movementAudio?.ResetMovementState();
         if (updateSafePosition)
         {
             SetLastSafePosition(destination);
@@ -306,7 +322,8 @@ public sealed class PlayerSafetyMovementController : MonoBehaviour
 
     private void RefreshWalkableState()
     {
-        isOnWalkableSurface = TryFindWalkableGround(transform.position, groundProbeDistance, out _);
+        isOnWalkableSurface = TryFindWalkableGround(transform.position, groundProbeDistance, out RaycastHit hit);
+        currentWalkableCollider = isOnWalkableSurface ? hit.collider : null;
     }
 
     private bool TryFindControlledStepDownLanding(Vector3 destinationProbePosition)
@@ -349,6 +366,7 @@ public sealed class PlayerSafetyMovementController : MonoBehaviour
         }
 
         verticalVelocity = CalculateJumpVelocity(gravity, jumpHeight);
+        if (verticalVelocity > 0f) movementAudio?.NotifyJumpStarted();
     }
 
     private void RecoverFromUnsafeFallIfNeeded()
