@@ -1411,24 +1411,22 @@ namespace Nekolpos.System
 
         private void HandleNextInput()
         {
-            if (DebugConsoleInput.IsBlocked || menuInputBlocked || delayedDialogueProcessCoroutine != null)
-            {
-                return;
-            }
+            if (DebugConsoleInput.IsBlocked) return;
+            HandleNextInputCore();
+        }
 
-            // タイプライター表示中ならスキップする
+        // Ordinary input and the isolated Runner share the same UI-state checks.
+        private bool HandleNextInputCore()
+        {
+            if (menuInputBlocked || delayedDialogueProcessCoroutine != null) return false;
             if (isTyping)
             {
                 skipTyping = true;
+                return true;
             }
-            else
-            {
-                // すでに表示完了していて、選択肢待機中でなければ次へ
-                if (choicePanel != null && !choicePanel.activeSelf)
-                {
-                    OnWaitInputCompleted?.Invoke();
-                }
-            }
+            if (choicePanel == null || choicePanel.activeSelf) return false;
+            OnWaitInputCompleted?.Invoke();
+            return true;
         }
 
         // ============================================
@@ -1438,6 +1436,13 @@ namespace Nekolpos.System
         {
             if (!DebugSaveSession.CanRunScenarios || DebugConsoleInput.IsBlocked) return false;
             HandleNextInput(); return true;
+        }
+
+        public bool AdvanceIsolatedScenarioMessage()
+        {
+            if (!DebugSaveSession.CanRunScenarios || !DebugScenarioExecutor.IsRunning ||
+                DebugConsoleInput.IsConsoleBlocked || choicePanel == null || choicePanel.activeSelf) return false;
+            return HandleNextInputCore();
         }
 #endif
         // ============================================

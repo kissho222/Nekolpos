@@ -631,15 +631,15 @@ namespace Nekolpos.System
 
         private static string ResolveClientInstallId()
         {
-            string existingId = PlayerPrefs.GetString(ClientInstallIdPlayerPrefsKey, string.Empty);
+            string existingId = WorkerPlayerPrefs.GetString(ClientInstallIdPlayerPrefsKey, string.Empty);
             if (!string.IsNullOrWhiteSpace(existingId))
             {
                 return existingId.Trim();
             }
 
             string generatedId = Guid.NewGuid().ToString("N");
-            PlayerPrefs.SetString(ClientInstallIdPlayerPrefsKey, generatedId);
-            PlayerPrefs.Save();
+            WorkerPlayerPrefs.SetString(ClientInstallIdPlayerPrefsKey, generatedId);
+            WorkerPlayerPrefs.Save();
             return generatedId;
         }
 

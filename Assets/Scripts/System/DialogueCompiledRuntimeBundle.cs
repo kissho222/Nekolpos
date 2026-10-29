@@ -322,7 +322,7 @@ namespace Nekolpos.System
                 string[] arguments = Environment.GetCommandLineArgs();
                 if (arguments.Any(argument => string.Equals(argument, CommandLineSwitch, StringComparison.OrdinalIgnoreCase)))
                     return DialogueRuntimeSourceMode.CompiledBundle;
-                return PlayerPrefs.GetInt(PlayerPrefsKey, 0) == 1
+                return WorkerPlayerPrefs.GetInt(PlayerPrefsKey, 0) == 1
                     ? DialogueRuntimeSourceMode.CompiledBundle
                     : DialogueRuntimeSourceMode.LegacyCsv;
 #else
@@ -335,8 +335,8 @@ namespace Nekolpos.System
         {
             if (DebugSaveSession.IsIsolated) return;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            PlayerPrefs.SetInt(PlayerPrefsKey, mode == DialogueRuntimeSourceMode.CompiledBundle ? 1 : 0);
-            PlayerPrefs.Save();
+            WorkerPlayerPrefs.SetInt(PlayerPrefsKey, mode == DialogueRuntimeSourceMode.CompiledBundle ? 1 : 0);
+            WorkerPlayerPrefs.Save();
 #endif
         }
     }

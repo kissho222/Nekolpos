@@ -4,7 +4,7 @@
 
 ## 更新日時
 
-2026-10-14 JST
+2026-10-29 JST
 
 ## 現在の作業
 
@@ -12,11 +12,11 @@ GitHub同期: 2026-10-14、現在のコード・Scene/Prefab・データ・仕�
 
 ユーザー直接指定#58（Open・ラベルなし）は許可に基づき実装・検証完了。Window > Nekolpos > Timeline Paletteで既存Signal5件を自動収集し、名前/パス検索・カテゴリ・再生ヘッドLocal時刻へのクリック配置・Track自動作成/指定・一括Undo/Redoを提供。既存Receiver登録済みTrackを優先し、親を含むロック/ミュートを保護。Receiver/Binding/既存Marker・Scene・Runtime・台詞は変更しない。公開APIではドロップ座標→時刻取得が内部API依存のため、Issueの許容どおり再生ヘッド配置を正式仕様とした。新規: Assets/Scripts/Editor/NekolposTimelinePalette.cs、NekolposTimelinePaletteTests.csと各meta、docs/TimelinePalette.md。正式EditMode10/10成功、失敗/Skip0（実TimelineウィンドウのLocal再生ヘッド・Undo/Redo・Binding保全・無効時刻/参照/Trackを含む）。MCP job 9a0f7f91f93043e19ed5b25efcb76b32。Unityでパレットを開いた。MainScene dirty=false・Play停止・Console Error0。テスト用Asset削除済み。実際のマウス操作による検索/配置・演出再生の見た目確認はユーザー側に残る。GitHubラベル/コメント/Close・コミットは行っていない。
 
-ユーザー直接依頼#74〜#80の7段階を実装・検証完了、全7Issueへ完了報告投稿済み、Open/codex-review（Closeしていない）。F1共通Console/固定Prefab、共有入力Lease/安全ガード、既存DebugPanel統合と正規運搬、診断Trace/JSON、Scene Awake前から終了までの空メモリ保存隔離/猫Asset複製/副次保存抑止、許可IDのジャンプ・日記・運搬・死亡、Editor共通Runnerと終了後ハッシュ監査を導入。現行MainSceneにGameManager/ConversationDebugPanelはなく、入口はBootstrap実開始状態。未接続Managerは新設しない。
+Issue #80再検証（2026-10-29）: 既存Runnerの保存保護12CSを限定差分へ切出し、日記awaitの期限/連動取消と隔離シナリオ専用送り、Batchの拒否/失敗/予約取消を修正。仕様docs/DebugScenarioSafety.md、結果docs/DebugScenarioVerification-20261029.md。通常会話/データ/Scene/Prefabは変更しない。PR用の公開メモリー検証36件とfake-Unity隔離36観測成功、外部Runtime/製品Editor・Windows条件compile成功（全Editorはbase共通Waypoint参照テスト8エラー）。
 
-検証: 正規EditMode232/232成功（実Play遷移含む）、最終の入力共有/破棄/既存Pause30/30成功、失敗0/Skip0。新規隔離Playの8シナリオはすべて自動Passed、各13〜15チェック成功、通常保存/Prefs/元CatDataSO/未保存Sceneを保全。全対象モードのConsole開閉・外部IME変換フラグ拒否・Cursor/Pause/TimeScale・有効なUI選択復帰、日記2種の実Button確定/カレンダー保存/Pending消費/就寝翌朝+1、運搬Preset、死亡翌朝+1を確認。Console表示中のタイトル/Scene復帰でもUI1個・所有解放・カーソル解放/表示・TimeScale1・タイトル拒否・保存保全。描画/実キー/実IME/Windows・WebGL・モバイル実Player操作は要手動確認。
+現在の統合確認（2026-10-29）: 最終修正版で通常日記/特別日記が各15check、normal.table回帰が13check成功。前後各9113項目不変、正式Table復帰、翌朝+1、自然Release・Play停止・dirtyfalse・Pending/Batch空を確認。机/運搬/散歩/Tablet/死亡の5IDは入力修正前の各13check成功と区別し、最終版8ID合格とはしない。最終3runの主要13CS+Scene hashは現行一致。過去失敗は保持。独立PR #96で報告し、既定branchへmerge/IssueCloseなし。現checkoutには別変更があるためPR単独のPlay成功とは扱わない。PR限定外部compile/36メモリー/fake-Unity隔離36観測は別途成功。正式NUnit/実Batch/worker/実保存adapterは未実行。実IME/描画/実Playerは人の確認が残る。
 
-Windows Release実BuildはSucceeded、31.21秒、2209.39MB、Error0/Warning0（15:52:39Z完了）。配布DLLのConsole/シナリオ/旧会話Debug変更API不在をメタデータで検証。WebGL ReleaseとWindows DevelopmentのRuntime条件コンパイルはError0（Inspector注入フィールド等の警告は実Buildと別集計）。WebGL実Build/ブラウザ・Development実Player未実施。出力Build/DebugConsoleRelease、レポートLibrary/DebugConsole。
+過去の2026-10-14検証（今回未再実行）: Windows Release実BuildはSucceeded、31.21秒、2209.39MB、Error0/Warning0（15:52:39Z完了）。配布DLLのConsole/シナリオ/旧会話Debug変更API不在をメタデータで検証。WebGL ReleaseとWindows DevelopmentのRuntime条件コンパイルはError0（Inspector注入フィールド等の警告は実Buildと別集計）。WebGL実Build/ブラウザ・Development実Player未実施。出力Build/DebugConsoleRelease、レポートLibrary/DebugConsole。
 
 初回の旧統合テストが通常日付/草稿1件/会話ログを残した副作用を検出。統合テストを隔離Playへ変更し、旧UnknownWord時間進行の期待を現行へ修正。通常日付/草稿/会話ログは作業前SHA-256に一致する元データへ復元、追加PerfDiag14件をLibraryへ退避。通常ゲームデータ/猫Asset差分0を再確認（Unityセッション値・NUnit XML/PT_Runは成果物）。通常学習辞書の既存Invalid answerは未変更、別途整合確認事項。
 
