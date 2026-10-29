@@ -1,5 +1,7 @@
 # Windows Standalone監査（Issue #32）
 
+最新の互換性・保存方式・表示設定・検証状態は [2026-10-29 の監査](WindowsStandaloneAudit-20261029.md) を参照。本書の実行結果と旧保存・復元手順は過去版の記録であり、現在版への実行許可や合格証明ではない。
+
 対象は現行MainScene・Runtime C#・Plugins・PlayerSettings・EditorBuildSettings。2026-10-03時点。C#をUnity同梱Roslynと既存Player参照でWindows/WebGLの両条件に分けてコンパイルした。出力はプロジェクト外。Build Target変更、実行ファイル作成、Windows実機起動は行っていないため、これは条件分岐とC#参照の検証である。
 
 |区分|対象|判定・対応|

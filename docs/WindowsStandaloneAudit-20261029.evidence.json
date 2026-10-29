@@ -1,0 +1,872 @@
+{
+  "observedUtc": "2026-10-29T15:23:29.944211+00:00",
+  "issue": 32,
+  "prBase": "930b607317b1755aa3c9070855cec3301e6b9a7c",
+  "scope": "Current local checkout audit and Player smoke; PR contains only the independent Reporter gate, tools, reports and HANDOFF.",
+  "sources": [
+    {
+      "path": "Assets/Scripts/System/UnityRoomTeachingRankingReporter.cs",
+      "sha256": "4b3c056edbc707ea6dcf998707b40532326be4f5f3ae7e22f47143ddba1293ce"
+    },
+    {
+      "path": "Assets/Scripts/System/DebugSaveSession.cs",
+      "sha256": "ee866815ef5d2a6c8ea9841310e821be2a9160dfd7470a48e581d5ac779a3895"
+    },
+    {
+      "path": "Assets/Scripts/System/WorkerPlayerPrefs.cs",
+      "sha256": "0ae115bcd151dc869ecd7c965aa2af109c20977ffeb104fe5c4d9d9a4b28eae3"
+    },
+    {
+      "path": "Assets/Scripts/System/GameSettings.cs",
+      "sha256": "0e524e8dc60cb75202ee3528fd526ddc51c1da19acc0e6ae443e62a366683f42"
+    },
+    {
+      "path": "Assets/Scripts/System/ProgressSaveStore.cs",
+      "sha256": "26679fd1b1cdf6fbd83747e7d0a96f6114f75ba89fdcb79dc79bef84fd04a960"
+    },
+    {
+      "path": "Assets/Scripts/System/SettingsManager.cs",
+      "sha256": "5ad576ff2101317ca8639f47a7f223e16315aea4765da8f49f09aec3d9191b6e"
+    },
+    {
+      "path": "Assets/Scripts/System/WebGLImeInputBridge.cs",
+      "sha256": "0853b266f74011745f2e44681f787f1c4c747d829983b96ff8a8bc62197bd0e6"
+    },
+    {
+      "path": "Assets/Scripts/System/ImeCompositionVisualController.cs",
+      "sha256": "874f0e9862b9050c97b5f81d5cad484fc932f39ad406080e2d62dc9b642150a3"
+    },
+    {
+      "path": "Assets/Scripts/System/ChatUIController.cs",
+      "sha256": "fa9a41e0bd1b3b1b7450717141c576ffc4aaf9688a15b8787945ca5d7e7a955e"
+    },
+    {
+      "path": "Assets/Scripts/System/FixedWindowResolution.cs",
+      "sha256": "6a2c063ff48964c415f1940b78ac541f8611f82d46ea88e5ec67b0f8807210a1"
+    },
+    {
+      "path": "Assets/Scripts/System/OpenBetaPauseMenuController.cs",
+      "sha256": "0830133d69b5b502d15ff2328ec55c2cb2354e1e59d1ecacb9edbaa053248988"
+    },
+    {
+      "path": "Assets/Scripts/System/NekolposGameBootstrap.cs",
+      "sha256": "68bd5f8b965e6807e35025b8e402ba6658d02105c936fb0b6f224db02360a70d"
+    },
+    {
+      "path": "Assets/Scripts/System/TalkTopicHintBubble.cs",
+      "sha256": "63d4854061a44620ad68cb2f429a632c22e40dd397ae974eeafdf9716a0ba050"
+    },
+    {
+      "path": "Assets/Shaders/UI_SoapBubble.shader",
+      "sha256": "fbd694ed5e16eff91b61c37ae2482e789aecccd004f097fa7edd0ed1e87b914f"
+    },
+    {
+      "path": "Assets/Scripts/Editor/SecurityBuildGuard.cs",
+      "sha256": "fb8c409032d2308ccf74ad360ab1d61947a99037927cdfe401cdc9057e743e7c"
+    },
+    {
+      "path": "Assets/Scripts/Editor/PcReleaseBuildWindow.cs",
+      "sha256": "98d42eed7d682d4d3a236d3bb23415ebfc2e44ac431bc0c8a19dafc6ec84824e"
+    },
+    {
+      "path": "Assets/Scenes/MainScene.unity",
+      "sha256": "7ad988402722228e7a8c441d08e20348f376fae5d52f608f5b83b6f316b02b10"
+    },
+    {
+      "path": "ProjectSettings/ProjectSettings.asset",
+      "sha256": "36c535e6ad38375aaafd74b2cd30cee4ea2e6b06d5fba658f9f67d31597f149a"
+    },
+    {
+      "path": "ProjectSettings/EditorBuildSettings.asset",
+      "sha256": "5a3a7ed9d6b972df1abe4fcd10b5a9cc39395c23997ead16dcd30c59ef1ac334"
+    },
+    {
+      "path": "ProjectSettings/UnityConnectSettings.asset",
+      "sha256": "d6034acbef6c9e3179866486c31eab81fcbe5e7ed350ce71e0fa2b1449b77109"
+    },
+    {
+      "path": "Packages/manifest.json",
+      "sha256": "2d833f8951cb38fbd8fc1fc1050e407db458f5073b1ad04a51ef01ef7be90f7a"
+    },
+    {
+      "path": "Packages/packages-lock.json",
+      "sha256": "34cae90e05b6571a415e1bd7e476c2a75f8380d50da401f68bf10e6ed8654b50"
+    },
+    {
+      "path": ".codex/tools/unityroom_reporter_checks/verify.py",
+      "sha256": "489464f6b4fbb4e857b558b9e74032d0eeffb7f8844aef4694cb918908f5c92b"
+    },
+    {
+      "path": ".codex/tools/unityroom_reporter_checks/Program.cs",
+      "sha256": "de53f93f5ea973dd16dbc677c1aa26b8a2e25c3a834521c7e5a336fea3933b49"
+    },
+    {
+      "path": ".codex/tools/unityroom_reporter_checks/README.md",
+      "sha256": "add31924d0fdeaaab05afb07c0191bb7ce684485eeb5e88f72c3096aee6848cf"
+    },
+    {
+      "path": ".codex/tools/windows_state_audit.py",
+      "sha256": "f42bd8b3857cf9840399a24c370e710f5aa18f732dd5d9cd9f5339965fa97549"
+    },
+    {
+      "path": ".codex/tools/audit_tool_checks.py",
+      "sha256": "5616cbcd6c77a23e152ca1b3f22c8b589e3efeced469f659ded7604b7f17af3e"
+    }
+  ],
+  "offlineReporter": {
+    "cases": 90,
+    "failures": 0,
+    "negativeControlCases": 90,
+    "negativeControlFailures": 52,
+    "realNetwork": false,
+    "normalSaveAdapter": false,
+    "finalManifestPath": "output/issue32-20261029/reporter-final-checks/verification-manifest.json",
+    "finalManifestSha256": "eec0556b2973de56b3b918624c5b8bebfd3a73bed9a280a6f8c5508c46b710cd",
+    "verifierSha256": "489464f6b4fbb4e857b558b9e74032d0eeffb7f8844aef4694cb918908f5c92b",
+    "programSha256": "de53f93f5ea973dd16dbc677c1aa26b8a2e25c3a834521c7e5a336fea3933b49",
+    "sourceSha256": "4b3c056edbc707ea6dcf998707b40532326be4f5f3ae7e22f47143ddba1293ce",
+    "completed": true,
+    "passed": true,
+    "sourceUnchanged": true
+  },
+  "auditToolChecks": {
+    "cases": 42,
+    "passed": 42,
+    "failures": 0,
+    "scope": "Synthetic inputs/files and mocked subprocess only; no Registry, normal saves, Unity or dotnet execution",
+    "resultPath": "output/issue32-20261029/audit-tool-final-checks.json",
+    "resultSha256": "5172c7bfdb4223e78f7da9ab037f3c6a797432796f75311da09340e0a12e040e",
+    "scriptPath": ".codex/tools/audit_tool_checks.py",
+    "scriptSha256": "5616cbcd6c77a23e152ca1b3f22c8b589e3efeced469f659ded7604b7f17af3e",
+    "windowsAuditSha256": "f42bd8b3857cf9840399a24c370e710f5aa18f732dd5d9cd9f5339965fa97549",
+    "results": [
+      {
+        "name": "valid-identical",
+        "passed": true
+      },
+      {
+        "name": "content-change",
+        "passed": true
+      },
+      {
+        "name": "file-removed",
+        "passed": true
+      },
+      {
+        "name": "file-added",
+        "passed": true
+      },
+      {
+        "name": "valid-absent-root",
+        "passed": true
+      },
+      {
+        "name": "schema-missing",
+        "passed": true
+      },
+      {
+        "name": "schema-bool",
+        "passed": true
+      },
+      {
+        "name": "identity-missing",
+        "passed": true
+      },
+      {
+        "name": "identity-null",
+        "passed": true
+      },
+      {
+        "name": "identity-empty",
+        "passed": true
+      },
+      {
+        "name": "identity-short",
+        "passed": true
+      },
+      {
+        "name": "identity-nonhex",
+        "passed": true
+      },
+      {
+        "name": "exemptions-missing",
+        "passed": true
+      },
+      {
+        "name": "exemptions-nonempty",
+        "passed": true
+      },
+      {
+        "name": "exemptions-wrongtype",
+        "passed": true
+      },
+      {
+        "name": "groups-missing",
+        "passed": true
+      },
+      {
+        "name": "groups-empty",
+        "passed": true
+      },
+      {
+        "name": "group-missing",
+        "passed": true
+      },
+      {
+        "name": "group-unexpected",
+        "passed": true
+      },
+      {
+        "name": "group-empty",
+        "passed": true
+      },
+      {
+        "name": "group-wrongtype",
+        "passed": true
+      },
+      {
+        "name": "tree-root-missing",
+        "passed": true
+      },
+      {
+        "name": "registry-root-missing",
+        "passed": true
+      },
+      {
+        "name": "mixed-absent-root",
+        "passed": true
+      },
+      {
+        "name": "invalid-absent-root",
+        "passed": true
+      },
+      {
+        "name": "entry-key-wrongtype",
+        "passed": true
+      },
+      {
+        "name": "entry-value-wrongtype",
+        "passed": true
+      },
+      {
+        "name": "entry-id-short",
+        "passed": true
+      },
+      {
+        "name": "file-negative-size",
+        "passed": true
+      },
+      {
+        "name": "file-invalid-hash",
+        "passed": true
+      },
+      {
+        "name": "directory-invalid-value",
+        "passed": true
+      },
+      {
+        "name": "registry-invalid-kind",
+        "passed": true
+      },
+      {
+        "name": "registry-file-entry",
+        "passed": true
+      },
+      {
+        "name": "tree-registry-entry",
+        "passed": true
+      },
+      {
+        "name": "identity-mismatch",
+        "passed": true
+      },
+      {
+        "name": "compare-command-unchanged",
+        "passed": true
+      },
+      {
+        "name": "compare-command-changed",
+        "passed": true
+      },
+      {
+        "name": "compare-command-invalid",
+        "passed": true
+      },
+      {
+        "name": "compare-command-existing-output",
+        "passed": true
+      },
+      {
+        "name": "stale-success-missing-sdk",
+        "passed": true
+      },
+      {
+        "name": "stale-success-missing-baseline",
+        "passed": true
+      },
+      {
+        "name": "stale-success-compile-failure",
+        "passed": true
+      }
+    ]
+  },
+  "externalSourceCompile": [
+    {
+      "variant": "baseline",
+      "condition": "windows-release",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 149
+    },
+    {
+      "variant": "baseline",
+      "condition": "windows-development",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 204
+    },
+    {
+      "variant": "candidate",
+      "condition": "windows-release",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 149
+    },
+    {
+      "variant": "candidate",
+      "condition": "windows-development",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 204
+    },
+    {
+      "variant": "baseline",
+      "condition": "webgl-release",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 149
+    },
+    {
+      "variant": "baseline",
+      "condition": "webgl-development",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 204
+    },
+    {
+      "variant": "candidate",
+      "condition": "webgl-release",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 149
+    },
+    {
+      "variant": "candidate",
+      "condition": "webgl-development",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 204
+    }
+  ],
+  "externalCompileLimitation": "Installed Unity/package API references; no assets, linking or Player execution. Windows csproj initially missed WebGLModule; both base and candidate failed equally, then succeeded with installed WebGL reference.",
+  "editorPreflight": {
+    "unity": "6000.3.10f1",
+    "target": "StandaloneWindows64",
+    "profile": "Assets/Settings/Build Profiles/Windows.asset",
+    "enabledScenes": [
+      "Assets/Scenes/MainScene.unity"
+    ],
+    "playing": false,
+    "dirty": false,
+    "compiling": false,
+    "updating": false,
+    "compileFailed": false,
+    "isolated": false,
+    "consoleErrorEntries": 0,
+    "reporterSourceSha256": "4b3c056edbc707ea6dcf998707b40532326be4f5f3ae7e22f47143ddba1293ce",
+    "loadedReporterSubmitScoreIL": "2A",
+    "loadedRuntimeMvid": "d523621a-4b85-4da0-be00-5c5162b7dab6",
+    "cryptoValid": true,
+    "sensitiveInputCount": 0,
+    "buildSecretsDirectoryPresent": false,
+    "buildSecretsMetaPresent": false,
+    "cleanupPending": false,
+    "source": "MCP execute_code/read_console/manage_build read-only results before Build"
+  },
+  "build": {
+    "result": "Succeeded",
+    "errors": 0,
+    "warnings": 1,
+    "bytes": 2404363995,
+    "durationSeconds": 96.5437104,
+    "output": "output/issue32-20261029/native-dev/Nekolpos.exe",
+    "options": "ForceOptimizeScriptCompilation, Il2CPP, CompressTextures, StripDebugSymbols, ShaderLivelinkSupport, Development, DetailedBuildReport",
+    "finishedUtc": "2026-10-29T14:50:36.8832942Z"
+  },
+  "backend": "Mono2x",
+  "actualDevelopmentFlag": true,
+  "buildOptionsNote": "The raw BuildReport options string is retained as returned, including Il2CPP. Backend=Mono2x was queried explicitly from PlayerSettings after the build and is corroborated by the managed Player assembly; do not infer the backend from the raw enum display.",
+  "buildWarning": "Unity warned of uncompiled changes. Source checksums and DLL/PDB identifiers matched; cause remains unproven.",
+  "metadataAudit": {
+    "playerAssemblySha256": "87a02532761d895665275097981c663a69c890c5cb98a26af7d7839ffc5d43e9",
+    "playerMvid": "442c9218-3cc0-43f4-9358-dfea1461949a",
+    "editorLibrarySha256": "40915bee82393844a7098d759cf44eaf813f298c6fe3a47d0b94c81b36e93556",
+    "editorLibraryMvid": "767b59fb-1e5c-4505-9cba-4fa47c98fca7",
+    "peAndPdbIdsMatch": true,
+    "reporterSubmitScoreIl": "002A",
+    "reporterNoCalls": true,
+    "developmentIsolationInitializationPresent": true,
+    "isIsolatedReadsRealField": true,
+    "workerPrefsBranches": [
+      {
+        "method": "GetInt",
+        "isolationGetterOffset": 25,
+        "branchFalseToNormalOffset": 54,
+        "isolatedCallOffset": 46,
+        "skipNormalTargetOffset": 64,
+        "normalCallOffset": 56,
+        "isolatedPathSkipsNormalPrefs": true
+      },
+      {
+        "method": "GetString",
+        "isolationGetterOffset": 25,
+        "branchFalseToNormalOffset": 54,
+        "isolatedCallOffset": 46,
+        "skipNormalTargetOffset": 64,
+        "normalCallOffset": 56,
+        "isolatedPathSkipsNormalPrefs": true
+      },
+      {
+        "method": "SetInt",
+        "isolationGetterOffset": 25,
+        "branchFalseToNormalOffset": 54,
+        "isolatedCallOffset": 46,
+        "skipNormalTargetOffset": 62,
+        "normalCallOffset": 56,
+        "isolatedPathSkipsNormalPrefs": true
+      },
+      {
+        "method": "SetString",
+        "isolationGetterOffset": 25,
+        "branchFalseToNormalOffset": 54,
+        "isolatedCallOffset": 46,
+        "skipNormalTargetOffset": 62,
+        "normalCallOffset": 56,
+        "isolatedPathSkipsNormalPrefs": true
+      },
+      {
+        "method": "Save",
+        "isolationGetterOffset": 18,
+        "branchFalseToNormalOffset": 35,
+        "isolatedCallOffset": 27,
+        "skipNormalTargetOffset": 41,
+        "normalCallOffset": 35,
+        "isolatedPathSkipsNormalPrefs": true
+      }
+    ],
+    "currentSourceChecksums": {
+      "runtimeMatched": 269,
+      "editorMatched": 152,
+      "mismatched": 0,
+      "buildCallbacks": {
+        "Assets/Scripts/Editor/PcReleaseBuildWindow.cs": "98d42eed7d682d4d3a236d3bb23415ebfc2e44ac431bc0c8a19dafc6ec84824e",
+        "Assets/Scripts/Editor/SecurityBuildGuard.cs": "fb8c409032d2308ccf74ad360ab1d61947a99037927cdfe401cdc9057e743e7c"
+      }
+    },
+    "projectAssemblyExecuted": false,
+    "projectAssemblyLoaded": false,
+    "unityOperation": false,
+    "warningAssessment": "The requested runtime safeguards are present in the built DLL. The on-disk Editor DLL/PDB also match current callback sources. This cannot establish the build-time loaded Editor module identity, all package postprocessors, or why Unity reported pending compilation; do not label the warning as temporary-import-only without further evidence.",
+    "liveEditorMvidMatchedAfterBuild": true,
+    "liveEditorMvid": "767b59fb-1e5c-4505-9cba-4fa47c98fca7"
+  },
+  "buildPreservation": {
+    "changeCount": 3,
+    "changes": [
+      {
+        "change": "changed",
+        "group": "Assets",
+        "id": "file/06f77a1739cc184776b621af6f102bebf0bf64cbe533eeaea78bb2aff950c730"
+      },
+      {
+        "change": "changed",
+        "group": "Assets",
+        "id": "file/1195410afc5f16f6fffa54949927b3c81de4f152c3f74e5d2b424831a03e214a"
+      },
+      {
+        "change": "changed",
+        "group": "Assets",
+        "id": "file/a518afed76b1eba326aedfd51a72c6da64e4ff1c2fc438ff3c43df4a4b309a69"
+      }
+    ],
+    "exemptions": [],
+    "preserved": false,
+    "schema": 1
+  },
+  "fontBuildChanges": [
+    {
+      "file": "Assets/Fonts/NotoSansSC-Regular SDF.asset",
+      "key": "file/06f77a1739cc184776b621af6f102bebf0bf64cbe533eeaea78bb2aff950c730",
+      "before": "35603984:2ae9406a74bc9f666fa491ebdd313590a8b55e161d197e5e18901b9523272ef0",
+      "after": "1954608:8092c7bc7dd9a8e2f6cc81734794138059437278bf8719c4dda5598a88ee3989",
+      "now": "1954608:8092c7bc7dd9a8e2f6cc81734794138059437278bf8719c4dda5598a88ee3989",
+      "headPresent": false,
+      "oldSnapshotPresent": true,
+      "oldSnapshotHash": "1944106:55d6a34e8c71a1f96e825defd08b5a27107fcfe3960550bd9f1137a3a0652e7d",
+      "oldSnapshotMatchesBefore": false,
+      "gitHistoryCommits": []
+    },
+    {
+      "file": "Assets/Resources/Fonts/PlayerInputZenMaruGothicDynamic SDF.asset",
+      "key": "file/1195410afc5f16f6fffa54949927b3c81de4f152c3f74e5d2b424831a03e214a",
+      "before": "8592455:7f126fe5f27c71606dbb32076b276cc7159fb7aeca1634dedb6aa3db977b8166",
+      "after": "197064:626dc0ad98c8fa36562c8ddd30b489d9f520f26a802278efdb703b4c056c5543",
+      "now": "197064:626dc0ad98c8fa36562c8ddd30b489d9f520f26a802278efdb703b4c056c5543",
+      "headPresent": false,
+      "oldSnapshotPresent": true,
+      "oldSnapshotHash": "192618:7814684e3a417acf1a07e1aba6eeaa295d8a2741ddba7fabb3c4705d719b368c",
+      "oldSnapshotMatchesBefore": false,
+      "gitHistoryCommits": []
+    },
+    {
+      "file": "Assets/Resources/Fonts/TabletNotoSansJPBoldDynamicBitmap.asset",
+      "key": "file/a518afed76b1eba326aedfd51a72c6da64e4ff1c2fc438ff3c43df4a4b309a69",
+      "before": "9425939:a16be69d5ce8ad84a2b8aa769ee30c4e9c62b2c89e9e5d083aae407083753466",
+      "after": "932332:8d379952a935cbde2c92d7ee6dbe1d560f909a3eb2aa402f4ee486780427a789",
+      "now": "932332:8d379952a935cbde2c92d7ee6dbe1d560f909a3eb2aa402f4ee486780427a789",
+      "headPresent": false,
+      "oldSnapshotPresent": false,
+      "gitHistoryCommits": []
+    }
+  ],
+  "fontDecision": "Known TMP dynamic-cache-clearing behavior is consistent with observed output; exact original bytes unavailable. No restoration. Original Assets preservation remains false; independent review permits isolated title/quit using a new postbuild baseline.",
+  "launchBaselineStability": {
+    "changeCount": 0,
+    "changes": [],
+    "exemptions": [],
+    "preserved": true,
+    "schema": 1
+  },
+  "nativeSmoke": {
+    "launches": 1,
+    "isolatedArgument": true,
+    "titleJapaneseObserved": true,
+    "existingGameQuitClicked": true,
+    "processExitObserved": true,
+    "exitCode": null,
+    "gameplayStarted": false,
+    "settingsSaved": false,
+    "snsPermissionGranted": false,
+    "externalLinkOpened": false,
+    "debugExport": false,
+    "errorExceptionLogMatches": 0,
+    "warnings": 1,
+    "warning": "Nekolpos/UI/SoapBubble was unavailable; existing sprite fallback used. Shader source exists; packaging/stripping cause not established.",
+    "requestedWindowedSize": [
+      1280,
+      720
+    ],
+    "observedCaptureSize": [
+      1920,
+      1080
+    ],
+    "displayPolicyPassed": false
+  },
+  "nativePreservation": {
+    "changeCount": 24,
+    "changes": [
+      {
+        "change": "changed",
+        "group": "nativePrefs32",
+        "id": "value/1f7d15a916d1b63040527e4fbb3bbf917e141135506893905437d0bc35db1db2"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs32",
+        "id": "value/2c9620ba572f8d97b253b02df4cd0b71b230eff0400f452c974d0214f6449ec7"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs32",
+        "id": "value/39b15d1fde07d25ba6168af4db038796e224ca0302026c094ca66e25e62b2880"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs32",
+        "id": "value/507635e8922ddf9d342bfdc30cc10bbc66d96887dbbd1dad19f230d3533de977"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs32",
+        "id": "value/5f6482e4e52c6c7e7d5f90d0ba00d7e4dd4700612a9336532c9e24d2f7ece16e"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs32",
+        "id": "value/7bf236c53465da63e2bc94f419370f68ef9c8df70bdc670824a4d5ed762463df"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs32",
+        "id": "value/a5c2abdbe4aab4d670e1112fa9b076cb873e1293a989d28b8d6a42735e14edf0"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs32",
+        "id": "value/af826ca0bbcfec2560d51ce5db1a147779ffdc9b2343c6fbc34349cf56aeea6f"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs32",
+        "id": "value/ba3726d453c9d1e385e0fc3b335a72d1a168197401cd4a2e7218ae8c4e2e36df"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs32",
+        "id": "value/bb69ca80fe69ff24faee1e44c408a0a894ed3405e76ac5b97b70c1f4b0658976"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs32",
+        "id": "value/be4b1a76c5c6c617f3b0da30345d7caf551b13071585eb6a89ac561f56d1ad4d"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs32",
+        "id": "value/c363f0582870a92800265df409193a9754611150e4346e80d151ae61ee3348c4"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs64",
+        "id": "value/1f7d15a916d1b63040527e4fbb3bbf917e141135506893905437d0bc35db1db2"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs64",
+        "id": "value/2c9620ba572f8d97b253b02df4cd0b71b230eff0400f452c974d0214f6449ec7"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs64",
+        "id": "value/39b15d1fde07d25ba6168af4db038796e224ca0302026c094ca66e25e62b2880"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs64",
+        "id": "value/507635e8922ddf9d342bfdc30cc10bbc66d96887dbbd1dad19f230d3533de977"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs64",
+        "id": "value/5f6482e4e52c6c7e7d5f90d0ba00d7e4dd4700612a9336532c9e24d2f7ece16e"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs64",
+        "id": "value/7bf236c53465da63e2bc94f419370f68ef9c8df70bdc670824a4d5ed762463df"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs64",
+        "id": "value/a5c2abdbe4aab4d670e1112fa9b076cb873e1293a989d28b8d6a42735e14edf0"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs64",
+        "id": "value/af826ca0bbcfec2560d51ce5db1a147779ffdc9b2343c6fbc34349cf56aeea6f"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs64",
+        "id": "value/ba3726d453c9d1e385e0fc3b335a72d1a168197401cd4a2e7218ae8c4e2e36df"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs64",
+        "id": "value/bb69ca80fe69ff24faee1e44c408a0a894ed3405e76ac5b97b70c1f4b0658976"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs64",
+        "id": "value/be4b1a76c5c6c617f3b0da30345d7caf551b13071585eb6a89ac561f56d1ad4d"
+      },
+      {
+        "change": "changed",
+        "group": "nativePrefs64",
+        "id": "value/c363f0582870a92800265df409193a9754611150e4346e80d151ae61ee3348c4"
+      }
+    ],
+    "exemptions": [],
+    "preserved": false,
+    "schema": 1
+  },
+  "nativeRegistryClassification": {
+    "keys": [
+      {
+        "registryKeyName": "unity.player_session_count_h922449978",
+        "id": "value/507635e8922ddf9d342bfdc30cc10bbc66d96887dbbd1dad19f230d3533de977",
+        "category": "session",
+        "baseNameInUnityPlayer": true,
+        "currentMatchesPostquit": true
+      },
+      {
+        "registryKeyName": "unity.player_sessionid_h1351336811",
+        "id": "value/ba3726d453c9d1e385e0fc3b335a72d1a168197401cd4a2e7218ae8c4e2e36df",
+        "category": "session",
+        "baseNameInUnityPlayer": true,
+        "currentMatchesPostquit": true
+      },
+      {
+        "registryKeyName": "unity_connect.mega_session_id_h1802243016",
+        "id": "value/c363f0582870a92800265df409193a9754611150e4346e80d151ae61ee3348c4",
+        "category": "session",
+        "baseNameInUnityPlayer": true,
+        "currentMatchesPostquit": true
+      },
+      {
+        "registryKeyName": "unity_connect.session_id_h4145606137",
+        "id": "value/2c9620ba572f8d97b253b02df4cd0b71b230eff0400f452c974d0214f6449ec7",
+        "category": "session",
+        "baseNameInUnityPlayer": true,
+        "currentMatchesPostquit": true
+      },
+      {
+        "registryKeyName": "UnitySelectMonitor_h17969598",
+        "id": "value/39b15d1fde07d25ba6168af4db038796e224ca0302026c094ca66e25e62b2880",
+        "category": "display",
+        "baseNameInUnityPlayer": true,
+        "currentMatchesPostquit": true
+      },
+      {
+        "registryKeyName": "Screenmanager Window Position X_h4088080503",
+        "id": "value/be4b1a76c5c6c617f3b0da30345d7caf551b13071585eb6a89ac561f56d1ad4d",
+        "category": "display",
+        "baseNameInUnityPlayer": true,
+        "currentMatchesPostquit": true
+      },
+      {
+        "registryKeyName": "Screenmanager Window Position Y_h4088080502",
+        "id": "value/a5c2abdbe4aab4d670e1112fa9b076cb873e1293a989d28b8d6a42735e14edf0",
+        "category": "display",
+        "baseNameInUnityPlayer": true,
+        "currentMatchesPostquit": true
+      },
+      {
+        "registryKeyName": "Screenmanager Resolution Width_h182942802",
+        "id": "value/af826ca0bbcfec2560d51ce5db1a147779ffdc9b2343c6fbc34349cf56aeea6f",
+        "category": "display",
+        "baseNameInUnityPlayer": true,
+        "currentMatchesPostquit": true
+      },
+      {
+        "registryKeyName": "Screenmanager Resolution Window Width_h2524650974",
+        "id": "value/bb69ca80fe69ff24faee1e44c408a0a894ed3405e76ac5b97b70c1f4b0658976",
+        "category": "display",
+        "baseNameInUnityPlayer": true,
+        "currentMatchesPostquit": true
+      },
+      {
+        "registryKeyName": "Screenmanager Resolution Height_h2627697771",
+        "id": "value/5f6482e4e52c6c7e7d5f90d0ba00d7e4dd4700612a9336532c9e24d2f7ece16e",
+        "category": "display",
+        "baseNameInUnityPlayer": true,
+        "currentMatchesPostquit": true
+      },
+      {
+        "registryKeyName": "Screenmanager Resolution Window Height_h1684712807",
+        "id": "value/7bf236c53465da63e2bc94f419370f68ef9c8df70bdc670824a4d5ed762463df",
+        "category": "display",
+        "baseNameInUnityPlayer": true,
+        "currentMatchesPostquit": true
+      },
+      {
+        "registryKeyName": "Screenmanager Resolution Use Native_h1405027254",
+        "id": "value/1f7d15a916d1b63040527e4fbb3bbf917e141135506893905437d0bc35db1db2",
+        "category": "display",
+        "baseNameInUnityPlayer": true,
+        "currentMatchesPostquit": true
+      }
+    ],
+    "matchedUniqueNames": 12,
+    "expectedUniqueNames": 12,
+    "bothViewsBeforeEqual": true,
+    "bothViewsAfterEqual": true,
+    "groups": {
+      "Assets": {
+        "before": 7456,
+        "after": 7456,
+        "changes": 0
+      },
+      "Packages": {
+        "before": 776,
+        "after": 776,
+        "changes": 0
+      },
+      "ProjectSettings": {
+        "before": 32,
+        "after": 32,
+        "changes": 0
+      },
+      "editorPlayerPrefs32": {
+        "before": 130,
+        "after": 130,
+        "changes": 0
+      },
+      "editorPlayerPrefs64": {
+        "before": 130,
+        "after": 130,
+        "changes": 0
+      },
+      "editorPrefs32": {
+        "before": 863,
+        "after": 863,
+        "changes": 0
+      },
+      "editorPrefs64": {
+        "before": 863,
+        "after": 863,
+        "changes": 0
+      },
+      "nativePrefs32": {
+        "before": 40,
+        "after": 40,
+        "changes": 12
+      },
+      "nativePrefs64": {
+        "before": 40,
+        "after": 40,
+        "changes": 12
+      },
+      "persistent": {
+        "before": 1232,
+        "after": 1232,
+        "changes": 0
+      }
+    },
+    "valuesWrittenToReport": false
+  },
+  "normalGameSaveChangesDetected": 0,
+  "normalSaveAdapterTested": false,
+  "formalNunitExecuted": false,
+  "workerStarted": false,
+  "manualRemaining": [
+    "Microsoft IME composition/commit/cancel and mouse send",
+    "DPI/fullscreen/Alt+Tab/focus",
+    "Gameplay fonts/shaders/assets and audio",
+    "Normal save/migration/restart in a separately approved isolated OS environment"
+  ],
+  "localEvidenceHashes": {
+    "prebuild-state.json": "b4c3da26c8fc0f544f700a8fca36118341af28707fbd793200817fc2f535796f",
+    "postbuild-state.json": "511a72a1d72acb522cb5af4b46f6993929e71ec11f8423b4531a6ae208972524",
+    "prelaunch-state.json": "d6412273f4472c77afce3f183dfe45b20c9cf7bf59997e009bc5baf41e33f5b0",
+    "postquit-state.json": "a6f5f990a88857814314258ac36c1581d37e8396bca66fd4825d31afb641a171",
+    "native-player.log": "9169eab1a70d06a6af2630831833b0ec9edbc2789d9cb8cba9b1068b76871e94",
+    "font-build-preservation-review.md": "13adb197f3ae72b4ff64e391cfe9a62213232b8749879fa5deafa37eba0bd647",
+    "native-postquit-review.md": "90bbefdebaa57db57d470847e1ca3ceb3f35d37838b18f702daef675e1d9e2e8",
+    "reporter-final-checks/verification-manifest.json": "eec0556b2973de56b3b918624c5b8bebfd3a73bed9a280a6f8c5508c46b710cd",
+    "audit-tool-final-checks.json": "5172c7bfdb4223e78f7da9ab037f3c6a797432796f75311da09340e0a12e040e"
+  },
+  "noExemptionsOrRestore": true,
+  "mainOrDefaultBranchMerged": false,
+  "issueClosed": false
+}

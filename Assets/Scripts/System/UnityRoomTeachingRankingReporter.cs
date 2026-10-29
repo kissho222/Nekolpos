@@ -64,6 +64,10 @@ namespace Nekolpos.System
 
         private void SubmitScore(int boardNo, int score, string label)
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // The relative unityroom API is for live WebGL games, never isolated runs.
+            if (DebugSaveSession.IsIsolated) return;
+
             if (boardNo <= 0)
             {
                 Debug.LogWarning($"[UnityRoomTeachingRankingReporter] {label} の boardNo が未設定です。");
@@ -74,6 +78,7 @@ namespace Nekolpos.System
             {
                 WarnMissingClientOnce();
             }
+#endif
         }
 
         private bool TrySendUnityRoomScore(int boardNo, int score)
