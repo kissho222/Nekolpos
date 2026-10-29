@@ -1,0 +1,339 @@
+{
+  "schema": 1,
+  "dateJst": "2026-10-30",
+  "issue": 81,
+  "status": "incomplete-draft",
+  "issueLabel": "codex-working",
+  "base": "930b607317b1755aa3c9070855cec3301e6b9a7c",
+  "baseTree": "0c443874494630c3affee849a3d656ab923b9e99",
+  "stopReason": "Native helper left a different MainScene in-memory hash; cause unknown. Disk preservation does not establish memory preservation.",
+  "unityMutationsStopped": true,
+  "sceneSavedOrRestored": false,
+  "sceneDirty": true,
+  "userSceneIntentConfirmationRequired": true,
+  "candidateSources": [
+    {
+      "path": "Assets/Scripts/Audio/CatVoiceAudioController.cs",
+      "candidateSha256": "c862a8ce12dec2070de6416bc02c5f1bed37afd12109a28e07037946f090e07c",
+      "rootSha256": "c862a8ce12dec2070de6416bc02c5f1bed37afd12109a28e07037946f090e07c",
+      "identicalToRoot": true
+    },
+    {
+      "path": "Assets/Scripts/Audio/CharacterMovementAudioController.cs",
+      "candidateSha256": "c82353ad5ea54a598e57f79a6c12eb1d01c99d15724ee5900607fb6fd061e1e7",
+      "rootSha256": "c82353ad5ea54a598e57f79a6c12eb1d01c99d15724ee5900607fb6fd061e1e7",
+      "identicalToRoot": true
+    },
+    {
+      "path": "Assets/Scripts/Audio/FootstepSurface.cs",
+      "candidateSha256": "885143deb094137c605d3da182c941890b102fd2236c51b2ae3583ccc3429ce1",
+      "rootSha256": "885143deb094137c605d3da182c941890b102fd2236c51b2ae3583ccc3429ce1",
+      "identicalToRoot": true
+    },
+    {
+      "path": "Assets/Scripts/Audio/FootstepSurfaceProfile.cs",
+      "candidateSha256": "db14fc702a02dc73489b8e70c2a3bb712fa5da76629a7ea1685079a39c0feb2f",
+      "rootSha256": "db14fc702a02dc73489b8e70c2a3bb712fa5da76629a7ea1685079a39c0feb2f",
+      "identicalToRoot": true
+    },
+    {
+      "path": "Assets/Scripts/Camera/PlayerSafetyMovementController.cs",
+      "candidateSha256": "67a4eddcd862edf143004b7625095abc345bd4d1468b08e07a55ad8230c5de7a",
+      "rootSha256": "1953553b57c019e40591092484ab058313a0ccd1e8caa1dcf86119c14fb957a7",
+      "identicalToRoot": false
+    },
+    {
+      "path": "Assets/Scripts/Editor/CatVoiceAudioControllerEditor.cs",
+      "candidateSha256": "28e171f6a7ebe471df24032b0a440d865dccb12436ec425a8b6f069afcb48bb1",
+      "rootSha256": "28e171f6a7ebe471df24032b0a440d865dccb12436ec425a8b6f069afcb48bb1",
+      "identicalToRoot": true
+    },
+    {
+      "path": "Assets/Scripts/Editor/SoundEffectsInspectors.cs",
+      "candidateSha256": "d3c9cbd15e1c11baa5470b4e52797160049397ae8e892a0f45df39ea2b496880",
+      "rootSha256": "d3c9cbd15e1c11baa5470b4e52797160049397ae8e892a0f45df39ea2b496880",
+      "identicalToRoot": true
+    },
+    {
+      "path": "Assets/Scripts/Editor/SoundEffectsSetupActions.cs",
+      "candidateSha256": "56bf2bbcc610aeaffb0b680042985595ebb6faf0a2425473cfe4916a3e0f65a1",
+      "rootSha256": "56bf2bbcc610aeaffb0b680042985595ebb6faf0a2425473cfe4916a3e0f65a1",
+      "identicalToRoot": true
+    },
+    {
+      "path": "Assets/Scripts/Editor/SoundEffectsSetupWindow.cs",
+      "candidateSha256": "736ca6a4c9dd5cc8d42616ef217aa3a078f741369e7656b0eefcc6fcb73f2155",
+      "rootSha256": "6a8aa31180492aef85f48dbd6b71d72d558034ff90ca0ee3546d144e8e9d9ed1",
+      "identicalToRoot": false
+    }
+  ],
+  "memoryChecks": {
+    "audio": {
+      "count": 67,
+      "failures": 0,
+      "baselineExpectedFailures": 10,
+      "originalBehaviorFailures": 5,
+      "newApiUnavailableCases": 5,
+      "sourceUnchanged": true
+    },
+    "playerHooks": {
+      "candidateCount": 27,
+      "rootCount": 27,
+      "publicCandidateCount": 27,
+      "failures": 0,
+      "physicsInputAndAudioAreDoubles": true
+    },
+    "setupHelper": {
+      "count": 44,
+      "failures": 0,
+      "productEvidence": "output/sound-effects-setup-checks/20261029T160231Z-2359daef/verification-manifest.json",
+      "laterVerifierChange": "except clears completed/passed before persisting failure; verified by final-save/print failure injection, product cases not rerun"
+    },
+    "toolSyntheticChecks": {
+      "audio": 13,
+      "setup": 2
+    },
+    "nativeUnityOrRealSaveAudioExecuted": false
+  },
+  "compilation": {
+    "method": "Unity bundled Roslyn; compile only; root game DLL not referenced",
+    "runtimeSourceCount": 214,
+    "runtimeErrors": 0,
+    "platformConditions": [
+      {
+        "variant": "baseline",
+        "condition": "windows-release",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 149
+      },
+      {
+        "variant": "baseline",
+        "condition": "windows-development",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 204
+      },
+      {
+        "variant": "baseline",
+        "condition": "webgl-release",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 149
+      },
+      {
+        "variant": "baseline",
+        "condition": "webgl-development",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 204
+      },
+      {
+        "variant": "overlay",
+        "condition": "windows-release",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 153
+      },
+      {
+        "variant": "overlay",
+        "condition": "windows-development",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 208
+      },
+      {
+        "variant": "overlay",
+        "condition": "webgl-release",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 153
+      },
+      {
+        "variant": "overlay",
+        "condition": "webgl-development",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 208
+      }
+    ],
+    "finalProductionEditorSourceCount": 74,
+    "finalProductionEditorErrors": 0,
+    "finalProductionEditorWarnings": 1,
+    "fullEditor": {
+      "passed": false,
+      "baselineErrors": 8,
+      "candidateErrors": 8,
+      "cause": "PlayerWalkModeControllerTests.cs: WrightAngle unresolved (CS0246)",
+      "excludedTestSourcesInProductionCompile": 61
+    },
+    "unityPlayerBuild": false,
+    "projectAssemblyExecuted": false
+  },
+  "rootLoadedSourceEvidence": [
+    {
+      "scope": "root checkout",
+      "kind": "runtime.json",
+      "documentCount": 269,
+      "sourceMismatchCount": 0,
+      "pdbMatchesPe": true,
+      "mvid": "3ce3ccc4-3014-4260-9dd0-27271d2c87f2",
+      "matchesLiveMvid": true
+    },
+    {
+      "scope": "root checkout",
+      "kind": "editor-japanese-final.json",
+      "documentCount": 154,
+      "sourceMismatchCount": 0,
+      "pdbMatchesPe": true,
+      "mvid": "a8b00fb7-b784-4712-996c-ac2ce42fb1ce",
+      "matchesLiveMvid": true
+    }
+  ],
+  "nativeTrials": {
+    "audioFirst": {
+      "passed": false,
+      "failure": "System.InvalidOperationException: Explicit empty parent surface beats fallback",
+      "cleanupErrors": [],
+      "remainingOwned": 0,
+      "mainMemoryBefore": "92ad740c7ee21b2121e142863ba028249994d9c094508cb3495270a96fde3b47",
+      "mainMemoryAfter": "92ad740c7ee21b2121e142863ba028249994d9c094508cb3495270a96fde3b47",
+      "mainDirtyBefore": true,
+      "mainDirtyAfter": true,
+      "managerUnchanged": true,
+      "sourcesUnchanged": true,
+      "runtimeMixerRoutingVerified": false,
+      "nativeIsPlayingOrSoundCountAsserted": false,
+      "previewAudioApiInvoked": false,
+      "normalSaveOrPrefsApiInvoked": false,
+      "checkCount": 13,
+      "successfulChecks": 12,
+      "labelCount": 0,
+      "diskAudit": {
+        "changeCount": 0,
+        "changes": [],
+        "exemptions": [],
+        "preserved": true,
+        "schema": 1
+      },
+      "localEvidence": "output/issue81-20261030/native-first-result.json",
+      "localEvidenceSha256": "0a4c76607a2d2412c0211063149b7231c63fb673bb3ed747652f77d1e7f1bee5",
+      "diskAuditEvidence": "output/issue81-20261030/native-first-preservation.json",
+      "diskAuditEvidenceSha256": "0781d1e8c7584bad2c5b71ab0e5902e2a23945a6817312fa1d4d908fc6ea1d83"
+    },
+    "audioSecond": {
+      "passed": false,
+      "failure": "System.InvalidOperationException: Japanese label: profile",
+      "cleanupErrors": [],
+      "remainingOwned": 0,
+      "mainMemoryBefore": "92ad740c7ee21b2121e142863ba028249994d9c094508cb3495270a96fde3b47",
+      "mainMemoryAfter": "92ad740c7ee21b2121e142863ba028249994d9c094508cb3495270a96fde3b47",
+      "mainDirtyBefore": true,
+      "mainDirtyAfter": true,
+      "managerUnchanged": true,
+      "sourcesUnchanged": true,
+      "runtimeMixerRoutingVerified": false,
+      "nativeIsPlayingOrSoundCountAsserted": false,
+      "previewAudioApiInvoked": false,
+      "normalSaveOrPrefsApiInvoked": false,
+      "checkCount": 22,
+      "successfulChecks": 21,
+      "labelCount": 1,
+      "diskAudit": {
+        "changeCount": 0,
+        "changes": [],
+        "exemptions": [],
+        "preserved": true,
+        "schema": 1
+      },
+      "localEvidence": "output/issue81-20261030/native-second-result.json",
+      "localEvidenceSha256": "96c5a914d0536062d06e13ba3612fd539bcdd1707f320c2f52aa476edd9e4c39",
+      "diskAuditEvidence": "output/issue81-20261030/native-second-preservation.json",
+      "diskAuditEvidenceSha256": "0781d1e8c7584bad2c5b71ab0e5902e2a23945a6817312fa1d4d908fc6ea1d83"
+    },
+    "audioFinal": {
+      "passed": true,
+      "failure": null,
+      "cleanupErrors": [],
+      "remainingOwned": 0,
+      "mainMemoryBefore": "92ad740c7ee21b2121e142863ba028249994d9c094508cb3495270a96fde3b47",
+      "mainMemoryAfter": "92ad740c7ee21b2121e142863ba028249994d9c094508cb3495270a96fde3b47",
+      "mainDirtyBefore": true,
+      "mainDirtyAfter": true,
+      "managerUnchanged": true,
+      "sourcesUnchanged": true,
+      "runtimeMixerRoutingVerified": false,
+      "nativeIsPlayingOrSoundCountAsserted": false,
+      "previewAudioApiInvoked": false,
+      "normalSaveOrPrefsApiInvoked": false,
+      "checkCount": 132,
+      "successfulChecks": 132,
+      "labelCount": 27,
+      "diskAudit": {
+        "changeCount": 0,
+        "changes": [],
+        "exemptions": [],
+        "preserved": true,
+        "schema": 1
+      },
+      "localEvidence": "output/issue81-20261030/native-japanese-result.json",
+      "localEvidenceSha256": "a1342df8aa58ec931459023974cd5e68155d3993e1753281f0db7406416cce31",
+      "diskAuditEvidence": "output/issue81-20261030/native-japanese-preservation.json",
+      "diskAuditEvidenceSha256": "0781d1e8c7584bad2c5b71ab0e5902e2a23945a6817312fa1d4d908fc6ea1d83"
+    },
+    "helper": {
+      "passed": false,
+      "scenePreserved": false,
+      "settingsPreserved": true,
+      "cleanupComplete": true,
+      "cleanupErrors": [],
+      "remainingObjects": 0,
+      "previewClosed": true,
+      "undoRecordsPreserved": true,
+      "undoCountBefore": 1,
+      "undoCountAfter": 1,
+      "redoCountBefore": 0,
+      "redoCountAfter": 0,
+      "mainMemoryBefore": "92ad740c7ee21b2121e142863ba028249994d9c094508cb3495270a96fde3b47",
+      "mainMemoryAfter": "5f16b239790209e5fbeb9fe96dbeb873f5e05b2ded14839113fb0597b96ed2d0",
+      "checkCount": 31,
+      "successfulChecks": 31,
+      "labelCount": 0,
+      "diskAudit": {
+        "changeCount": 0,
+        "changes": [],
+        "exemptions": [],
+        "preserved": true,
+        "schema": 1
+      },
+      "localEvidence": "output/issue81-20261030/editor-helper-checks/native-result.json",
+      "localEvidenceSha256": "d734dec07560b58f4b74193c9b3da5b0b124aab43f4568171c7c975030afbc99",
+      "diskAuditEvidence": "output/issue81-20261030/native-helper-preservation.json",
+      "diskAuditEvidenceSha256": "0781d1e8c7584bad2c5b71ab0e5902e2a23945a6817312fa1d4d908fc6ea1d83"
+    }
+  },
+  "dependencies": {
+    "settingsIssue": 38,
+    "volumePreviewIssue": 61,
+    "baseDependenciesPresent": true,
+    "baseSceneAuthoringApplied": false,
+    "rootAndCandidateAreDifferentScopes": true
+  },
+  "preservedUserConfiguration": [
+    "desk clips 5",
+    "landing clip 1",
+    "happy/displeased clip 1 each",
+    "other existing empty/null slots"
+  ],
+  "unverified": [
+    "MainScene intended unsaved state",
+    "regular cat four-paw connection",
+    "audible quality",
+    "runtime Mixer routing and volumes",
+    "actual player physics",
+    "base Scene authoring",
+    "final Player Build and devices",
+    "formal 9 tests and worker",
+    "full Inspector editing/Undo/Prefab workflow"
+  ]
+}
