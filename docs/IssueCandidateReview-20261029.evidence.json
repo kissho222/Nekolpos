@@ -1,0 +1,310 @@
+{
+  "schemaVersion": 1,
+  "observedAtUtc": "2026-10-29T11:28:22.072173+00:00",
+  "localHead": "ea13005bed6941ce6c5393c75bab9ab022c51039",
+  "prBaseBranch": "chore/ai-handoff-foundation",
+  "prBaseCommit": "930b607317b1755aa3c9070855cec3301e6b9a7c",
+  "unityVersion": "6000.3.10f1",
+  "scope": "Read-only candidate assessment. Hashes describe the local working tree, not code included in this PR. CRLF-only differences are ignored only for base comparisons.",
+  "issues": [
+    {
+      "number": 93,
+      "state": "open",
+      "labels": [
+        "codex-review"
+      ]
+    },
+    {
+      "number": 80,
+      "state": "open",
+      "labels": [
+        "codex-review"
+      ]
+    },
+    {
+      "number": 32,
+      "state": "open",
+      "labels": []
+    },
+    {
+      "number": 81,
+      "state": "open",
+      "labels": [
+        "codex-working"
+      ]
+    }
+  ],
+  "latestStaticReport": {
+    "generatedUtc": "2026-10-27T23:29:46.6642745Z",
+    "status": "environment_unavailable",
+    "exitCode": 2,
+    "errors": 1,
+    "warnings": 0,
+    "information": 0
+  },
+  "latestStaticReportInputCount": 0,
+  "sourceFiles": [
+    {
+      "path": "Assets/Scripts/Editor/ProductionDataChecks.cs",
+      "sha256": "143aaeaf2525e90ef532ab22c9d305399efbca8a4b03b39e93eccce9bcd5c8a7",
+      "trackedLocally": false,
+      "presentInPrBase": false,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Scripts/Editor/ProductionDataChecks.cs.meta",
+      "sha256": "55c06573c69e7d5d9d0ff2aa0248dcad257db251760b34a35ca0c9c0eb726fbc",
+      "trackedLocally": false,
+      "presentInPrBase": false,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "docs/ProductionDataChecks.md",
+      "sha256": "80d84319856963f85f1eda1ae26da7f93c5ece5d4bd1e3b25c1506c832384060",
+      "trackedLocally": false,
+      "presentInPrBase": false,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Scripts/Conversation/State/ConversationGameStateConditionEvaluator.cs",
+      "sha256": "412cbd482e3d99b0e8f52a0113e130f3e472dd5fdeb46e94de720a1b4f4fff2f",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Scripts/Editor/DialogueAuthoring/DialogueAuthoringValidation.cs",
+      "sha256": "edadf1eac6b1883377922c9d409d20d2285b3a7bd94a6bbf745afbb93a8a5bc5",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Scripts/Editor/DialogueAuthoring/DialogueLegacyImporter.cs",
+      "sha256": "af422e2114ad50863e0c62b68b950647f56172f542ea13f80a0108c465c7a241",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": true
+    },
+    {
+      "path": "Assets/Scripts/Editor/DialogueDiaryAuthoring.cs",
+      "sha256": "ee71b22bf10e8df30cd6c91a1ff5ab01ddf70983c748ba3e76408a1e14bfc1ed",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": true
+    },
+    {
+      "path": "Assets/Scripts/Editor/TalkTopicMasterCsvUtility.cs",
+      "sha256": "f5ebeea34895a76943bbec2b4a193ec298875c0f1e6e63574407e94b8c114c0d",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": true
+    },
+    {
+      "path": "Assets/Scripts/System/DialogueDiaryCatalog.cs",
+      "sha256": "517edb01bcf05c54f602e31c87302fc81fcf67979115d22eb0fc684c389e5e4f",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Scripts/System/DiaryTextVariants.cs",
+      "sha256": "ec6faeaf22464db53ae0d2ef668cb1e66502696ac1788422ad0043ef8837ef25",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": true
+    },
+    {
+      "path": "Assets/Scripts/System/DebugSaveSession.cs",
+      "sha256": "ee866815ef5d2a6c8ea9841310e821be2a9160dfd7470a48e581d5ac779a3895",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Scripts/System/WorkerPlayerPrefs.cs",
+      "sha256": "0ae115bcd151dc869ecd7c965aa2af109c20977ffeb104fe5c4d9d9a4b28eae3",
+      "trackedLocally": false,
+      "presentInPrBase": false,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Scripts/Editor/DebugNormalSaveAudit.cs",
+      "sha256": "c92b0b678344f3779fbeccf16bd1e3263f31658d2519296e459fb20b8bddd06f",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Scripts/Editor/DebugScenarioEditorRunner.cs",
+      "sha256": "3ef0bcac710389dd6aa0322c09e5464499901fcfc15f60a123dd725fb70bffbe",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "docs/DebugMode.md",
+      "sha256": "e548371003288ddcc998347e4e42a97acfe1604763e982d0640f84ad65e4fef4",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "docs/TestSaveIsolation.md",
+      "sha256": "e714fd0a6fac9a2263c188b628b138c82a4050fb871916ac8971a826341e383e",
+      "trackedLocally": false,
+      "presentInPrBase": false,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "docs/ProjectAudit-IsolationReview-20261025.md",
+      "sha256": "76b33ddea366ef84661011e646f8c020b6fcfdaf1581bba1005ff215ff830c0e",
+      "trackedLocally": false,
+      "presentInPrBase": false,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "docs/WindowsStandaloneAudit-20261003.md",
+      "sha256": "18fecc8aeb86f76e44a969c64ab5471dcf6398d40722a4c92ce2bad0efd68d13",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": true
+    },
+    {
+      "path": "docs/SteamCloudSave.md",
+      "sha256": "ab85eaeff0a2c2cda229ef26033a6168e84ceb28b3a871fe1e1d7baac6859b46",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Scripts/System/ProgressSaveStore.cs",
+      "sha256": "26679fd1b1cdf6fbd83747e7d0a96f6114f75ba89fdcb79dc79bef84fd04a960",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Scripts/System/WebGLImeInputBridge.cs",
+      "sha256": "0853b266f74011745f2e44681f787f1c4c747d829983b96ff8a8bc62197bd0e6",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": true
+    },
+    {
+      "path": "Assets/Scripts/Nyanstagram/NyanstagramTransport.cs",
+      "sha256": "713a8bb3e1503f7c16c5bb9d38c4eead18ebbb42470c987ce88c1b0f4efc8181",
+      "trackedLocally": false,
+      "presentInPrBase": false,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Scripts/System/PettingModeController.cs",
+      "sha256": "05f039c128548d8677da42f5abecb6b0bdbd363b375cb2d4a3e2957b5d8d4539",
+      "trackedLocally": false,
+      "presentInPrBase": false,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Settings/Build Profiles/Windows.asset",
+      "sha256": "2be305a1d14e71e97e8f5b10d74a62fa61edad4e0c91e945ca3a3a3b197b6c8d",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": true
+    },
+    {
+      "path": "ProjectSettings/EditorBuildSettings.asset",
+      "sha256": "5a3a7ed9d6b972df1abe4fcd10b5a9cc39395c23997ead16dcd30c59ef1ac334",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": true
+    },
+    {
+      "path": "ProjectSettings/ProjectVersion.txt",
+      "sha256": "a606bb0b7a7fb3761cb9a8613e27fd904ca9d4ac9551aae20c224d707ad82c19",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": true
+    },
+    {
+      "path": "Assets/Scripts/Audio/CharacterMovementAudioController.cs",
+      "sha256": "8278e3e66750b839baed434709a63b8f871f305ee03c6ca4a4b7236941ee316b",
+      "trackedLocally": false,
+      "presentInPrBase": false,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Scripts/Audio/CatVoiceAudioController.cs",
+      "sha256": "c862a8ce12dec2070de6416bc02c5f1bed37afd12109a28e07037946f090e07c",
+      "trackedLocally": false,
+      "presentInPrBase": false,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Scripts/Audio/CatFootstepAudioController.cs",
+      "sha256": "6d2013a27ea467613ad238fafdf0a8240ae021989fc3afae54b3b93402cfb3cb",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Scripts/Editor/MovementAudioTests.cs",
+      "sha256": "ac7c20d9eb750c62e2b8a3b026b8879b63a09069362fa47fc456dab26d17e151",
+      "trackedLocally": false,
+      "presentInPrBase": false,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "docs/SoundEffects.md",
+      "sha256": "04b06f793ec8722ee1a08a841a728a4e24ba4eb62bac130284fe2fd50d2e4d5e",
+      "trackedLocally": false,
+      "presentInPrBase": false,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Settings/Audio/DeskSurfaceUnconfirmed.asset",
+      "sha256": "565117352a96dbdd493814b6f9c448fe611ae61c89cfc4f306573ec9f79b2080",
+      "trackedLocally": false,
+      "presentInPrBase": false,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Settings/Audio/TableSurfaceUnconfirmed.asset",
+      "sha256": "e0a84c56e59beaeb3f18b50f0c276fa1823cbc70873cdb3d7e1d98133ef9ea3c",
+      "trackedLocally": false,
+      "presentInPrBase": false,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "Assets/Scenes/MainScene.unity",
+      "sha256": "4753ccb4c5ad37eeaeb159f81fe4eacaf5c25a326299be5a4ff10e4756d58bef",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "TalkSource/Editor/DialogueIdentity.json",
+      "sha256": "039b9f0467ba5fab3f68d0d8f7c8f32f4fe49651d133fca6a08af0e2f2baae76",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "TalkSource/TalkCSV/PsychologyReactionDialogue.csv",
+      "sha256": "9fff4818fb75a3a9a78cb73db7c7165ce1eae42148a4765619035fbebf012212",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": false
+    },
+    {
+      "path": "TalkSource/TalkCSV/SystemTimedEvent.csv",
+      "sha256": "61e9eb68e0d0bc6d70c3583f8b97ba84b357b74ecec50c5dc0e489fd63996b7d",
+      "trackedLocally": true,
+      "presentInPrBase": true,
+      "sameAsPrBaseIgnoringCrLf": false
+    }
+  ],
+  "newUnityRuns": 0,
+  "newTestsRun": 0,
+  "newBuildsRun": 0
+}

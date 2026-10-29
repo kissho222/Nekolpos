@@ -4,9 +4,11 @@
 
 ## 更新日時
 
-2026-10-14 JST
+2026-10-29 JST
 
 ## 現在の作業
+
+Issue候補の順次評価（2026-10-29、直接依頼、調査）: #93→#80→#32→#81を現行コード/仕様/Scene・GitHub・既存証跡で照合。#93は実装済みだが最新reportは10/28 JSTのenvironment_unavailable/exit2/入力0で、baseにないValidateSyntaxへ依存。#80は最新normal.tableが終了保全TestFailed、並行Assets編集終了のユーザー確認待ちを維持。#32は旧Windows実績と現行checkpoint保存の未実機検証を区別。#81は旧8/8成功記録あり、現在9テストは未確認、通常四足接地未接続・Inspector日本語化不足候補。追加実装/Unity/Play/Runner/Build/実保存は開始せず、Issueラベル/状態変更なし。docs/IssueCandidateReview-20261029.mdと37ファイルSHAのevidence.jsonに再開条件/競合を記録。origin既定はchore/ai-handoff-foundation（930b607）、文書と本要約だけを独立PRへ提出し、既存未コミット実装とHANDOFF全文は同梱しない。詳細は報告書、各Issueは受入合格/Close扱いにしない。
 
 GitHub同期: 2026-10-14、現在のコード・Scene/Prefab・データ・仕様書573ファイルをcb0e996（chore: checkpoint current game development）としてchore/ai-handoff-foundationへpush成功。originの先行4コミットはfast-forwardで取り込み済み。output/のビルド・検証成果物と既存Git除外資産は送信対象外。今回はコード修正・Unityテスト再実行なし。差分検査で既存の空白警告を検出（内容は保持）。
 
