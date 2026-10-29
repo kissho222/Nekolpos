@@ -1,0 +1,665 @@
+{
+  "observedAtUtc": "2026-10-29T14:42:11.158109+00:00",
+  "localHead": "ea13005bed6941ce6c5393c75bab9ab022c51039",
+  "prBase": "930b607317b1755aa3c9070855cec3301e6b9a7c",
+  "prBaseBranch": "chore/ai-handoff-foundation",
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "6a0fd2ab0ffd68bb7c424eb718b1250d8a3418061a8bb544d58838e6b77d058f",
+      "bytes": 13974,
+      "tracked": true,
+      "existsInPrBase": true,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "ProjectSettings/ProjectVersion.txt",
+      "sha256": "a606bb0b7a7fb3761cb9a8613e27fd904ca9d4ac9551aae20c224d707ad82c19",
+      "bytes": 85,
+      "tracked": true,
+      "existsInPrBase": true,
+      "sameAsBaseIgnoringLineEndings": true
+    },
+    {
+      "path": "docs/SoundEffects.md",
+      "sha256": "04b06f793ec8722ee1a08a841a728a4e24ba4eb62bac130284fe2fd50d2e4d5e",
+      "bytes": 13283,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "docs/TabletHockey.md",
+      "sha256": "9738b6f7af1f89d04349fb820524359213f7dd6df6d5fac6f631726276fd7036",
+      "bytes": 21487,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "docs/TestSaveIsolation.md",
+      "sha256": "e714fd0a6fac9a2263c188b628b138c82a4050fb871916ac8971a826341e383e",
+      "bytes": 6586,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Scripts/System/TabletHockeyMatch.cs",
+      "sha256": "c815cdb46f67fd6af472d7e45bead2f7939dd60e539d158f05c956799859863e",
+      "bytes": 9147,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Scripts/System/TabletHockeyController.cs",
+      "sha256": "11ac43ef5db3bb33e95c96590bcecc8fa556333acf58a72d6250b6f75e4172bc",
+      "bytes": 23599,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Scripts/Audio/TabletSoundEffects.cs",
+      "sha256": "d96cb7bb40cefc01113ec3c014ceb0ca9a08a2b63b874b3fb843f05bfc691039",
+      "bytes": 2077,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Scripts/Audio/TabletSoundEffectsPlayer.cs",
+      "sha256": "30802ed4812e1bbecaf25a8f1c3672af57b17c438a30368a529c0323e09a6f4a",
+      "bytes": 3361,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Resources/TabletSoundEffects.asset",
+      "sha256": "9a1a6069971971464ca92d25bf208bf0585f6333edb62e2b67bd439d11392c19",
+      "bytes": 1098,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Resources/GameCenterView.prefab",
+      "sha256": "4f7659e826b7ecdb414c49cd811b6f6147d85255e2450ff8e90b4224ec0f5839",
+      "bytes": 439804,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Scripts/Audio/CharacterMovementAudioController.cs",
+      "sha256": "8278e3e66750b839baed434709a63b8f871f305ee03c6ca4a4b7236941ee316b",
+      "bytes": 9188,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Scripts/Audio/CatVoiceAudioController.cs",
+      "sha256": "c862a8ce12dec2070de6416bc02c5f1bed37afd12109a28e07037946f090e07c",
+      "bytes": 7641,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Scripts/Audio/CatFootstepAudioController.cs",
+      "sha256": "6d2013a27ea467613ad238fafdf0a8240ae021989fc3afae54b3b93402cfb3cb",
+      "bytes": 10054,
+      "tracked": true,
+      "existsInPrBase": true,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Scripts/Audio/FootstepSurface.cs",
+      "sha256": "885143deb094137c605d3da182c941890b102fd2236c51b2ae3583ccc3429ce1",
+      "bytes": 535,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Scripts/Audio/FootstepSurfaceProfile.cs",
+      "sha256": "db14fc702a02dc73489b8e70c2a3bb712fa5da76629a7ea1685079a39c0feb2f",
+      "bytes": 2446,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Scripts/Editor/MovementAudioTests.cs",
+      "sha256": "ac7c20d9eb750c62e2b8a3b026b8879b63a09069362fa47fc456dab26d17e151",
+      "bytes": 10921,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Scripts/System/SettingsManager.cs",
+      "sha256": "5ad576ff2101317ca8639f47a7f223e16315aea4765da8f49f09aec3d9191b6e",
+      "bytes": 12435,
+      "tracked": true,
+      "existsInPrBase": true,
+      "sameAsBaseIgnoringLineEndings": true
+    },
+    {
+      "path": "Assets/Scripts/System/SettingsPanel.cs",
+      "sha256": "f9e14f47772c400b901aefba4914dafbb815f651908eaef24919090c2b74ccb9",
+      "bytes": 10971,
+      "tracked": true,
+      "existsInPrBase": true,
+      "sameAsBaseIgnoringLineEndings": true
+    },
+    {
+      "path": "Assets/Scripts/Camera/PlayerSafetyMovementController.cs",
+      "sha256": "3084d18992e710b599262a56cff9949c6eef93f8c396ba688e33742666d3e27b",
+      "bytes": 30634,
+      "tracked": true,
+      "existsInPrBase": true,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Scripts/FootContact/CatPawContactObserver.cs",
+      "sha256": "f93410434036b6ccd681ad02e26267e603f95021cb056e192e54576c0e33bae4",
+      "bytes": 16204,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Scripts/FootContact/SinglePawContactSession.cs",
+      "sha256": "bfeb94e2d8e7d4873bc6e91dbce0fc8a9b1d6d0c0fb7a41f2a31f1bc8e9d6e5f",
+      "bytes": 64132,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Resources/Audio/GameSettings.mixer",
+      "sha256": "84dada2632164cb1e3f71b4906409d624e8d3922fc3e26d38f9b7eb2b40ba167",
+      "bytes": 5000,
+      "tracked": true,
+      "existsInPrBase": true,
+      "sameAsBaseIgnoringLineEndings": true
+    },
+    {
+      "path": "Assets/Scenes/MainScene.unity",
+      "sha256": "7ad988402722228e7a8c441d08e20348f376fae5d52f608f5b83b6f316b02b10",
+      "bytes": 2310023,
+      "tracked": true,
+      "existsInPrBase": true,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Settings/Audio/DeskSurfaceUnconfirmed.asset",
+      "sha256": "565117352a96dbdd493814b6f9c448fe611ae61c89cfc4f306573ec9f79b2080",
+      "bytes": 917,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    },
+    {
+      "path": "Assets/Settings/Audio/TableSurfaceUnconfirmed.asset",
+      "sha256": "e0a84c56e59beaeb3f18b50f0c276fa1823cbc70873cdb3d7e1d98133ef9ea3c",
+      "bytes": 551,
+      "tracked": false,
+      "existsInPrBase": false,
+      "sameAsBaseIgnoringLineEndings": false
+    }
+  ],
+  "verifiedAtUtc": "2026-10-29T14:46:12.408146+00:00",
+  "scope": "Candidate review only; no runtime implementation is included in the PR. Source hashes identify the local working copy.",
+  "issue81": {
+    "state": "open",
+    "labels": [
+      "codex-working"
+    ],
+    "updatedAtUtc": "2026-10-15T00:27:06Z",
+    "comments": 0
+  },
+  "dependencies": {
+    "38": {
+      "state": "open",
+      "labels": [
+        "codex-reviewed"
+      ],
+      "historicalTests": "68 + 1; not current-run results"
+    },
+    "61": {
+      "state": "open",
+      "labels": [
+        "codex-reviewed"
+      ],
+      "historicalTests": 19
+    },
+    "83": {
+      "state": "open",
+      "labels": [
+        "codex-working"
+      ],
+      "updatedAtUtc": "2026-10-16T21:12:59Z"
+    }
+  },
+  "unchangedInputCount": 26,
+  "unityOperationsPerformed": 0,
+  "formalTestRunsPerformed": 0,
+  "playerBuildsPerformed": 0,
+  "audioOutputTested": false,
+  "normalSaveOperationsPerformed": 0,
+  "physicsProbe": {
+    "passed": 10,
+    "failed": 0,
+    "source": "Assets/Scripts/System/TabletHockeyMatch.cs",
+    "sourceSha256": "c815cdb46f67fd6af472d7e45bead2f7939dd60e539d158f05c956799859863e",
+    "environment": ".NET 9, unmodified source linked by csproj; managed Vector2/Mathf arithmetic shim",
+    "limitations": [
+      "No Unity runtime or native API",
+      "No real gameplay, AudioSource, Mixer, audible output, or Player Build tested",
+      "Fixture states supplied by reflection; finite cases only"
+    ],
+    "cases": [
+      {
+        "name": "central_mallet_only",
+        "success": true,
+        "initialPuck": {
+          "x": 500,
+          "y": 0
+        },
+        "initialVelocity": {
+          "x": 110,
+          "y": 0
+        },
+        "mallet": {
+          "x": 600,
+          "y": 0
+        },
+        "alreadyTouching": false,
+        "expected": [
+          "PlayerMallet"
+        ],
+        "actual": [
+          "PlayerMallet"
+        ],
+        "impacts": [
+          {
+            "kind": "PlayerMallet",
+            "point": {
+              "x": 534.9,
+              "y": 0
+            },
+            "puck": {
+              "x": 490.9,
+              "y": 0
+            },
+            "velocity": {
+              "x": -135,
+              "y": 0
+            }
+          }
+        ],
+        "finalPuck": {
+          "x": 490.9,
+          "y": 0
+        },
+        "finalVelocity": {
+          "x": -135,
+          "y": 0
+        }
+      },
+      {
+        "name": "top_wall_only",
+        "success": true,
+        "initialPuck": {
+          "x": 300,
+          "y": 531.9
+        },
+        "initialVelocity": {
+          "x": 0,
+          "y": 110
+        },
+        "mallet": null,
+        "alreadyTouching": false,
+        "expected": [
+          "Wall"
+        ],
+        "actual": [
+          "Wall"
+        ],
+        "impacts": [
+          {
+            "kind": "Wall",
+            "point": {
+              "x": 300,
+              "y": 576
+            },
+            "puck": {
+              "x": 300,
+              "y": 532
+            },
+            "velocity": {
+              "x": 0,
+              "y": -110
+            }
+          }
+        ],
+        "finalPuck": {
+          "x": 300,
+          "y": 532
+        },
+        "finalVelocity": {
+          "x": 0,
+          "y": -110
+        }
+      },
+      {
+        "name": "top_mallet_then_wall",
+        "success": true,
+        "initialPuck": {
+          "x": 500,
+          "y": 520
+        },
+        "initialVelocity": {
+          "x": 0,
+          "y": -110
+        },
+        "mallet": {
+          "x": 500,
+          "y": 450
+        },
+        "alreadyTouching": false,
+        "expected": [
+          "PlayerMallet",
+          "Wall"
+        ],
+        "actual": [
+          "PlayerMallet",
+          "Wall"
+        ],
+        "impacts": [
+          {
+            "kind": "PlayerMallet",
+            "point": {
+              "x": 500,
+              "y": 515.1
+            },
+            "puck": {
+              "x": 500,
+              "y": 559.1
+            },
+            "velocity": {
+              "x": -32.74231,
+              "y": 130.96924
+            }
+          },
+          {
+            "kind": "Wall",
+            "point": {
+              "x": 500,
+              "y": 576
+            },
+            "puck": {
+              "x": 500,
+              "y": 532
+            },
+            "velocity": {
+              "x": -32.74231,
+              "y": -130.96924
+            }
+          }
+        ],
+        "finalPuck": {
+          "x": 500,
+          "y": 532
+        },
+        "finalVelocity": {
+          "x": -32.74231,
+          "y": -130.96924
+        }
+      },
+      {
+        "name": "bottom_mallet_then_wall",
+        "success": true,
+        "initialPuck": {
+          "x": 500,
+          "y": -520
+        },
+        "initialVelocity": {
+          "x": 0,
+          "y": 110
+        },
+        "mallet": {
+          "x": 500,
+          "y": -450
+        },
+        "alreadyTouching": false,
+        "expected": [
+          "PlayerMallet",
+          "Wall"
+        ],
+        "actual": [
+          "PlayerMallet",
+          "Wall"
+        ],
+        "impacts": [
+          {
+            "kind": "PlayerMallet",
+            "point": {
+              "x": 500,
+              "y": -515.1
+            },
+            "puck": {
+              "x": 500,
+              "y": -559.1
+            },
+            "velocity": {
+              "x": -32.74231,
+              "y": -130.96924
+            }
+          },
+          {
+            "kind": "Wall",
+            "point": {
+              "x": 500,
+              "y": -576
+            },
+            "puck": {
+              "x": 500,
+              "y": -532
+            },
+            "velocity": {
+              "x": -32.74231,
+              "y": 130.96924
+            }
+          }
+        ],
+        "finalPuck": {
+          "x": 500,
+          "y": -532
+        },
+        "finalVelocity": {
+          "x": -32.74231,
+          "y": 130.96924
+        }
+      },
+      {
+        "name": "top_continuing_overlap_inward",
+        "success": true,
+        "initialPuck": {
+          "x": 500,
+          "y": 520
+        },
+        "initialVelocity": {
+          "x": 0,
+          "y": -110
+        },
+        "mallet": {
+          "x": 500,
+          "y": 450
+        },
+        "alreadyTouching": true,
+        "expected": [],
+        "actual": [],
+        "impacts": [],
+        "finalPuck": {
+          "x": 500,
+          "y": 532
+        },
+        "finalVelocity": {
+          "x": 0,
+          "y": -110
+        }
+      },
+      {
+        "name": "bottom_continuing_overlap_inward",
+        "success": true,
+        "initialPuck": {
+          "x": 500,
+          "y": -520
+        },
+        "initialVelocity": {
+          "x": 0,
+          "y": 110
+        },
+        "mallet": {
+          "x": 500,
+          "y": -450
+        },
+        "alreadyTouching": true,
+        "expected": [],
+        "actual": [],
+        "impacts": [],
+        "finalPuck": {
+          "x": 500,
+          "y": -532
+        },
+        "finalVelocity": {
+          "x": 0,
+          "y": 110
+        }
+      },
+      {
+        "name": "top_outside_inward",
+        "success": true,
+        "initialPuck": {
+          "x": 300,
+          "y": 533
+        },
+        "initialVelocity": {
+          "x": 0,
+          "y": -110
+        },
+        "mallet": null,
+        "alreadyTouching": false,
+        "expected": [],
+        "actual": [],
+        "impacts": [],
+        "finalPuck": {
+          "x": 300,
+          "y": 532
+        },
+        "finalVelocity": {
+          "x": 0,
+          "y": -110
+        }
+      },
+      {
+        "name": "bottom_outside_inward",
+        "success": true,
+        "initialPuck": {
+          "x": 300,
+          "y": -533
+        },
+        "initialVelocity": {
+          "x": 0,
+          "y": 110
+        },
+        "mallet": null,
+        "alreadyTouching": false,
+        "expected": [],
+        "actual": [],
+        "impacts": [],
+        "finalPuck": {
+          "x": 300,
+          "y": -532
+        },
+        "finalVelocity": {
+          "x": 0,
+          "y": 110
+        }
+      },
+      {
+        "name": "right_outside_inward",
+        "success": true,
+        "initialPuck": {
+          "x": 893,
+          "y": 500
+        },
+        "initialVelocity": {
+          "x": -110,
+          "y": 0
+        },
+        "mallet": null,
+        "alreadyTouching": false,
+        "expected": [],
+        "actual": [],
+        "impacts": [],
+        "finalPuck": {
+          "x": 892,
+          "y": 500
+        },
+        "finalVelocity": {
+          "x": -110,
+          "y": 0
+        }
+      },
+      {
+        "name": "left_outside_inward",
+        "success": true,
+        "initialPuck": {
+          "x": -893,
+          "y": 500
+        },
+        "initialVelocity": {
+          "x": 110,
+          "y": 0
+        },
+        "mallet": null,
+        "alreadyTouching": false,
+        "expected": [],
+        "actual": [],
+        "impacts": [],
+        "finalPuck": {
+          "x": -892,
+          "y": 500
+        },
+        "finalVelocity": {
+          "x": 110,
+          "y": 0
+        }
+      }
+    ]
+  },
+  "probeSources": [
+    {
+      "path": "output/issue81-20261029-audit/HockeyAudioAudit.csproj",
+      "sha256": "acac9abe3db483d6666e4521577f5c1733d95387b39208deeccd7a0fc0135234",
+      "content": "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <OutputType>Exe</OutputType>\n    <TargetFramework>net9.0</TargetFramework>\n    <ImplicitUsings>enable</ImplicitUsings>\n    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>\n  </PropertyGroup>\n  <ItemGroup>\n    <Compile Include=\"Program.cs\" />\n    <Compile Include=\"UnityMathShim.cs\" />\n    <Compile Include=\"../../Assets/Scripts/System/TabletHockeyMatch.cs\" Link=\"TabletHockeyMatch.cs\" />\n  </ItemGroup>\n</Project>\n"
+    },
+    {
+      "path": "output/issue81-20261029-audit/Program.cs",
+      "sha256": "dd17f9b9be19c426e0328f4b212642faf372eb29ec73af6a92e21aabeff88850",
+      "content": "using System.Reflection;\nusing System.Security.Cryptography;\nusing System.Text.Json;\nusing Nekolpos.System;\nusing UnityEngine;\n\nvar records = new List<object>();\nint passed = 0;\nRun(\"central_mallet_only\", new(500f, 0f), new(110f, 0f), new(600f, 0f), false, \"PlayerMallet\");\nRun(\"top_wall_only\", new(300f, 531.9f), new(0f, 110f), null, false, \"Wall\");\nRun(\"top_mallet_then_wall\", new(500f, 520f), new(0f, -110f), new(500f, 450f), false, \"PlayerMallet\", \"Wall\");\nRun(\"bottom_mallet_then_wall\", new(500f, -520f), new(0f, 110f), new(500f, -450f), false, \"PlayerMallet\", \"Wall\");\nRun(\"top_continuing_overlap_inward\", new(500f, 520f), new(0f, -110f), new(500f, 450f), true);\nRun(\"bottom_continuing_overlap_inward\", new(500f, -520f), new(0f, 110f), new(500f, -450f), true);\nRun(\"top_outside_inward\", new(300f, 533f), new(0f, -110f), null, false);\nRun(\"bottom_outside_inward\", new(300f, -533f), new(0f, 110f), null, false);\nRun(\"right_outside_inward\", new(893f, 500f), new(-110f, 0f), null, false);\nRun(\"left_outside_inward\", new(-893f, 500f), new(110f, 0f), null, false);\n\nstring sourcePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, \"../../../../../Assets/Scripts/System/TabletHockeyMatch.cs\"));\n// Output and source are both workspace-local; this audit never starts Unity or touches saves.\nstring outputPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, \"../../../results.json\"));\nvar report = new\n{\n    passed,\n    failed = 10 - passed,\n    source = \"Assets/Scripts/System/TabletHockeyMatch.cs\",\n    sourceSha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(sourcePath))).ToLowerInvariant(),\n    environment = \".NET 9, unmodified source linked by csproj; managed Vector2/Mathf arithmetic shim\",\n    limitations = new[] { \"No Unity runtime or native API\", \"No real gameplay, AudioSource, Mixer, audible output, or Player Build tested\", \"Fixture states supplied by reflection; finite cases only\" },\n    cases = records\n};\nFile.WriteAllText(outputPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));\nConsole.WriteLine(JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));\nEnvironment.ExitCode = passed == 10 ? 0 : 1;\n\nvoid Run(string name, Vector2 initialPuck, Vector2 initialVelocity, Vector2? mallet, bool alreadyTouching, params string[] expected)\n{\n    var match = new TabletHockeyMatch(new Vector2(1872f, 1152f), 44f, 65f, 384f, 110f, 25f);\n    Set(\"Puck\", initialPuck);\n    Set(\"Velocity\", initialVelocity);\n    typeof(TabletHockeyMatch).GetField(\"playerTouching\", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(match, alreadyTouching);\n    var impacts = new List<object>();\n    var actual = new List<string>();\n    match.Impact += (kind, point) =>\n    {\n        actual.Add(kind.ToString());\n        impacts.Add(new { kind = kind.ToString(), point = V(point), puck = V(match.Puck), velocity = V(match.Velocity) });\n    };\n    match.Step(0.004f, mallet ?? Vector2.zero, mallet.HasValue, Vector2.zero, false);\n    bool success = actual.SequenceEqual(expected);\n    if (success) passed++;\n    records.Add(new { name, success, initialPuck = V(initialPuck), initialVelocity = V(initialVelocity), mallet = mallet.HasValue ? V(mallet.Value) : null, alreadyTouching, expected, actual, impacts, finalPuck = V(match.Puck), finalVelocity = V(match.Velocity) });\n    void Set(string property, object value) => typeof(TabletHockeyMatch).GetProperty(property)!.SetValue(match, value);\n}\nobject V(Vector2 value) => new { x = value.x, y = value.y };\n"
+    },
+    {
+      "path": "output/issue81-20261029-audit/UnityMathShim.cs",
+      "sha256": "50a951359ddd9e33d05a5ffd2a96f8bb66ebb192d0acbe7f88fbdac98a9e53b3",
+      "content": "namespace UnityEngine\n{\n    // Pure managed arithmetic substitute for this audit only. No Unity API/native process is loaded.\n    public struct Vector2\n    {\n        public float x, y;\n        public Vector2(float x, float y) { this.x = x; this.y = y; }\n        public static Vector2 zero => new Vector2(0f, 0f);\n        public float sqrMagnitude => x * x + y * y;\n        public float magnitude => (float)System.Math.Sqrt(sqrMagnitude);\n        public Vector2 normalized => magnitude > 0.00001f ? this / magnitude : zero;\n        public static Vector2 operator +(Vector2 a, Vector2 b) => new Vector2(a.x + b.x, a.y + b.y);\n        public static Vector2 operator -(Vector2 a, Vector2 b) => new Vector2(a.x - b.x, a.y - b.y);\n        public static Vector2 operator *(Vector2 a, float b) => new Vector2(a.x * b, a.y * b);\n        public static Vector2 operator /(Vector2 a, float b) => new Vector2(a.x / b, a.y / b);\n        public static float Dot(Vector2 a, Vector2 b) => a.x * b.x + a.y * b.y;\n        public static float Distance(Vector2 a, Vector2 b) => (a - b).magnitude;\n        public static Vector2 Lerp(Vector2 a, Vector2 b, float t) => a + (b - a) * Mathf.Clamp(t, 0f, 1f);\n        public static Vector2 Reflect(Vector2 a, Vector2 n) => a + n * (-2f * Dot(n, a));\n    }\n    public static class Mathf\n    {\n        public static float Abs(float x) => System.Math.Abs(x);\n        public static float Sign(float x) => x >= 0f ? 1f : -1f;\n        public static float Clamp(float x, float min, float max) => x < min ? min : x > max ? max : x;\n        public static float Min(float a, float b) => System.Math.Min(a, b);\n        public static float Max(float a, float b) => System.Math.Max(a, b);\n        public static float Max(params float[] values) => values.Max();\n        public static int Max(params int[] values) => values.Max();\n        public static int CeilToInt(float x) => (int)System.Math.Ceiling(x);\n    }\n}\n"
+    }
+  ]
+}

@@ -4,9 +4,11 @@
 
 ## 更新日時
 
-2026-10-14 JST
+2026-10-29 JST
 
 ## 現在の作業
+
+Issue #81／ホッケー衝突音の候補調査（2026-10-29）: #81はOpen/codex-workingで自動着手対象外。直接依頼に基づく独立調査PR用にdocs/Issue81-SeHockeyReview-20261029.mdと同evidence.jsonを作成。現行Matchを未変更で用いた外部.NET計算10/10成功、上下壁際で同じ4ms更新内のMallet→Wall通知を再現。中央マレット・壁単独は各1通知、内向き押し出しの無条件Wallは再現せず。音種別の誤配線は調査経路で認めず、実音原因・仕様違反は未確定。現物はタブレット8音登録済み。SE/ホッケー基盤はbase未統合、通常四足接続・現行9正式テスト・Inspector日本語化不足が残る。別チャットの#32ビルドと#81後続作業に競合するためAssets編集・Unity/Play/Runner/Build・音再生・保存操作なし、ラベル/Close/mergeなし。26入力hash再照合済み。詳細は同報告書。
 
 GitHub同期: 2026-10-14、現在のコード・Scene/Prefab・データ・仕様書573ファイルをcb0e996（chore: checkpoint current game development）としてchore/ai-handoff-foundationへpush成功。originの先行4コミットはfast-forwardで取り込み済み。output/のビルド・検証成果物と既存Git除外資産は送信対象外。今回はコード修正・Unityテスト再実行なし。差分検査で既存の空白警告を検出（内容は保持）。
 
