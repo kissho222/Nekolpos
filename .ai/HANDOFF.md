@@ -4,9 +4,11 @@
 
 ## 更新日時
 
-2026-10-14 JST
+2026-10-30 JST
 
 ## 現在の作業
+
+Issue #32 Windows互換性監査（2026-10-29〜30）: Unityroom ReporterをWebGL非Editor・非隔離だけへ制限する5行修正、外部検証とA-D監査を独立PRへ切出し。90メモリー検証・監査tool合成42件成功、base+Reporter単独のWindows/WebGL Release/Dev条件compile成功。既存Unity反映Error0、Windows64 Mono Development Build成功(Error0/Warning1/96.54秒)。警告原因は未確定だが生成DLL/PDBのRuntime269/Editor152 source checksum不一致0、Reporter送信なし・隔離分岐とliveEditorMVID一致を確認。隔離Native1回でタイトル日本語表示→既存Quit終了。起動前後の通常保存/Assets/EditorPrefs/ゲーム固有key差分0、Unity表示8+session4key変化(32/64両view計24records)で全体保全falseを維持。Build時はTMP dynamic font3asset cacheクリアと整合する差分がありAssets保全false、元bytes不明・復元なし。Shader SoapBubble欠落fallback警告1を追加確認事項へ記録。IME/聴感/DPI/実保存adapter/正式NUnit/workerは未検証。Scene自動保存、既定branch merge、IssueCloseなし。docs/WindowsStandaloneAudit-20261029.md・evidence.json、output/issue32-20261029参照。
 
 GitHub同期: 2026-10-14、現在のコード・Scene/Prefab・データ・仕様書573ファイルをcb0e996（chore: checkpoint current game development）としてchore/ai-handoff-foundationへpush成功。originの先行4コミットはfast-forwardで取り込み済み。output/のビルド・検証成果物と既存Git除外資産は送信対象外。今回はコード修正・Unityテスト再実行なし。差分検査で既存の空白警告を検出（内容は保持）。
 
