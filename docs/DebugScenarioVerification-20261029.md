@@ -1,8 +1,14 @@
 # Issue #80 現行シナリオの再検証（2026-10-29）
 
-現行checkoutの既存Runnerを再利用した。normal.table、normal.desk、transition.table-desk、walk、tablet.desk、death.respawnの6IDで各13チェック・正式なTable復帰・通常保存/Assets/Scene保全に成功した。各成功runの前後9,113項目は差分0。Play停止、隔離解除、Runner Pending/Batch空まで確認した。
+現行checkoutの既存Runnerを再利用し、8IDの自動状態検証・正式なTable復帰・通常保存/Assets/Scene保全を確認した。最終修正版で実行したのは通常日記と特別日記（各15チェック）、normal.tableの回帰（13チェック）の3ID。normal.desk、transition.table-desk、walk、tablet.desk、death.respawnの5ID（各13チェック）は入力修正前の実績であり、「最終版で8ID合格」とは扱わない。各成功runの前後9,113項目は差分0。Play停止、隔離解除、Runner Pending/Batch空まで確認した。
 
-日記2IDは再検証中であり、完了扱いにしない。修正後のUnityコンパイルと読み込みは成功したが、MainSceneがdirtyになったため、ユーザーによる保存確認後に通常日記から再試行する。
+日記2件はカレンダー確定、Pending消費、翌朝へちょうど1日進行を確認した。ユーザーの保存後のScene差分は天気2値のみで、日記UI/入力接続は不変。最終3runの主要13CSとSceneのhashが現行と一致することを独立監査した。自動結果はPassedだが、描画・IME等を含む全体statusはManualVerificationRequiredのまま保持する。
+
+|最終修正版のID|run ID|自動チェック|保存/Scene保全|
+|---|---|---|---|
+|diary.night.normal|d30e711c6d1042e9bcc325562fd78de2|15/15|成功|
+|diary.night.special|4b859a1247ed4272ab34c7ff27dc433a|15/15|成功|
+|normal.table|377e8fc788e74412a29f20e896a55f20|13/13|成功|
 
 ## 修正と失敗記録
 

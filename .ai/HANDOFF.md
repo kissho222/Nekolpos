@@ -14,7 +14,7 @@ GitHub同期: 2026-10-14、現在のコード・Scene/Prefab・データ・仕�
 
 Issue #80再検証（2026-10-29）: 既存Runnerの保存保護12CSを限定差分へ切出し、日記awaitの期限/連動取消と隔離シナリオ専用送り、Batchの拒否/失敗/予約取消を修正。仕様docs/DebugScenarioSafety.md、結果docs/DebugScenarioVerification-20261029.md。通常会話/データ/Scene/Prefabは変更しない。PR用の公開メモリー検証36件とfake-Unity隔離36観測成功、外部Runtime/製品Editor・Windows条件compile成功（全Editorはbase共通Waypoint参照テスト8エラー）。
 
-現在の統合確認: normal.table/normal.desk/transition.table-desk/walk/tablet.desk/death.respawnの6IDで各13check・前後9113項目不変・正式Table復帰・自然Releaseを確認。運搬初回のEditorウィンドウ位置1差分と日記初回の自己入力遮断Timeoutは失敗として保持。後者を修正しcompile/36メモリー検証成功、MainSceneの保存確認後に日記2件を再検証予定。過去の232+30 NUnit/8シナリオ実績を現在版へ流用しない。旧NUnit/worker/実保存adapterは未実行。実IME/描画/実Playerは手動確認。IssueはOpen、Close/mergeなし。
+現在の統合確認（2026-10-29）: 最終修正版で通常日記/特別日記が各15check、normal.table回帰が13check成功。前後各9113項目不変、正式Table復帰、翌朝+1、自然Release・Play停止・dirtyfalse・Pending/Batch空を確認。机/運搬/散歩/Tablet/死亡の5IDは入力修正前の各13check成功と区別し、最終版8ID合格とはしない。最終3runの主要13CS+Scene hashは現行一致。過去失敗は保持。独立PR #96で報告し、既定branchへmerge/IssueCloseなし。現checkoutには別変更があるためPR単独のPlay成功とは扱わない。PR限定外部compile/36メモリー/fake-Unity隔離36観測は別途成功。正式NUnit/実Batch/worker/実保存adapterは未実行。実IME/描画/実Playerは人の確認が残る。
 
 過去の2026-10-14検証（今回未再実行）: Windows Release実BuildはSucceeded、31.21秒、2209.39MB、Error0/Warning0（15:52:39Z完了）。配布DLLのConsole/シナリオ/旧会話Debug変更API不在をメタデータで検証。WebGL ReleaseとWindows DevelopmentのRuntime条件コンパイルはError0（Inspector注入フィールド等の警告は実Buildと別集計）。WebGL実Build/ブラウザ・Development実Player未実施。出力Build/DebugConsoleRelease、レポートLibrary/DebugConsole。
 

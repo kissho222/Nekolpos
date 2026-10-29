@@ -44,6 +44,8 @@ Nekolpos.EditorTools.DebugScenarioEditorRunner.Request("diary.night.normal");
 
 自動結果、checks、正式なTable復帰、保存/Scene保全を別々に確認し、Play停止・IsIsolated=false・Pending/Batch空まで確認してから次へ進む。終了レポートが成功でも、遅延解除が待機中の場合は次要求を出さない。保全不一致のレポートとbaselineは残し、原因不明の項目を除外したり保存値を復元したりしない。
 
+今回、Editorが背面のときに終了後のdelayCallが残る状態を観測した。Unityを前面にした後、通常のEditor更新による解除を確認できた。SessionStateや隔離フラグを手動で消して次へ進めない。ウィンドウ位置変更もEditorPrefs監査へ影響し得るため、画面を移動した場合は安定してから新baselineを取る。
+
 Runnerの純粋な待機・queue制御は、Python 3.10以上と.NET SDK 10.0で次のメモリー検証を実行できる。追加NuGet、Unity、正式NUnit、実保存adapterを使わない。結果とsource hashは`output/debug-scenario-runner-checks/`へ出力する。
 
 ```powershell

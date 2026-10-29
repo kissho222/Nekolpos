@@ -2,7 +2,7 @@
   "date": "2026-10-29",
   "issue": 80,
   "base": "930b607317b1755aa3c9070855cec3301e6b9a7c",
-  "status": "Awaiting user-confirmed scene save and diary retry",
+  "status": "Implementation and scoped verification reported; human review pending",
   "nativeEnvironment": "Unity 6000.3.10f1 Editor Play, isolated memory; current checkout with unrelated changes",
   "runs": [
     {
@@ -276,6 +276,111 @@
         "Assets/Scripts/TimeSystem/TimeManager.cs": "DF0AC8BA36F1AABD6E9F884FC741FBAB923F7018AD73DA4E365814827CF66312",
         "Assets/Scenes/MainScene.unity": "DB96C5193BC9A31E66BF29A2879626EBDD297A806420ABAE4778A89DD7F378C9"
       }
+    },
+    {
+      "runId": "d30e711c6d1042e9bcc325562fd78de2",
+      "scenarioId": "diary.night.normal",
+      "startedUtc": "2026-10-29T14:16:57.0120013Z",
+      "finishedUtc": "2026-10-29T14:18:08.1714740Z",
+      "phase": "Finished",
+      "status": "ManualVerificationRequired",
+      "automatedStatus": "Passed",
+      "normalSavesPreserved": true,
+      "scenePreserved": true,
+      "reason": "自動状態検証成功。描画・IME・実PlayerはmanualChecksを確認してください",
+      "checksPassed": 15,
+      "checksTotal": 15,
+      "baselineCount": 9113,
+      "afterCount": 9113,
+      "differenceCount": 0,
+      "reportSha256": "8f8b981042e2a60cdd6d104ed4c43a84e18982eb7f67e7a256834c7bd949f88d",
+      "inputSourceSha256": {
+        "Assets/Scripts/Editor/DebugScenarioEditorRunner.cs": "6EEACBEAB51DF85E9A5980867285F2F776607064F50618EF4CD1B96CAE1DCC7B",
+        "Assets/Scripts/Editor/DebugNormalSaveAudit.cs": "C92B0B678344F3779FBECCF16BD1E3263F31658D2519296E459FB20B8BDDD06F",
+        "Assets/Scripts/System/DebugSaveSession.cs": "EE866815EF5D2A6C8EA9841310E821BE2A9160DFD7470A48E581D5AC779A3895",
+        "Assets/Scripts/System/WorkerPlayerPrefs.cs": "0AE115BCD151DC869ECD7C965AA2AF109C20977FFEB104FE5C4D9D9A4B28EAE3",
+        "Assets/Scripts/System/DebugConsoleInput.cs": "806C4580905F36CAFE40450459515FAF90AA29EAE72578D58EBEE2B41B972C10",
+        "Assets/Scripts/System/ChatUIController.cs": "FA9A41E0BD1B3B1B7450717141C576FFC4AAF9688A15B8787945CA5D7E7A955E",
+        "Assets/Scripts/System/DebugScenarioCatalog.cs": "9A802CE6B91B6F85048168A8AAE9A1E8AF781A05472FD3BB128A330488CCF191",
+        "Assets/Scripts/System/DebugScenarioExecutor.cs": "3180DAAC7F823620A5FC24DA0A80F5144EFE01BED84B3C3421F119A6E83656B7",
+        "Assets/Scripts/System/DebugScenarioFixtures.cs": "0F131279BCF8AB8E830E9C0EF4FD7ED8919DBF535B88CEF049E9E52BA49F43BB",
+        "Assets/Scripts/System/ProgressSaveStore.cs": "26679FD1B1CDF6FBD83747E7D0A96F6114F75BA89FDCB79DC79BEF84FD04A960",
+        "Assets/Scripts/System/DialogueManager.cs": "C1CE532C7F25F1A46D8EEB7D91DDC06E08C20B46B0AAE8B8EADCE9D1E7AA9BF8",
+        "Assets/Scripts/System/DiaryCalendarController.cs": "D2DBCC1A0F790346D5B115ABC4CA1E90E42797ECC3A19E494512CB154FAEE0DE",
+        "Assets/Scripts/TimeSystem/TimeManager.cs": "DF0AC8BA36F1AABD6E9F884FC741FBAB923F7018AD73DA4E365814827CF66312",
+        "Assets/Scenes/MainScene.unity": "7AD988402722228E7A8C441D08E20348F376FAE5D52F608F5B83B6F316B02B10"
+      },
+      "sourceVersion": "final-current-checkout"
+    },
+    {
+      "runId": "4b859a1247ed4272ab34c7ff27dc433a",
+      "scenarioId": "diary.night.special",
+      "startedUtc": "2026-10-29T14:21:04.3939277Z",
+      "finishedUtc": "2026-10-29T14:22:15.3613922Z",
+      "phase": "Finished",
+      "status": "ManualVerificationRequired",
+      "automatedStatus": "Passed",
+      "normalSavesPreserved": true,
+      "scenePreserved": true,
+      "reason": "自動状態検証成功。描画・IME・実PlayerはmanualChecksを確認してください",
+      "checksPassed": 15,
+      "checksTotal": 15,
+      "baselineCount": 9113,
+      "afterCount": 9113,
+      "differenceCount": 0,
+      "reportSha256": "31137cc35cda33d760e36a3c0279d11fd7950cd4bf36091010225c3010d24f80",
+      "inputSourceSha256": {
+        "Assets/Scripts/Editor/DebugScenarioEditorRunner.cs": "6EEACBEAB51DF85E9A5980867285F2F776607064F50618EF4CD1B96CAE1DCC7B",
+        "Assets/Scripts/Editor/DebugNormalSaveAudit.cs": "C92B0B678344F3779FBECCF16BD1E3263F31658D2519296E459FB20B8BDDD06F",
+        "Assets/Scripts/System/DebugSaveSession.cs": "EE866815EF5D2A6C8EA9841310E821BE2A9160DFD7470A48E581D5AC779A3895",
+        "Assets/Scripts/System/WorkerPlayerPrefs.cs": "0AE115BCD151DC869ECD7C965AA2AF109C20977FFEB104FE5C4D9D9A4B28EAE3",
+        "Assets/Scripts/System/DebugConsoleInput.cs": "806C4580905F36CAFE40450459515FAF90AA29EAE72578D58EBEE2B41B972C10",
+        "Assets/Scripts/System/ChatUIController.cs": "FA9A41E0BD1B3B1B7450717141C576FFC4AAF9688A15B8787945CA5D7E7A955E",
+        "Assets/Scripts/System/DebugScenarioCatalog.cs": "9A802CE6B91B6F85048168A8AAE9A1E8AF781A05472FD3BB128A330488CCF191",
+        "Assets/Scripts/System/DebugScenarioExecutor.cs": "3180DAAC7F823620A5FC24DA0A80F5144EFE01BED84B3C3421F119A6E83656B7",
+        "Assets/Scripts/System/DebugScenarioFixtures.cs": "0F131279BCF8AB8E830E9C0EF4FD7ED8919DBF535B88CEF049E9E52BA49F43BB",
+        "Assets/Scripts/System/ProgressSaveStore.cs": "26679FD1B1CDF6FBD83747E7D0A96F6114F75BA89FDCB79DC79BEF84FD04A960",
+        "Assets/Scripts/System/DialogueManager.cs": "C1CE532C7F25F1A46D8EEB7D91DDC06E08C20B46B0AAE8B8EADCE9D1E7AA9BF8",
+        "Assets/Scripts/System/DiaryCalendarController.cs": "D2DBCC1A0F790346D5B115ABC4CA1E90E42797ECC3A19E494512CB154FAEE0DE",
+        "Assets/Scripts/TimeSystem/TimeManager.cs": "DF0AC8BA36F1AABD6E9F884FC741FBAB923F7018AD73DA4E365814827CF66312",
+        "Assets/Scenes/MainScene.unity": "7AD988402722228E7A8C441D08E20348F376FAE5D52F608F5B83B6F316B02B10"
+      },
+      "sourceVersion": "final-current-checkout"
+    },
+    {
+      "runId": "377e8fc788e74412a29f20e896a55f20",
+      "scenarioId": "normal.table",
+      "startedUtc": "2026-10-29T14:23:21.8092580Z",
+      "finishedUtc": "2026-10-29T14:24:21.3358601Z",
+      "phase": "Finished",
+      "status": "ManualVerificationRequired",
+      "automatedStatus": "Passed",
+      "normalSavesPreserved": true,
+      "scenePreserved": true,
+      "reason": "自動状態検証成功。描画・IME・実PlayerはmanualChecksを確認してください",
+      "checksPassed": 13,
+      "checksTotal": 13,
+      "baselineCount": 9113,
+      "afterCount": 9113,
+      "differenceCount": 0,
+      "reportSha256": "2ef49d04fad9540266b1de3947bc7e81753c12ff46e82ea005b205544ba4b285",
+      "inputSourceSha256": {
+        "Assets/Scripts/Editor/DebugScenarioEditorRunner.cs": "6EEACBEAB51DF85E9A5980867285F2F776607064F50618EF4CD1B96CAE1DCC7B",
+        "Assets/Scripts/Editor/DebugNormalSaveAudit.cs": "C92B0B678344F3779FBECCF16BD1E3263F31658D2519296E459FB20B8BDDD06F",
+        "Assets/Scripts/System/DebugSaveSession.cs": "EE866815EF5D2A6C8EA9841310E821BE2A9160DFD7470A48E581D5AC779A3895",
+        "Assets/Scripts/System/WorkerPlayerPrefs.cs": "0AE115BCD151DC869ECD7C965AA2AF109C20977FFEB104FE5C4D9D9A4B28EAE3",
+        "Assets/Scripts/System/DebugConsoleInput.cs": "806C4580905F36CAFE40450459515FAF90AA29EAE72578D58EBEE2B41B972C10",
+        "Assets/Scripts/System/ChatUIController.cs": "FA9A41E0BD1B3B1B7450717141C576FFC4AAF9688A15B8787945CA5D7E7A955E",
+        "Assets/Scripts/System/DebugScenarioCatalog.cs": "9A802CE6B91B6F85048168A8AAE9A1E8AF781A05472FD3BB128A330488CCF191",
+        "Assets/Scripts/System/DebugScenarioExecutor.cs": "3180DAAC7F823620A5FC24DA0A80F5144EFE01BED84B3C3421F119A6E83656B7",
+        "Assets/Scripts/System/DebugScenarioFixtures.cs": "0F131279BCF8AB8E830E9C0EF4FD7ED8919DBF535B88CEF049E9E52BA49F43BB",
+        "Assets/Scripts/System/ProgressSaveStore.cs": "26679FD1B1CDF6FBD83747E7D0A96F6114F75BA89FDCB79DC79BEF84FD04A960",
+        "Assets/Scripts/System/DialogueManager.cs": "C1CE532C7F25F1A46D8EEB7D91DDC06E08C20B46B0AAE8B8EADCE9D1E7AA9BF8",
+        "Assets/Scripts/System/DiaryCalendarController.cs": "D2DBCC1A0F790346D5B115ABC4CA1E90E42797ECC3A19E494512CB154FAEE0DE",
+        "Assets/Scripts/TimeSystem/TimeManager.cs": "DF0AC8BA36F1AABD6E9F884FC741FBAB923F7018AD73DA4E365814827CF66312",
+        "Assets/Scenes/MainScene.unity": "7AD988402722228E7A8C441D08E20348F376FAE5D52F608F5B83B6F316B02B10"
+      },
+      "sourceVersion": "final-current-checkout"
     }
   ],
   "currentSourceSha256": {
@@ -292,7 +397,7 @@
     "Assets/Scripts/System/DialogueManager.cs": "c1ce532c7f25f1a46d8eeb7d91ddc06e08c20b46b0aae8b8eadce9d1e7aa9bf8",
     "Assets/Scripts/System/DiaryCalendarController.cs": "d2dbcc1a0f790346d5b115abc4ca1e90e42797ecc3a19e494512cb154faee0de",
     "Assets/Scripts/TimeSystem/TimeManager.cs": "df0ac8ba36f1aabd6e9f884fc741fbab923f7018ad73da4e365814827cf66312",
-    "Assets/Scenes/MainScene.unity": "db96c5193bc9a31e66bf29a2879626ebdd297a806420abae4778a89dd7f378c9"
+    "Assets/Scenes/MainScene.unity": "7ad988402722228e7a8c441d08e20348f376fae5d52f608f5b83b6f316b02b10"
   },
   "memoryChecks": {
     "runner": "Assets/Scripts/Editor/DebugScenarioEditorRunner.cs",
@@ -378,5 +483,26 @@
     "legacyNegativeControlFailed": 2,
     "legacyCases": 7,
     "realUnityExecuted": false
+  },
+  "finalSourceNativeIds": [
+    "diary.night.normal",
+    "diary.night.special",
+    "normal.table"
+  ],
+  "priorSourceNativeIds": [
+    "normal.desk",
+    "transition.table-desk",
+    "walk",
+    "tablet.desk",
+    "death.respawn"
+  ],
+  "finalEditor": {
+    "playing": false,
+    "compiling": false,
+    "compileFailed": false,
+    "sceneDirty": false,
+    "isolated": false,
+    "runnerPending": false,
+    "batchPending": false
   }
 }
