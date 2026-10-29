@@ -69,7 +69,7 @@ namespace Nekolpos.EditorTools.Authoring
                 foreach (string clause in Regex.Split(normalized, @"&&|\|\|"))
                 {
                     if (string.IsNullOrWhiteSpace(clause)) { Diagnostic(DiagnosticSeverity.Warning, "EmptyConditionOperand", "空の論理条件。", line, "condition"); continue; }
-                    try { ConversationGameStateConditionEvaluator.Evaluate(new ConversationGameState(), clause); }
+                    try { ConversationGameStateConditionEvaluator.ValidateSyntax(clause); }
                     catch (FormatException exception) { Diagnostic(DiagnosticSeverity.Error, "InvalidCondition", exception.Message, line, "condition"); }
                 }
             }

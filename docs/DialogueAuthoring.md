@@ -1,5 +1,7 @@
 # 会話制作統合Editor
 
+保存済み全原稿の静的診断とJSON/CSV/TXT出力は [制作データの静的品質チェック](ProductionDataChecks.md) を参照。
+
 通常会話の「作者確認・診断」、診断からの会話ジャンプ、TimedEvent同key統合、Action分類は[会話診断UI](DialogueAuthoringDiagnostics.md)を参照。
 
 ## 原稿UI（Issue #59）
