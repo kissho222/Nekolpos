@@ -16,7 +16,8 @@ namespace Nekolpos.System
         private static bool owned;
         private static Lease activeLease;
         private static int releasedFrame = -1;
-        public static bool IsBlocked => ShouldBlock(owned || activeLease != null, releasedFrame, Time.frameCount) || DebugScenarioExecutor.IsRunning;
+        public static bool IsConsoleBlocked => ShouldBlock(owned || activeLease != null, releasedFrame, Time.frameCount);
+        public static bool IsBlocked => IsConsoleBlocked || DebugScenarioExecutor.IsRunning;
         public static bool ConsoleOwnsInput => owned || activeLease != null;
         public static bool ShouldBlock(bool ownsInput, int released, int frame) => ownsInput || (released >= 0 && released == frame);
         public static void SetOwned(bool value) { owned = value; if (!value) releasedFrame = Time.frameCount; }

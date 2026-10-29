@@ -70,7 +70,7 @@ namespace Nekolpos.System
         {
             if (skipOpeningToggle == null) return;
             bool hasSave = Nekolpos.TimeSystem.TimeManager.HasSavedProgress;
-            skipOpeningToggle.SetIsOnWithoutNotify(hasSave && PlayerPrefs.GetInt(SkipOpeningPreferenceKey, 0) == 1);
+            skipOpeningToggle.SetIsOnWithoutNotify(hasSave && WorkerPlayerPrefs.GetInt(SkipOpeningPreferenceKey, 0) == 1);
             skipOpeningToggle.onValueChanged.RemoveListener(SaveSkipOpeningPreference);
             skipOpeningToggle.onValueChanged.AddListener(SaveSkipOpeningPreference);
             skipOpeningToggle.gameObject.SetActive(hasSave);
@@ -79,8 +79,8 @@ namespace Nekolpos.System
         private void SaveSkipOpeningPreference(bool enabled)
         {
             if (DebugSaveSession.IsIsolated) return;
-            PlayerPrefs.SetInt(SkipOpeningPreferenceKey, enabled ? 1 : 0);
-            PlayerPrefs.Save();
+            WorkerPlayerPrefs.SetInt(SkipOpeningPreferenceKey, enabled ? 1 : 0);
+            WorkerPlayerPrefs.Save();
         }
 
         public void Configure(string body, string startLabel, string aboutLabel, string quitLabel, Action onStart, Action onAbout, Action onQuit)

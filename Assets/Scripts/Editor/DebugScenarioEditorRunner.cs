@@ -32,6 +32,7 @@ namespace Nekolpos.EditorTools
             public bool sceneWasDirty, normalSavesPreserved, scenePreserved;
             public float duration;
             public DebugScenarioResult scenario, returned;
+            public ScenarioAwaitDiagnostics scenarioAwait;
             public DebugConsoleSnapshot afterCleanup;
             public DebugConsoleTrace.Entry[] trace;
             public List<Check> checks = new();
@@ -75,7 +76,7 @@ namespace Nekolpos.EditorTools
             if (ids == null || ids.Length == 0 || ids.Any(id => DebugScenarioCatalog.Find(id) == null)) throw new ArgumentException("許可済みIDの配列を指定してください");
             if (EditorApplication.isPlayingOrWillChangePlaymode || !string.IsNullOrEmpty(SessionState.GetString(PendingKey, ""))) throw new InvalidOperationException("Play/Runnerを停止してください");
             SessionState.SetString(BatchKey, string.Join("\n", ids.Skip(1)));
-            Request(ids[0]);
+            StartScenarioBatchRequest(() => Request(ids[0]), () => SessionState.EraseString(BatchKey));
         }
         [MenuItem("Nekolpos/Debug/Run Scenario normal.table")]
         private static void RunDefault() => Request("normal.table");
@@ -88,7 +89,7 @@ namespace Nekolpos.EditorTools
                 reproduction = "MainSceneを開いてPlay停止 → Nekolpos.EditorTools.DebugScenarioEditorRunner.Request(\"" + id + "\")。同じIDはF1シナリオ一覧でも使用可能。" };
         }
         private static string Reject(Report report, string status, string reason)
-        { report.status = status; report.automatedStatus = status; report.reason = reason; report.phase = "Finished"; report.finishedUtc = DateTime.UtcNow.ToString("O"); Save(report); SessionState.SetString(LastKey, report.reportPath); return report.reportPath; }
+        { SessionState.EraseString(BatchKey); report.status = status; report.automatedStatus = status; report.reason = reason; report.phase = "Finished"; report.finishedUtc = DateTime.UtcNow.ToString("O"); Save(report); SessionState.SetString(LastKey, report.reportPath); return report.reportPath; }
         private static void Save(Report report)
         {
             Directory.CreateDirectory(ReportDirectory);
@@ -115,24 +116,40 @@ namespace Nekolpos.EditorTools
             }
             if (change == PlayModeStateChange.EnteredEditMode)
             {
-                var report = LoadPending(); if (report == null) { DebugSaveSession.ReleaseAfterPlayStopped(); return; }
+                var report = LoadPending(); if (report == null) { EditorApplication.delayCall += DebugSaveSession.ReleaseAfterPlayStopped; return; }
+                if (report.phase != "AwaitingShutdown")
+                {
+                    report.status = report.automatedStatus = "Cancelled";
+                    report.reason = "試験の終了処理前にPlayが終了しました。reload後の継続は許可しません";
+                }
                 try
                 {
                     var baseline = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(report.reportPath + ".baseline"));
-                    report.normalSavesPreserved = DebugNormalSaveAudit.Matches(baseline, DebugNormalSaveAudit.Capture());
+                    var after = DebugNormalSaveAudit.Capture();
+                    File.WriteAllText(report.reportPath + ".after", Newtonsoft.Json.JsonConvert.SerializeObject(after));
+                    report.normalSavesPreserved = DebugNormalSaveAudit.Matches(baseline, after);
                     report.scenePreserved = OpenBetaSceneNames.IsMainGameplayScene(SceneManager.GetActiveScene().name) && SceneManager.GetActiveScene().isDirty == report.sceneWasDirty;
-                    report.checks.Add(new Check { name = "Normal saves/Prefs/CatData unchanged after shutdown", passed = report.normalSavesPreserved });
+                    report.checks.Add(new Check { name = "Normal saves/Prefs/CatData/Assets/EditorPrefs unchanged after shutdown", passed = report.normalSavesPreserved });
                     report.checks.Add(new Check { name = "Unsaved scene retained", passed = report.scenePreserved });
                     if (!report.normalSavesPreserved || !report.scenePreserved) { report.status = report.automatedStatus = "TestFailed"; report.reason = "終了後の保存またはScene保全監査が失敗しました"; }
                     report.phase = "Finished"; report.finishedUtc = DateTime.UtcNow.ToString("O"); Save(report);
                 }
-                catch (Exception e) { report.status = "EnvironmentUnavailable"; report.reason = "終了監査を実施できません: " + e.GetType().Name; Save(report); }
-                finally { SessionState.EraseString(PendingKey); active = null; cancellation?.Dispose(); cancellation = null; DebugSaveSession.ReleaseAfterPlayStopped(); }
+                catch (Exception e) { report.status = report.automatedStatus = "EnvironmentUnavailable"; report.phase = "Finished"; report.finishedUtc = DateTime.UtcNow.ToString("O"); report.reason = "終了監査を実施できません: " + e.GetType().Name; Save(report); }
+                finally
+                {
+                    // Clear a failed queue even when report persistence throws in the audit catch.
+                    if (!ShouldContinueScenarioBatch(report.phase, report.automatedStatus, report.normalSavesPreserved, report.scenePreserved))
+                        SessionState.EraseString(BatchKey);
+                    SessionState.EraseString(PendingKey); active = null; cancellation?.Dispose(); cancellation = null;
+                    EditorApplication.delayCall += DebugSaveSession.ReleaseAfterPlayStopped;
+                }
                 // Stop a batch on a failed preservation check rather than compounding damage.
-                if (!report.normalSavesPreserved || !report.scenePreserved) { SessionState.EraseString(BatchKey); return; }
-                string[] queue = SessionState.GetString(BatchKey, "").Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                if (queue.Length > 0)
-                { SessionState.SetString(BatchKey, string.Join("\n", queue.Skip(1))); EditorApplication.delayCall += () => Request(queue[0]); }
+                if (!ShouldContinueScenarioBatch(report.phase, report.automatedStatus, report.normalSavesPreserved, report.scenePreserved)) return;
+                string scheduledQueue = SessionState.GetString(BatchKey, "");
+                if (!string.IsNullOrEmpty(scheduledQueue))
+                    EditorApplication.delayCall += () => RunScheduledScenarioBatchRequest(scheduledQueue,
+                        () => SessionState.GetString(BatchKey, ""), value => SessionState.SetString(BatchKey, value),
+                        id => Request(id), () => SessionState.EraseString(BatchKey));
             }
         }
         private static void CaptureFailure(string text, string stack, LogType type)
@@ -153,7 +170,7 @@ namespace Nekolpos.EditorTools
                 var chat = Object.FindFirstObjectByType<ChatUIController>();
                 await DriveAsync(() => DebugConsoleGuard.GetBlockReason() == null, () => chat.AdvanceIsolatedDebugMessage(), token, 30);
                 report.phase = "Executing"; Save(report);
-                report.scenario = await DebugScenarioExecutor.RunAsync(report.scenarioId, token);
+                report.scenario = await RunScenarioWithDiaryGreetingAsync(report, b, chat, token);
                 report.correlationId = report.scenario.correlationId;
                 if (report.scenario.status == DebugScenarioStatus.Rejected.ToString()) throw new NotSupportedException(report.scenario.reason);
                 VerifyConsoleLifecycle(report);
@@ -187,11 +204,133 @@ namespace Nekolpos.EditorTools
             catch (Exception e) { report.status = report.automatedStatus = "TestFailed"; report.reason = e.GetType().Name; }
             finally
             {
-                report.duration = Time.realtimeSinceStartup - began; report.trace = DebugConsoleTrace.Read();
-                report.phase = "AwaitingShutdown"; Save(report); DebugSaveSession.Finish();
-                EditorApplication.isPlaying = false;
+                try
+                {
+                    report.duration = Time.realtimeSinceStartup - began; report.trace = DebugConsoleTrace.Read();
+                    report.phase = "AwaitingShutdown"; Save(report);
+                }
+                finally
+                {
+                    // Report IO/trace failure must not leave an unattended Play session alive.
+                    DebugSaveSession.Finish();
+                    EditorApplication.isPlaying = false;
+                }
             }
         }
+
+        // BEGIN MEMORY-ONLY SCENARIO AWAIT
+        internal static bool ShouldContinueScenarioBatch(string phase, string automatedStatus,
+            bool normalSavesPreserved, bool scenePreserved) =>
+            string.Equals(phase, "Finished", StringComparison.Ordinal) &&
+            string.Equals(automatedStatus, "Passed", StringComparison.Ordinal) &&
+            normalSavesPreserved && scenePreserved;
+
+        internal static void StartScenarioBatchRequest(Action request, Action clearQueue)
+        {
+            try { request(); }
+            catch { clearQueue(); throw; }
+        }
+
+        internal static void RunScheduledScenarioBatchRequest(string scheduledQueue,
+            Func<string> readQueue, Action<string> writeQueue, Action<string> request, Action clearQueue)
+        {
+            if (string.IsNullOrEmpty(scheduledQueue) ||
+                !string.Equals(readQueue(), scheduledQueue, StringComparison.Ordinal)) return;
+            string[] queue = scheduledQueue.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            if (queue.Length == 0) { clearQueue(); return; }
+            writeQueue(string.Join("\n", queue.Skip(1)));
+            StartScenarioBatchRequest(() => request(queue[0]), clearQueue);
+        }
+
+        [Serializable] public sealed class ScenarioAwaitDiagnostics
+        {
+            public string observedOperationFailureType;
+            public string cancellationFailureType;
+        }
+
+        internal static async global::System.Threading.Tasks.Task<T> AwaitScenarioTaskAsync<T>(
+            Func<CancellationToken, global::System.Threading.Tasks.Task<T>> start,
+            Func<bool> remainsValid, Func<bool> mayAdvance, Action advance,
+            Func<double> now, Func<CancellationToken, global::System.Threading.Tasks.Task> nextFrame,
+            CancellationToken token, double timeoutSeconds, ScenarioAwaitDiagnostics diagnostics)
+        {
+            if (start == null || remainsValid == null || mayAdvance == null || advance == null ||
+                now == null || nextFrame == null || diagnostics == null) throw new ArgumentNullException();
+            if (double.IsNaN(timeoutSeconds) || double.IsInfinity(timeoutSeconds) || timeoutSeconds <= 0)
+                throw new ArgumentOutOfRangeException(nameof(timeoutSeconds));
+            token.ThrowIfCancellationRequested();
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(token);
+            global::System.Threading.Tasks.Task<T> operation = null;
+            try
+            {
+                if (!remainsValid()) throw new OperationCanceledException("Scenario lifetime ended.", token);
+                double deadline = now() + timeoutSeconds, nextAdvance = double.NegativeInfinity;
+                operation = start(linked.Token) ?? throw new InvalidOperationException("Scenario task is missing.");
+                while (true)
+                {
+                    token.ThrowIfCancellationRequested();
+                    if (!remainsValid()) throw new OperationCanceledException("Scenario lifetime ended.", token);
+                    if (operation.IsCompleted) return await operation;
+                    double current = now();
+                    if (current >= deadline) throw new TimeoutException("Scenario execution exceeded its deadline.");
+                    if (current >= nextAdvance && mayAdvance())
+                    {
+                        // Gate evaluation may synchronously finish the operation. Never advance afterward.
+                        token.ThrowIfCancellationRequested();
+                        if (operation.IsCompleted) return await operation;
+                        if (!remainsValid()) throw new OperationCanceledException("Scenario lifetime ended.", token);
+                        advance();
+                        nextAdvance = current + .2;
+                    }
+                    token.ThrowIfCancellationRequested();
+                    if (!remainsValid()) throw new OperationCanceledException("Scenario lifetime ended.", token);
+                    if (operation.IsCompleted) return await operation;
+                    await nextFrame(linked.Token);
+                }
+            }
+            catch
+            {
+                // Cancel the real operation before unwinding to Finish/Play stop. Cleanup never awaits
+                // an uncooperative task; a fault-only observer consumes any eventual exception.
+                try { linked.Cancel(); }
+                catch (Exception error) { diagnostics.cancellationFailureType = error.GetType().Name; }
+                if (operation != null)
+                    _ = operation.ContinueWith(failed =>
+                    {
+                        var error = failed.Exception;
+                        Interlocked.Exchange(ref diagnostics.observedOperationFailureType,
+                            error?.InnerException?.GetType().Name ?? nameof(AggregateException));
+                    }, CancellationToken.None,
+                        global::System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted |
+                        global::System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously,
+                        global::System.Threading.Tasks.TaskScheduler.Default);
+                throw;
+            }
+        }
+        // END MEMORY-ONLY SCENARIO AWAIT
+
+        private static async UniTask<DebugScenarioResult> RunScenarioWithDiaryGreetingAsync(
+            Report report, NekolposGameBootstrap bootstrap, ChatUIController chat, CancellationToken token)
+        {
+            var kind = DebugScenarioCatalog.Find(report.scenarioId).Kind;
+            if (kind != DebugScenarioKind.DiaryNormal && kind != DebugScenarioKind.DiarySpecial)
+                return await DebugScenarioExecutor.RunAsync(report.scenarioId, token);
+            var clock = Object.FindFirstObjectByType<TimeManager>();
+            var dialogue = DialogueManager.Instance;
+            var diary = Object.FindFirstObjectByType<DiaryCalendarController>();
+            if (chat == null || clock == null || dialogue == null || diary == null)
+                throw new NotSupportedException("日記の正式な入力・時計・会話・日記が未接続です");
+            report.scenarioAwait = new ScenarioAwaitDiagnostics();
+            return await AwaitScenarioTaskAsync(
+                ct => DebugScenarioExecutor.RunAsync(report.scenarioId, ct).AsTask(),
+                () => DebugSaveSession.CanRunScenarios && bootstrap != null && bootstrap.isActiveAndEnabled &&
+                    bootstrap.HasEnteredGameplay && chat != null && clock != null && dialogue != null && diary != null,
+                () => clock.CurrentPeriod == DayPeriod.Night && dialogue.IsTimeFlowRunning && !diary.IsNightDiaryActive,
+                () => chat.AdvanceIsolatedScenarioMessage(),
+                () => Time.realtimeSinceStartupAsDouble,
+                ct => UniTask.Yield(PlayerLoopTiming.Update, ct, cancelImmediately: true).AsTask(), token, 60, report.scenarioAwait);
+        }
+
         private static void CheckOrFail(Report report, string name, bool passed)
         { report.checks.Add(new Check { name = name, passed = passed }); if (!passed) throw new InvalidOperationException(name); }
         private static void VerifyConsoleLifecycle(Report report)

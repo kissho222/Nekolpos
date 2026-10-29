@@ -99,7 +99,7 @@ namespace Nekolpos.System
             }
 
 #if UNITY_EDITOR
-            return PlayerPrefs.GetInt(EnablePlayerPrefsKey, 0) != 0;
+            return WorkerPlayerPrefs.GetInt(EnablePlayerPrefsKey, 0) != 0;
 #else
             return false;
 #endif
@@ -317,6 +317,7 @@ namespace Nekolpos.System
                 return;
             }
 
+            TestPersistenceContext.DenyDisk();
             string directory = Path.Combine(Application.persistentDataPath, "Logs", "PerfDiag");
             Directory.CreateDirectory(directory);
             csvPath = Path.Combine(directory, $"perfdiag_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
@@ -359,6 +360,7 @@ namespace Nekolpos.System
                 $"{BytesToMiB(allocatedDelta):F2},{BytesToMiB(managedDelta):F2},{gen0Delta},{gen1Delta},{gen2Delta}," +
                 $"{intervalLogMessages},{intervalWarnings},{intervalErrors},{logCount},{historyCount},{historyLoaded}," +
                 objectCounts.ToCsvColumns();
+            TestPersistenceContext.DenyDisk();
             File.AppendAllText(csvPath, line + Environment.NewLine, CsvEncoding);
         }
 

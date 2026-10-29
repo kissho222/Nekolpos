@@ -110,9 +110,21 @@ namespace Nekolpos.System
         {
             foreach (var profile in photoStudioProfiles)
             {
-                foreach (var component in profile.components) Destroy(component);
+                if (profile == null) continue;
+#if UNITY_EDITOR
+                if (EditorUtility.IsPersistent(profile)) continue;
+#endif
+                foreach (var component in profile.components)
+                {
+                    if (component == null) continue;
+#if UNITY_EDITOR
+                    if (EditorUtility.IsPersistent(component)) continue;
+#endif
+                    Destroy(component);
+                }
                 Destroy(profile);
             }
+            photoStudioProfiles.Clear();
         }
 
         private GameObject FindLightingObject(string objectName)
@@ -1173,8 +1185,10 @@ namespace Nekolpos.System
             float whiteBalanceTemperature,
             float whiteBalanceTint)
         {
+            bool transientProfile = photoStudioPreview;
 #if UNITY_EDITOR
-            VolumeProfile profile = photoStudioPreview
+            transientProfile |= DebugSaveSession.IsIsolated;
+            VolumeProfile profile = transientProfile
                 ? ScriptableObject.CreateInstance<VolumeProfile>()
                 : LoadOrCreateOpenBetaVolumeProfileAsset(name);
 #else
@@ -1182,7 +1196,7 @@ namespace Nekolpos.System
             profile.name = $"PV_OB_{name}_VolumeProfile_Runtime";
 #endif
 
-            if (photoStudioPreview) photoStudioProfiles.Add(profile);
+            if (transientProfile) photoStudioProfiles.Add(profile);
 
             WhiteBalance whiteBalance = GetOrAddVolumeComponent<WhiteBalance>(profile);
             whiteBalance.temperature.Override(whiteBalanceTemperature);
@@ -1198,7 +1212,7 @@ namespace Nekolpos.System
             tonemapping.mode.Override(TonemappingMode.ACES);
 
 #if UNITY_EDITOR
-            if (EditorUtility.IsPersistent(profile))
+            if (!transientProfile && EditorUtility.IsPersistent(profile))
             {
                 EditorUtility.SetDirty(profile);
                 AssetDatabase.SaveAssetIfDirty(profile);

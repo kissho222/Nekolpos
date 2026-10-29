@@ -31,8 +31,9 @@ namespace Nekolpos.EditorTools
             if (key != null)
                 foreach (string name in key.GetValueNames())
                 {
-                    // Unity changes these three engine session values on every Play; they are not game saves.
-                    if (name.StartsWith("unity.player_session_count_h", StringComparison.Ordinal) || name.StartsWith("unity.player_sessionid_h", StringComparison.Ordinal) || name.StartsWith("unity_connect.session_id_h", StringComparison.Ordinal)) continue;
+                    // Engine session metadata is separate from game saves. The fourth exact key
+                    // was observed on 6000.3.10f1 and verified in Unity's native engine constants.
+                    if (name.StartsWith("unity.player_session_count_h", StringComparison.Ordinal) || name.StartsWith("unity.player_sessionid_h", StringComparison.Ordinal) || name.StartsWith("unity_connect.session_id_h", StringComparison.Ordinal) || string.Equals(name, "unity_connect.mega_session_id_h1802243016", StringComparison.Ordinal)) continue;
                     object value = key.GetValue(name);
                     byte[] data = value is byte[] bytes ? bytes : Encoding.UTF8.GetBytes(Convert.ToString(value, global::System.Globalization.CultureInfo.InvariantCulture) ?? "");
                     result["prefs/" + name] = Hash(new MemoryStream(data));
@@ -44,6 +45,29 @@ namespace Nekolpos.EditorTools
                 var data = AssetDatabase.LoadAssetAtPath<CatDataSO>(path);
                 if (data != null) result["cat/" + guid] = Hash(new MemoryStream(Encoding.UTF8.GetBytes(EditorJsonUtility.ToJson(data))));
             }
+            // Include all authored assets: lighting profiles and the scene's disk contents are
+            // outside the progress stores but must also survive a scenario unchanged.
+            foreach (string path in Directory.GetFiles("Assets", "*", SearchOption.AllDirectories))
+            {
+                using var file = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                result["asset/" + path.Replace('\\', '/')] = Hash(file);
+            }
+#if UNITY_EDITOR_WIN
+            // Hash names too: EditorPrefs keys may contain local paths. Unknown changes fail
+            // preservation checks; no broad plugin/Unity exemption is silently applied.
+            using var editorPrefs = Registry.CurrentUser.OpenSubKey(@"Software\Unity Technologies\Unity Editor 5.x");
+            if (editorPrefs != null)
+                foreach (string name in editorPrefs.GetValueNames())
+                {
+                    object value = editorPrefs.GetValue(name);
+                    string kind = editorPrefs.GetValueKind(name).ToString();
+                    byte[] data = value is byte[] bytes ? bytes : Encoding.UTF8.GetBytes(value is string[] values
+                        ? string.Join("\0", values)
+                        : Convert.ToString(value, global::System.Globalization.CultureInfo.InvariantCulture) ?? "");
+                    string nameHash = Hash(new MemoryStream(Encoding.UTF8.GetBytes(name)));
+                    result["editorPrefs/" + nameHash] = kind + ":" + Hash(new MemoryStream(data));
+                }
+#endif
             return result;
         }
         private static string Hash(Stream data) { using var hash = SHA256.Create(); return BitConverter.ToString(hash.ComputeHash(data)).Replace("-", ""); }
