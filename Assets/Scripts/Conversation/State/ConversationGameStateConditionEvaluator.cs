@@ -87,6 +87,84 @@ namespace Backgammon.Conversation
             return false;
         }
 
+        public static void ValidateSyntax(string expression)
+        {
+            if (string.IsNullOrWhiteSpace(expression))
+            {
+                throw new FormatException("Condition expression is empty.");
+            }
+
+            string normalized = NormalizeLogicalOperators(expression);
+            MatchCollection locationMatches = LocationConditionRegex.Matches(normalized);
+            if (locationMatches.Count > 0)
+            {
+                normalized = LocationConditionRegex.Replace(normalized, string.Empty);
+                normalized = TrimLocationConditionDelimitersForSyntax(normalized);
+                if (string.IsNullOrWhiteSpace(normalized))
+                {
+                    return;
+                }
+            }
+
+            string[] orGroups = normalized.Split(new[] { "||" }, StringSplitOptions.None);
+            for (int groupIndex = 0; groupIndex < orGroups.Length; groupIndex++)
+            {
+                string[] clauses = orGroups[groupIndex].Split(new[] { "&&" }, StringSplitOptions.None);
+                for (int clauseIndex = 0; clauseIndex < clauses.Length; clauseIndex++)
+                {
+                    string clause = clauses[clauseIndex].Trim();
+                    if (string.IsNullOrWhiteSpace(clause))
+                    {
+                        throw new FormatException("Condition expression contains an empty logical operand.");
+                    }
+
+                    ValidateSingleClauseSyntax(clause);
+                }
+            }
+        }
+
+        private static void ValidateSingleClauseSyntax(string expression)
+        {
+            ValidateSingleClauseSyntax(expression, true);
+        }
+
+        private static void ValidateSingleClauseSyntax(string expression, bool allowShorthand)
+        {
+            string clause = expression.Trim();
+            if (allowShorthand && (TryGetShorthandCondition(clause, out _) ||
+                                   TryGetNegatedShorthandCondition(clause, out _)))
+            {
+                return;
+            }
+
+            if (clause.StartsWith("HasValue:", StringComparison.OrdinalIgnoreCase))
+            {
+                // Runtime treats an empty or unknown key as a false condition rather than a
+                // grammar error. Keep authoring acceptance compatible without resolving values.
+                return;
+            }
+
+            if (clause.StartsWith("!", StringComparison.Ordinal))
+            {
+                string inner = clause.Substring(1).Trim();
+                if (inner.StartsWith("(", StringComparison.Ordinal) && inner.EndsWith(")", StringComparison.Ordinal))
+                {
+                    inner = inner.Substring(1, inner.Length - 2).Trim();
+                }
+
+                // EvaluateSingleClause recursively handles negation. Reuse the same single-clause
+                // grammar so !HasValue, !(HasValue), repeated !, and !(comparison) stay compatible.
+                // Shorthand remains intentionally excluded here: Runtime !(Morning) is invalid.
+                ValidateSingleClauseSyntax(inner, false);
+                return;
+            }
+
+            if (!ExpressionRegex.IsMatch(clause))
+            {
+                throw new FormatException($"Invalid condition expression: '{expression}'");
+            }
+        }
+
         private static bool TryEvaluateLocationConditions(string expression, out string expressionWithoutLocationConditions)
         {
             MatchCollection matches = LocationConditionRegex.Matches(expression ?? string.Empty);
@@ -108,6 +186,26 @@ namespace Backgammon.Conversation
             expressionWithoutLocationConditions = LocationConditionRegex.Replace(expression, string.Empty);
             expressionWithoutLocationConditions = TrimDanglingLogicalOperators(expressionWithoutLocationConditions);
             return passedAllLocationConditions;
+        }
+
+        private static string TrimLocationConditionDelimitersForSyntax(string expression)
+        {
+            string trimmed = (expression ?? string.Empty).Trim();
+            while (trimmed.StartsWith("&&", StringComparison.Ordinal) ||
+                   trimmed.StartsWith("||", StringComparison.Ordinal))
+            {
+                trimmed = trimmed.Substring(2).TrimStart();
+            }
+
+            while (trimmed.EndsWith("&&", StringComparison.Ordinal) ||
+                   trimmed.EndsWith("||", StringComparison.Ordinal) ||
+                   trimmed.EndsWith(";", StringComparison.Ordinal))
+            {
+                int delimiterLength = trimmed.EndsWith(";", StringComparison.Ordinal) ? 1 : 2;
+                trimmed = trimmed.Substring(0, trimmed.Length - delimiterLength).TrimEnd();
+            }
+
+            return trimmed;
         }
 
         private static bool EvaluateLocationValues(string rawValues)
