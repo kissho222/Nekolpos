@@ -30,6 +30,7 @@ namespace Nekolpos.EditorTools
             public string runId, scenarioId, unityVersion, buildTarget, environment = "Unity Editor Play (isolated)",
                 status, automatedStatus, reason, startedUtc, finishedUtc, correlationId, phase, reportPath;
             public bool sceneWasDirty, normalSavesPreserved, scenePreserved;
+            public string scenePath;
             public float duration;
             public DebugScenarioResult scenario, returned;
             public ScenarioAwaitDiagnostics scenarioAwait;
@@ -55,9 +56,13 @@ namespace Nekolpos.EditorTools
             if (entry == null) return Reject(report, "Rejected", "許可リストにないIDです");
             if (EditorApplication.isPlayingOrWillChangePlaymode || !string.IsNullOrEmpty(SessionState.GetString(PendingKey, "")))
                 return Reject(report, "EnvironmentUnavailable", "Playを停止し、進行中のRunnerが終了してから実行してください");
-            if (EditorApplication.isCompiling || EditorApplication.isUpdating || !OpenBetaSceneNames.IsMainGameplayScene(SceneManager.GetActiveScene().name))
+            var scene = SceneManager.GetActiveScene();
+            if (EditorApplication.isCompiling || EditorApplication.isUpdating || !OpenBetaSceneNames.IsMainGameplayScene(scene.name))
                 return Reject(report, "EnvironmentUnavailable", "MainSceneを開き、コンパイル・Importの終了を待ってください");
-            report.sceneWasDirty = SceneManager.GetActiveScene().isDirty;
+            report.sceneWasDirty = scene.isDirty;
+            report.scenePath = scene.path;
+            if (SceneManager.sceneCount != 1 || report.sceneWasDirty || string.IsNullOrEmpty(report.scenePath))
+                return Reject(report, "EnvironmentUnavailable", "保存済みの検証用MainSceneだけを開いてください。未保存または複数のSceneでは実行できません");
             report.phase = "Starting"; report.status = "Running";
             try
             {
@@ -128,9 +133,11 @@ namespace Nekolpos.EditorTools
                     var after = DebugNormalSaveAudit.Capture();
                     File.WriteAllText(report.reportPath + ".after", Newtonsoft.Json.JsonConvert.SerializeObject(after));
                     report.normalSavesPreserved = DebugNormalSaveAudit.Matches(baseline, after);
-                    report.scenePreserved = OpenBetaSceneNames.IsMainGameplayScene(SceneManager.GetActiveScene().name) && SceneManager.GetActiveScene().isDirty == report.sceneWasDirty;
+                    var scene = SceneManager.GetActiveScene();
+                    report.scenePreserved = SceneManager.sceneCount == 1 && !report.sceneWasDirty && !string.IsNullOrEmpty(report.scenePath) &&
+                        string.Equals(scene.path, report.scenePath, StringComparison.Ordinal) && !scene.isDirty;
                     report.checks.Add(new Check { name = "Normal saves/Prefs/CatData/Assets/EditorPrefs unchanged after shutdown", passed = report.normalSavesPreserved });
-                    report.checks.Add(new Check { name = "Unsaved scene retained", passed = report.scenePreserved });
+                    report.checks.Add(new Check { name = "Same saved scene remains clean", passed = report.scenePreserved });
                     if (!report.normalSavesPreserved || !report.scenePreserved) { report.status = report.automatedStatus = "TestFailed"; report.reason = "終了後の保存またはScene保全監査が失敗しました"; }
                     report.phase = "Finished"; report.finishedUtc = DateTime.UtcNow.ToString("O"); Save(report);
                 }

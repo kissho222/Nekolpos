@@ -34,7 +34,7 @@ Runnerの終了時は通常保存・製品Prefs・CatDataに加え、Assets全�
 
 ## 再検証手順
 
-MainSceneを保存し、他のAssets編集を止め、compile/import・Play・前runの隔離解除が完了していることを確認する。既存MCPから次の1件を要求し、返されたローカルJSONが`phase=Finished`になるまで待つ。
+保存済みの検証用MainSceneを開き、他のAssets編集を止め、compile/import・Play・前runの隔離解除が完了していることを確認する。未保存・パスなし・複数Sceneの状態はPlay開始前に拒否する。終了時は同じSceneパスに戻り、dirtyでないことを、ディスク上のAssets照合と併せて確認する。既存MCPから次の1件を要求し、返されたローカルJSONが`phase=Finished`になるまで待つ。
 
 ```csharp
 Nekolpos.EditorTools.DebugScenarioEditorRunner.Request("diary.night.normal");
