@@ -887,10 +887,23 @@ namespace Nekolpos.System
 
         private void HandleDialogueComplete()
         {
-            SyncVariablesFromYarnToGameState();
+            CompleteDialogueStep(SyncVariablesFromYarnToGameState);
             currentNodeName = string.Empty;
-            chatUI?.HideChoices();
-            onDialogueComplete?.Invoke();
+            CompleteDialogueStep(() => chatUI?.HideChoices());
+            CompleteDialogueStep(() => onDialogueComplete?.Invoke());
+        }
+
+        private void CompleteDialogueStep(Action step)
+        {
+            try
+            {
+                step();
+            }
+            catch (Exception exception)
+            {
+                // Let the other completion steps and Yarn's runner finish cleanup.
+                UnityEngine.Debug.LogException(exception, this);
+            }
         }
 
         private async UniTask RunActionCommandAsync(string actionId)
