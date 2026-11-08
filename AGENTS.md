@@ -110,6 +110,10 @@ VR、配信連携、大規模カスタマイズ、独立した付加システム
 - 大規模置換が明確に有利な場合は、現状の問題、利点、移行コスト、既存データへの影響、リスクを提示してから実施する。
 - Editor拡張はRuntimeから分離し、ゲームBuild、WebGL、既存の通常会話、OBT、Timeline、TalkTheme、Unknown、状態・時間・天気・Relationshipの挙動に影響させない。
 
+## ショートPV制作
+
+- ショートPVの企画・撮影・編集・サムネイルを依頼されたら、着手時に [ショートPV制作手順](docs/ShortPVProduction.md) を確認する。最新の所有者指示を優先し、指定箇所の実プレイと専用撮影、原稿の表記と読み、字幕と会話UI、既定エンドカードを区別する。
+
 ## Git・ドキュメント・入力方針
 
 - 固定UIはRuntimeで新規生成せず、SceneまたはPrefabを見た目の正本とする。Runtimeは状態制御・イベント接続・値反映を担当し、Inspectorの位置・サイズ・余白・フォントを無条件に上書きしない。可変件数のUIだけRuntime生成を許可し、要素PrefabのInstantiateを優先する。詳細は `docs/FixedUiAuthoring.md` を参照する。
